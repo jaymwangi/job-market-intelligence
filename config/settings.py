@@ -1,6 +1,7 @@
 # config/settings.py
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,10 +36,14 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        """Build database URL with properly encoded password."""
+        # URL-encode the password to handle special characters (@, #, :, etc.)
+        encoded_password = quote_plus(self.database_password)
+        
         return (
-            f"postgresql://"
+            f"postgresql+psycopg://"
             f"{self.database_user}:"
-            f"{self.database_password}@"
+            f"{encoded_password}@"
             f"{self.database_host}:"
             f"{self.database_port}/"
             f"{self.database_name}"
