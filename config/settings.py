@@ -1,6 +1,5 @@
 # config/settings.py
 from functools import lru_cache
-from pathlib import Path
 from urllib.parse import quote_plus
 
 from pydantic import Field
@@ -24,12 +23,17 @@ class Settings(BaseSettings):
     environment: str = Field(default="development")
     debug: bool = Field(default=False)
 
-    # Database - these will be loaded from .env
+    # Database
     database_host: str = Field(default="localhost")
     database_port: int = Field(default=5432)
     database_name: str = Field(default="job_market_intelligence")
     database_user: str = Field(default="postgres")
     database_password: str = Field(default="password")
+
+    # Adzuna API
+    adzuna_base_url: str = Field(default="https://api.adzuna.com/v1/api")
+    adzuna_app_id: str = Field(default="")
+    adzuna_app_key: str = Field(default="")
 
     # Logging
     log_level: str = Field(default="INFO")
@@ -37,9 +41,8 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Build database URL with properly encoded password."""
-        # URL-encode the password to handle special characters (@, #, :, etc.)
         encoded_password = quote_plus(self.database_password)
-        
+
         return (
             f"postgresql+psycopg://"
             f"{self.database_user}:"
