@@ -1,13 +1,15 @@
 # Job Market Intelligence
 
-A production-oriented data engineering and analytics platform that collects, processes, and analyzes technology job market data to uncover skill demand, salary trends, hiring patterns, and workforce insights. The project follows a modular architecture with an ETL pipeline, REST API, analytics layer, and interactive dashboard.
+A production-oriented data engineering and analytics platform that collects, processes, and analyzes technology job market data to uncover skill demand, salary trends, hiring patterns, and workforce insights. The project follows a layered architecture with a complete ETL pipeline, REST API, analytics engine, and interactive dashboard.
 
 ## Features
 
-* Collect job postings from multiple sources
-* Normalize and validate job data
-* Store data in PostgreSQL
-* Track ETL pipeline executions
+* Extract job postings from external job APIs (currently Adzuna)
+* Transform external job data into a standardized internal format
+* Validate incoming data using Pydantic models
+* Load validated data into PostgreSQL
+* Prevent duplicate job records during ingestion
+* Track ETL pipeline executions and metadata
 * Analyze technology skills, salaries, and hiring trends
 * Serve data through a FastAPI backend
 * Visualize insights with a Streamlit dashboard
@@ -20,7 +22,7 @@ A production-oriented data engineering and analytics platform that collects, pro
 * FastAPI
 * SQLAlchemy 2.0
 * Alembic
-* Pydantic
+* Pydantic v2
 
 ### Database
 
@@ -39,11 +41,44 @@ A production-oriented data engineering and analytics platform that collects, pro
 * Git
 * GitHub
 
+## Architecture
+
+```text
+Adzuna API
+      │
+      ▼
+HTTP Client
+      │
+      ▼
+Extractor
+      │
+      ▼
+Transformer
+      │
+      ▼
+Validator (Pydantic)
+      │
+      ▼
+Loader
+      │
+      ▼
+Repository Layer
+      │
+      ▼
+PostgreSQL
+```
+
 ## Project Structure
 
 ```text
 app/
 ├── database/
+├── etl/
+│   ├── clients/
+│   ├── extractors/
+│   ├── transformers/
+│   ├── validators/
+│   └── loaders/
 ├── models/
 ├── repositories/
 ├── services/
@@ -52,50 +87,101 @@ api/
 ├── dependencies/
 └── routes/
 
-etl/
-├── extract/
-├── transform/
-└── load/
-
 dashboard/
 docs/
+migrations/
 scripts/
 tests/
-migrations/
 ```
 
 ## Current Progress
 
 ### ✅ Sprint 0 — Planning & Design
 
-* Requirements documentation
+* Requirements gathering
 * System architecture
-* Database schema
+* Database design
 * API contract
-* Sprint roadmap
+* Development roadmap
 
 ### ✅ Sprint 1 — Database Foundation
 
-* Project structure
+* Project initialization
 * Configuration management
 * PostgreSQL setup
-* SQLAlchemy ORM
+* SQLAlchemy ORM models
 * Database session management
 * Alembic migrations
 * Initial database schema
-* Repository layer skeleton
-* Database testing scripts
+* Repository layer
+* Database testing
 
-### 🚧 Sprint 2 — ETL Pipeline (Next)
+### ✅ Sprint 2 — ETL Pipeline
 
-* Data extraction
-* Validation
-* Transformation
-* Loading into PostgreSQL
+#### Sprint 2.1 — Extraction
+
+* HTTP client
+* Adzuna API integration
+* Job extractor
+* Extraction testing
+
+#### Sprint 2.2 — Transformation
+
+* Data transformation layer
+* Standardized internal job schema
+* Transformation testing
+
+#### Sprint 2.3 — Validation
+
+* Pydantic validation models
+* Business rule validation
+* Data quality checks
+* Validation testing
+
+#### Sprint 2.4 — Loading
+
+* Loading (Persistence) layer
+* Repository-based persistence
+* Duplicate detection
+* Transaction management
 * Pipeline execution tracking
+* End-to-end ETL integration test
 
-## Status
+## Current Status
 
-**Current Sprint:** ✅ Sprint 1 Complete
+### ✅ Completed
 
-**Next Milestone:** Sprint 2 — ETL Pipeline Development
+* Planning & Architecture
+* Database Foundation
+* Complete ETL Pipeline
+
+  * Extraction
+  * Transformation
+  * Validation
+  * Loading
+* Repository Layer
+* PostgreSQL Integration
+* Pipeline Run Tracking
+* End-to-End ETL Testing
+
+## Next Milestone
+
+### 🚧 Sprint 3 — REST API
+
+* FastAPI application
+* CRUD endpoints
+* Filtering and pagination
+* Search functionality
+* API documentation
+* Health checks
+* Repository integration
+
+## Project Roadmap
+
+* ✅ Sprint 0 — Planning
+* ✅ Sprint 1 — Database Foundation
+* ✅ Sprint 2 — ETL Pipeline
+* 🚧 Sprint 3 — REST API
+* ⏳ Sprint 4 — Analytics Engine
+* ⏳ Sprint 5 — Streamlit Dashboard
+* ⏳ Sprint 6 — Deployment & CI/CD
