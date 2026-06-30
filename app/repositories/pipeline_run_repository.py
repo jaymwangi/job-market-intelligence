@@ -1,22 +1,59 @@
 # app/repositories/pipeline_run_repository.py
-from typing import Optional, List
-from uuid import UUID
-from datetime import datetime
-from sqlalchemy.orm import Session
-from app.models.pipeline_run import PipelineRun
-from app.repositories.base import BaseRepository
+"""Pipeline run repository for tracking ETL runs."""
 
-class PipelineRunRepository(BaseRepository[PipelineRun]):
-    """
-    Repository for PipelineRun operations.
-    Starts empty - methods added when Sprint 2+ reveals actual needs.
-    """
+from datetime import datetime, timezone
+from typing import Optional
+from sqlalchemy.orm import Session
+
+from app.models.pipeline_run import PipelineRun
+
+
+class PipelineRunRepository:
+    """Repository for PipelineRun model operations."""
     
-    def __init__(self, db: Session):
-        super().__init__(PipelineRun, db)
+    def __init__(self, session: Session):
+        self.session = session
     
-    # No wrapper methods yet. Use BaseRepository directly:
-    # - repo.create(pipeline_name="scraper", status="running", ...)
-    # - repo.update(run_id, status="completed", completed_at=datetime.utcnow())
-    # - repo.find_all(status="failed")
-    # - repo.find_paginated(status="failed", order_by="started_at", descending=True)
+    def create(
+        self,
+        source_site: str,
+        started_at: Optional[datetime] = None,
+        status: str = "running",
+    ) -> PipelineRun:
+        """Create a new pipeline run."""
+        if started_at is None:
+            started_at = datetime.now(timezone.utc)
+        
+        run = PipelineRun(
+            source_site=source_site,
+            started_at=started_at,
+            status=status,
+            records_processed=0,
+        )
+        self.session.add(run)
+        self.session.flush()
+        return run
+    
+    def finish(
+        self,
+        run: PipelineRun,
+        status: str,
+        records_processed: int = 0,
+        error_message: Optional[str] = None,
+    ) -> PipelineRun:
+        """Finish a pipeline run with results."""
+        run.completed_at = datetime.now(timezone.utc)
+        run.status = status
+        run.records_processed = records_processed
+        
+        # Calculate duration in seconds using local variables
+        started = run.started_at
+        completed = run.completed_at
+        if started is not None and completed is not None:
+            run.duration_seconds = (completed - started).total_seconds()
+        
+        if error_message:
+            run.error_message = error_message
+        
+        self.session.flush()
+        return run
