@@ -1,8 +1,30 @@
 # Job Market Intelligence
 
-A production-oriented data engineering and analytics platform that collects, processes, and analyzes technology job market data to uncover skill demand, salary trends, hiring patterns, and workforce insights. The project follows a layered architecture with a complete ETL pipeline, analytics engine, REST API, and interactive dashboard.
+A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive dashboard.
 
-## Features
+The project is designed to demonstrate production-ready software engineering practices, including clean architecture, repository and service layers, data validation, analytics, and scalable backend development.
+
+---
+
+# Why This Project
+
+Many portfolio projects stop after collecting data.
+
+This project aims to simulate a real-world data platform by implementing:
+
+- A modular ETL pipeline
+- Layered architecture
+- Repository and Service patterns
+- Analytics engine
+- REST API
+- Interactive dashboard
+- Deployment-ready project structure
+
+The goal is to demonstrate backend engineering, data engineering, and analytics skills within a single cohesive application.
+
+---
+
+# Features
 
 - Extract job postings from external job APIs (currently Adzuna)
 - Transform external job data into a standardized internal format
@@ -13,37 +35,39 @@ A production-oriented data engineering and analytics platform that collects, pro
 - Perform analytics on skills, salaries, companies, locations, and hiring trends
 - Aggregate job market statistics through an Analytics Repository
 - Provide an Analytics Service for dashboard-oriented summaries
-- Serve data through a FastAPI backend *(planned)*
+- Serve analytics through a FastAPI backend *(planned)*
 - Visualize insights with a Streamlit dashboard *(planned)*
 
 ---
 
 # Tech Stack
 
-## Backend
+## Current
+
+### Backend
 
 - Python 3.13
-- FastAPI *(planned)*
 - SQLAlchemy 2.0
 - Alembic
 - Pydantic v2
 
-## Database
+### Database
 
 - PostgreSQL
 
-## Data Processing
+### Data Processing
 
 - Pandas
 
-## Dashboard
-
-- Streamlit *(planned)*
-
-## Development
+### Development
 
 - Git
 - GitHub
+
+## Planned
+
+- FastAPI
+- Streamlit
 
 ---
 
@@ -198,7 +222,7 @@ tests/
 - Analytics Service layer
 - Dashboard summary orchestration
 - Optional source filtering
-- Query cleanup
+- Query optimization
 - Repository improvements
 - Analytics integration testing
 - Dataset quality reporting
@@ -212,10 +236,6 @@ tests/
 - Planning & Architecture
 - Database Foundation
 - Complete ETL Pipeline
-    - Extraction
-    - Transformation
-    - Validation
-    - Loading
 - Repository Layer
 - PostgreSQL Integration
 - Pipeline Run Tracking
@@ -223,6 +243,24 @@ tests/
 - Analytics Service
 - Analytics Testing
 - End-to-End ETL Testing
+
+---
+
+# Testing
+
+The project includes testing for:
+
+- ETL pipeline
+- Repository layer
+- Analytics Repository
+- Analytics Service
+- End-to-end ETL workflow
+
+Run the analytics tests:
+
+```bash
+python -m scripts.test_analytics
+```
 
 ---
 
@@ -250,3 +288,22 @@ tests/
 - 🚧 Sprint 4 — FastAPI REST API
 - ⏳ Sprint 5 — Streamlit Dashboard
 - ⏳ Sprint 6 — Deployment & CI/CD
+
+---
+
+# Future Enhancements
+
+- Multiple job data sources
+- Scheduled ETL pipeline execution
+- Authentication and authorization
+- Containerization with Docker
+- CI/CD pipeline
+- Cloud deployment
+- Interactive analytics dashboard
+- Historical trend analysis
+
+---
+
+# License
+
+This project is licensed under the MIT License.
