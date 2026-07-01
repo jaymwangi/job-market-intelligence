@@ -7,9 +7,10 @@ project schema where company_name, location, and employment_type are stored
 directly on the Job table.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Optional, Tuple
+from datetime import datetime, timedelta, date as date_type
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 
 from app.models.job import Job
 from app.models.skill import Skill
@@ -20,7 +21,7 @@ class AnalyticsRepository:
     """
     Repository for analytics queries on job market data.
     
-    All methods are read-only and return raw query results.
+    All methods are read-only and return raw query results or ORM models.
     No business logic, formatting, or presentation concerns.
     """
     
@@ -32,6 +33,8 @@ class AnalyticsRepository:
             db: SQLAlchemy database session
         """
         self.db = db
+    
+    # ============ Sprint 3.1 Methods ============
     
     def get_top_skills(self, limit: int = 10) -> List[Tuple[str, int]]:
         """
@@ -123,7 +126,6 @@ class AnalyticsRepository:
             Values are floats rounded to 2 decimal places.
             If no salary data exists, all values are None.
         """
-        # Calculate each statistic independently
         stats = self.db.query(
             func.avg(Job.salary_min).label("avg_min"),
             func.avg(Job.salary_max).label("avg_max"),
@@ -131,7 +133,6 @@ class AnalyticsRepository:
             func.max(Job.salary_max).label("max_salary")
         ).first()
         
-        # Check if we have any data
         if stats and any(getattr(stats, col) is not None for col in ['avg_min', 'avg_max']):
             return {
                 "avg_min": round(float(stats.avg_min), 2) if stats.avg_min is not None else None,
@@ -169,3 +170,167 @@ class AnalyticsRepository:
         )
         
         return [(row[0], row[1]) for row in results]
+    
+    # ============ Sprint 3.2 Methods ============
+    
+    def get_salary_by_location(self, limit: int = 10) -> List[Tuple[str, float]]:
+        """
+        Calculate average salary grouped by location.
+        
+        Uses the average of salary_min and salary_max for each job,
+        then averages across jobs in each location.
+        
+        Args:
+            limit: Maximum number of locations to return
+            
+        Returns:
+            List of tuples (location, average_salary)
+        """
+        # Define salary expression once for reuse
+        avg_salary_expr = (Job.salary_min + Job.salary_max) / 2
+        
+        results = (
+            self.db.query(
+                Job.location,
+                func.avg(avg_salary_expr).label("avg_salary")
+            )
+            .filter(
+                Job.location.isnot(None),
+                Job.salary_min.isnot(None),
+                Job.salary_max.isnot(None)
+            )
+            .group_by(Job.location)
+            .order_by(func.avg(avg_salary_expr).desc())
+            .limit(limit)
+            .all()
+        )
+        
+        return [(row[0], float(row[1])) for row in results]
+    
+    def get_salary_by_company(self, limit: int = 10) -> List[Tuple[str, float]]:
+        """
+        Calculate average salary grouped by company.
+        
+        Uses the average of salary_min and salary_max for each job,
+        then averages across jobs for each company.
+        
+        Args:
+            limit: Maximum number of companies to return
+            
+        Returns:
+            List of tuples (company_name, average_salary)
+        """
+        # Define salary expression once for reuse
+        avg_salary_expr = (Job.salary_min + Job.salary_max) / 2
+        
+        results = (
+            self.db.query(
+                Job.company_name,
+                func.avg(avg_salary_expr).label("avg_salary")
+            )
+            .filter(
+                Job.company_name.isnot(None),
+                Job.salary_min.isnot(None),
+                Job.salary_max.isnot(None)
+            )
+            .group_by(Job.company_name)
+            .order_by(func.avg(avg_salary_expr).desc())
+            .limit(limit)
+            .all()
+        )
+        
+        return [(row[0], float(row[1])) for row in results]
+    
+    def get_jobs_posted_by_date(self) -> List[Tuple[date_type, int]]:
+        """
+        Get job posting count grouped by posted date.
+        
+        Returns:
+            List of tuples (date, job_count) sorted by date ascending
+        """
+        # Use SQLAlchemy's Date type for casting
+        results = (
+            self.db.query(
+                cast(Job.posted_date, Date).label("post_date"),
+                func.count(Job.id).label("job_count")
+            )
+            .filter(Job.posted_date.isnot(None))
+            .group_by(cast(Job.posted_date, Date))
+            .order_by(cast(Job.posted_date, Date).asc())
+            .all()
+        )
+        
+        return [(row[0], row[1]) for row in results]
+    
+    def get_recent_jobs(
+        self,
+        days: int = 30,
+        limit: int = 20
+    ) -> List[Job]:
+        """
+        Retrieve jobs posted within the last N days.
+        
+        Returns ORM Job objects, not dictionaries. This allows callers
+        to access all Job attributes and relationships as needed.
+        
+        Args:
+            days: Number of days to look back
+            limit: Maximum number of jobs to return
+            
+        Returns:
+            List of Job ORM models
+        """
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        results = (
+            self.db.query(Job)
+            .filter(Job.posted_date >= cutoff_date)
+            .order_by(Job.posted_date.desc())
+            .limit(limit)
+            .all()
+        )
+        
+        return results
+    
+    def get_salary_distribution(self) -> Dict[str, Optional[float]]:
+        """
+        Get comprehensive salary distribution statistics.
+        
+        Returns:
+            Dictionary with keys:
+                - average_salary: Average of all job salaries
+                - min_salary: Minimum salary
+                - max_salary: Maximum salary
+                - salary_records: Count of jobs with salary data
+        """
+        # Define salary expression once for reuse
+        avg_salary_expr = (Job.salary_min + Job.salary_max) / 2
+        
+        stats = (
+            self.db.query(
+                func.avg(avg_salary_expr).label("avg_salary"),
+                func.min(avg_salary_expr).label("min_salary"),
+                func.max(avg_salary_expr).label("max_salary"),
+                func.count(Job.id).label("salary_records")
+            )
+            .filter(
+                Job.salary_min.isnot(None),
+                Job.salary_max.isnot(None)
+            )
+            .first()
+        )
+        
+        if stats and stats.avg_salary is not None:
+            return {
+                "average_salary": round(float(stats.avg_salary), 2),
+                "min_salary": float(stats.min_salary),
+                "max_salary": float(stats.max_salary),
+                "salary_records": stats.salary_records
+            }
+        
+        return {
+            "average_salary": None,
+            "min_salary": None,
+            "max_salary": None,
+            "salary_records": 0
+        }
