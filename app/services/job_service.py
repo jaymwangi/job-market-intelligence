@@ -3,6 +3,7 @@
 
 from typing import Tuple, List, Optional
 from uuid import UUID
+from fastapi import HTTPException, status
 
 from app.repositories.job_repository import JobRepository
 from app.schemas.job import JobFilters
@@ -33,16 +34,34 @@ class JobService:
             
         Returns:
             Tuple of (jobs_list, total_count)
+            
+        Raises:
+            HTTPException: If pagination parameters are invalid
         """
         # Validate and sanitize pagination parameters
-        page = max(page, 1)
-        limit = min(max(limit, 1), 100)
+        if page < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="page must be >= 1"
+            )
+        
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="limit must be between 1 and 100"
+            )
 
         offset = (page - 1) * limit
 
         # Get jobs and total count
-        jobs = self.repo.get_jobs(filters, offset, limit, search_query)
-        total = self.repo.count_jobs(filters, search_query)
+        try:
+            jobs = self.repo.get_jobs(filters, offset, limit, search_query)
+            total = self.repo.count_jobs(filters, search_query)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve jobs"
+            )
 
         return jobs, total
 
@@ -51,9 +70,15 @@ class JobService:
         Get a single job by ID.
         
         Args:
-            job_id: Job ID to retrieve
+            job_id: Job UUID to retrieve
             
         Returns:
             Job object or None if not found
         """
-        return self.repo.get_by_id(job_id)
+        try:
+            return self.repo.get_by_id(job_id)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve job"
+            )

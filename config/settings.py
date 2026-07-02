@@ -1,10 +1,10 @@
 # config/settings.py
 from functools import lru_cache
 from urllib.parse import quote_plus
-from typing import List
-
-from pydantic import Field
+from typing import List, Optional
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",  # Ignore extra environment variables
+        extra="ignore",
     )
 
     # Application
@@ -54,7 +54,6 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         """Build database URL with properly encoded password."""
         encoded_password = quote_plus(self.database_password)
-
         return (
             f"postgresql+psycopg://"
             f"{self.database_user}:"
@@ -63,6 +62,32 @@ class Settings(BaseSettings):
             f"{self.database_port}/"
             f"{self.database_name}"
         )
+
+    @field_validator("environment")
+    @classmethod
+    def validate_environment(cls, v: str) -> str:
+        """Validate that environment is one of the allowed values."""
+        allowed = {"development", "testing", "production"}
+        if v not in allowed:
+            raise ValueError(f"environment must be one of {allowed}")
+        return v
+
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
+        """Validate that log level is valid."""
+        allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if v.upper() not in allowed:
+            raise ValueError(f"log_level must be one of {allowed}")
+        return v.upper()
+
+    @field_validator("database_port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        """Validate that database port is in valid range."""
+        if not (1 <= v <= 65535):
+            raise ValueError("database_port must be between 1 and 65535")
+        return v
 
 
 @lru_cache

@@ -19,3 +19,5 @@ ruff
 alembic
 
 python-multipart
+
+loguru>=0.7.0

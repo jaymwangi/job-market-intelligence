@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional
 
+from config import get_logger
 from app.database.session import get_db
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.services.analytics_service import AnalyticsService
@@ -21,6 +22,7 @@ from app.schemas.analytics import (
     DashboardSummaryResponse,
 )
 
+logger = get_logger("app.api.routes.analytics")
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
