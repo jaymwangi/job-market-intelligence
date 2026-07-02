@@ -1,6 +1,7 @@
 # config/settings.py
 from functools import lru_cache
 from urllib.parse import quote_plus
+from typing import List
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -37,6 +38,17 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = Field(default="INFO")
+    
+    # API Configuration
+    api_title: str = Field(default="Job Market Intelligence API")
+    api_description: str = Field(
+        default="REST API for technology job market analytics and insights."
+    )
+    api_version: str = Field(default="1.0.0")
+    api_prefix: str = Field(default="/api/v1")
+    allowed_origins: List[str] = Field(
+        default=["http://localhost:3000", "http://localhost:8501", "http://localhost:8000"]
+    )
 
     @property
     def database_url(self) -> str:

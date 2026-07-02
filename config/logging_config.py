@@ -2,48 +2,36 @@
 import logging
 import sys
 from typing import Optional
-
-from config import settings
+from config.settings import settings
 
 
 def setup_logging(level: Optional[str] = None) -> None:
     """
-    Configure logging for the application.
+    Configure application logging.
     
     Args:
-        level: Optional log level override. If not provided, uses settings.LOG_LEVEL.
+        level: Optional log level override (defaults to settings.log_level)
     """
-    log_level = level or settings.log_level
+    log_level = getattr(logging, (level or settings.log_level).upper(), logging.INFO)
     
-    # Convert string to logging level
-    numeric_level = getattr(logging, log_level.upper(), logging.INFO)
-    
-    # Configure root logger
     logging.basicConfig(
-        level=numeric_level,
+        level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-        ],
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[logging.StreamHandler(sys.stdout)],
+        force=settings.debug,  # Only force during development
     )
     
-    # Set third-party loggers to WARNING to reduce noise
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    # Reduce noise from third-party libraries
+    logging.getLogger("uvicorn").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
     
-    # For development, show SQLAlchemy queries
+    # Optional: Show SQLAlchemy queries in debug mode
     if settings.debug:
         logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 
-def get_logger(name: str) -> logging.Logger:
-    """
-    Get a logger instance with the specified name.
-    
-    Args:
-        name: Logger name (usually __name__)
-    
-    Returns:
-        Logger instance
-    """
+def get_logger(name: str = "job_market_api") -> logging.Logger:
+    """Get a logger instance."""
     return logging.getLogger(name)
