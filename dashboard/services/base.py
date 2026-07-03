@@ -1,15 +1,12 @@
-from api.client import APIClient
-from core.config import settings
-
 class BaseService:
-    """Base service with API client."""
+    """
+    Base service class that all services inherit from.
     
-    def __init__(self):
-        self._client = APIClient(
-            base_url=settings.API_BASE_URL,
-            timeout=settings.API_TIMEOUT
-        )
+    Provides:
+    - API client injection
+    - Common utility methods
+    - Consistent service interface
+    """
     
-    @property
-    def client(self) -> APIClient:
-        return self._client
+    def __init__(self, api_client):
+        self.api = api_client  # Consistent attribute name

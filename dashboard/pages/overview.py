@@ -1,20 +1,28 @@
 import streamlit as st
 
-from core.config import settings
-from services.health import HealthService
-from components.alerts import show_error, show_success, show_warning
+from dashboard.core.config import settings
+from dashboard.services.health import HealthService
+from dashboard.api.client import APIClient
+from dashboard.components.alerts import show_error, show_success, show_warning
+
 
 def render():
     """Render the overview page."""
     st.title("📊 Overview")
     st.markdown(f"Welcome to the **{settings.APP_TITLE}**.")
-    st.markdown("This page will contain dashboard metrics and summary statistics.")
+    st.markdown("---")
+    
+    st.markdown("### 📈 Dashboard Summary")
+    st.markdown("Dashboard metrics and summary statistics will appear here.")
+    st.caption("🚧 Sprint 5.3 will add analytics charts and insights.")
     st.markdown("---")
     
     # Test API connectivity
     with st.expander("🔌 API Connection Status", expanded=True):
         try:
-            service = HealthService()
+            # Create API client and pass to service
+            api_client = APIClient(settings.API_BASE_URL, settings.API_TIMEOUT)
+            service = HealthService(api_client)
             health = service.check()
             
             if health.status == "ok":

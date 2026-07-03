@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 
+
 @dataclass
 class Settings:
     """Application configuration."""
@@ -12,5 +13,9 @@ class Settings:
     # Application
     APP_TITLE: str = os.getenv("APP_TITLE", "Job Market Dashboard")
     APP_ICON: str = os.getenv("APP_ICON", "📊")
+    
+    # Caching
+    CACHE_TTL: int = int(os.getenv("CACHE_TTL", "300"))  # 5 minutes default
+
 
 settings = Settings()

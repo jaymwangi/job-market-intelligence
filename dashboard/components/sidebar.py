@@ -1,15 +1,12 @@
 import streamlit as st
-
 from core.config import settings
 from utils.state import StateManager
 
 def render_sidebar():
-    """Render the sidebar navigation."""
     with st.sidebar:
         st.title(f"{settings.APP_ICON} {settings.APP_TITLE}")
         st.markdown("---")
         
-        # Navigation buttons
         pages = {
             "📊 Overview": "overview",
             "💼 Jobs": "jobs",
@@ -23,4 +20,4 @@ def render_sidebar():
                 st.rerun()
         
         st.markdown("---")
-        st.caption("Sprint 5.1 • Foundation")
+        st.caption("Sprint 5.2 • Job Explorer")
