@@ -1,21 +1,30 @@
+# dashboard/components/alerts.py
+"""Alert components."""
 import streamlit as st
 
 
 def show_error(message: str):
-    """Show an error message."""
+    """Show error alert."""
     st.error(f"❌ {message}")
 
 
 def show_success(message: str):
-    """Show a success message."""
+    """Show success alert."""
     st.success(f"✅ {message}")
 
 
 def show_warning(message: str):
-    """Show a warning message."""
+    """Show warning alert."""
     st.warning(f"⚠️ {message}")
 
 
 def show_info(message: str):
-    """Show an info message."""
+    """Show info alert."""
     st.info(f"ℹ️ {message}")
+
+
+def show_api_error(error: Exception):
+    """Show API error with details."""
+    st.error(f"🚨 API Error: {str(error)}")
+    with st.expander("Error Details"):
+        st.code(f"Type: {type(error).__name__}\nMessage: {str(error)}")

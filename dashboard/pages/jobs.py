@@ -1,4 +1,7 @@
+# dashboard/pages/jobs.py
+"""Professional Job Explorer page with modern UI."""
 import streamlit as st
+import time
 
 from dashboard.utils import StateManager
 from dashboard.utils.service_factory import get_jobs_service
@@ -10,8 +13,24 @@ from dashboard.components.alerts import show_error
 from dashboard.schemas import JobFilters
 from dashboard.core.config import settings
 
+# Professional color palette
+COLORS = {
+    "primary": "#1a1a2e",
+    "secondary": "#16213e",
+    "accent": "#0f3460",
+    "highlight": "#e94560",
+    "success": "#00b894",
+    "warning": "#fdcb6e",
+    "info": "#0984e3",
+    "background": "#f8f9fa",
+    "card_bg": "#ffffff",
+    "text": "#2d3436",
+    "text_light": "#636e72",
+    "border": "#e9ecef",
+}
 
-@st.cache_data(ttl=settings.CACHE_TTL)  # Use configurable TTL
+
+@st.cache_data(ttl=settings.CACHE_TTL)
 def fetch_jobs_cached(_service, search, company, location, source_site, min_salary, max_salary, page, page_size):
     """
     Cached function to fetch jobs.
@@ -31,22 +50,108 @@ def fetch_jobs_cached(_service, search, company, location, source_site, min_sala
 
 
 def render():
-    """Render the Job Explorer page."""
-    st.title("💼 Job Explorer")
-    
+    """Render the professional Job Explorer page."""
+    # Custom CSS for professional styling
+    st.markdown(f"""
+    <style>
+        .jobs-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }}
+        .jobs-title {{
+            font-size: 2rem;
+            font-weight: 700;
+            color: {COLORS['primary']};
+            letter-spacing: -0.02em;
+            margin: 0;
+        }}
+        .jobs-subtitle {{
+            font-size: 0.95rem;
+            color: {COLORS['text_light']};
+            font-weight: 400;
+            margin-top: 0.25rem;
+        }}
+        .jobs-stats {{
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1.25rem;
+            background: {COLORS['card_bg']};
+            border-radius: 10px;
+            border: 1px solid {COLORS['border']};
+            margin: 1rem 0 1.5rem 0;
+        }}
+        .jobs-stat-item {{
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }}
+        .jobs-stat-number {{
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: {COLORS['primary']};
+        }}
+        .jobs-stat-label {{
+            color: {COLORS['text_light']};
+            font-size: 0.85rem;
+        }}
+        .jobs-stat-divider {{
+            color: {COLORS['border']};
+            font-size: 1.25rem;
+        }}
+        .jobs-container {{
+            background: {COLORS['card_bg']};
+            border-radius: 12px;
+            border: 1px solid {COLORS['border']};
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }}
+        .jobs-empty {{
+            text-align: center;
+            padding: 4rem 2rem;
+        }}
+        .jobs-empty-icon {{
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }}
+        .jobs-empty-title {{
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: {COLORS['primary']};
+            margin-bottom: 0.5rem;
+        }}
+        .jobs-empty-description {{
+            color: {COLORS['text_light']};
+            font-size: 0.95rem;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Header
+    st.markdown("""
+    <div class="jobs-header">
+        <div>
+            <div class="jobs-title">Job Explorer</div>
+            <div class="jobs-subtitle">Search and explore job opportunities in the technology market</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # Get service singleton
     service = get_jobs_service()
-    
+
     # 1. Get filters from state
     raw_filters = render_filters()
     current_filters = StateManager.get_jobs_filters()
-    
+
     if raw_filters != current_filters:
         StateManager.set_jobs_filters(raw_filters)
         StateManager.reset_jobs_context()
-    
+
     ui_filters = StateManager.get_jobs_filters()
-    
+
     def to_float_or_none(value):
         if value is None:
             return None
@@ -54,7 +159,7 @@ def render():
             return float(value)
         except (ValueError, TypeError):
             return None
-    
+
     # Extract filter values for caching
     search = ui_filters.get("search")
     company = ui_filters.get("company")
@@ -62,40 +167,78 @@ def render():
     source_site = ui_filters.get("source_site")
     min_salary = to_float_or_none(ui_filters.get("min_salary"))
     max_salary = to_float_or_none(ui_filters.get("max_salary"))
-    
+
     # Get pagination state
     page = StateManager.get_jobs_page()
     page_size = StateManager.get_jobs_page_size()
-    
+
     # Fetch data with caching
     try:
         response = fetch_jobs_cached(
-            service, search, company, location, source_site, 
+            service, search, company, location, source_site,
             min_salary, max_salary, page, page_size
         )
     except Exception as e:
         show_error(f"Failed to load jobs: {str(e)}")
         return
-    
+
     jobs = response.items
-    
-    # Show results count
+
+    # Stats bar
     if response.total > 0:
-        st.caption(f"Showing {len(jobs)} of {response.total} jobs")
+        st.markdown(f"""
+        <div class="jobs-stats">
+            <div class="jobs-stat-item">
+                <span class="jobs-stat-number">{response.total:,}</span>
+                <span class="jobs-stat-label">total jobs</span>
+            </div>
+            <span class="jobs-stat-divider">•</span>
+            <div class="jobs-stat-item">
+                <span class="jobs-stat-number">{len(jobs):,}</span>
+                <span class="jobs-stat-label">shown on this page</span>
+            </div>
+            <span class="jobs-stat-divider">•</span>
+            <div class="jobs-stat-item">
+                <span class="jobs-stat-number">{response.total_pages}</span>
+                <span class="jobs-stat-label">pages</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.caption("No jobs found")
-    
+        st.markdown("""
+        <div class="jobs-stats">
+            <div class="jobs-stat-item">
+                <span class="jobs-stat-number">0</span>
+                <span class="jobs-stat-label">jobs found</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     # Render content
     if not jobs:
+        st.markdown("""
+        <div class="jobs-empty">
+            <div class="jobs-empty-icon">🔍</div>
+            <div class="jobs-empty-title">No jobs found</div>
+            <div class="jobs-empty-description">Try adjusting your search criteria or removing some filters</div>
+        </div>
+        """, unsafe_allow_html=True)
         render_empty_state()
         return
-    
+
+    # Render jobs in a professional container
+    st.markdown('<div class="jobs-container">', unsafe_allow_html=True)
+
     # Render jobs table with inline expansion
     render_jobs_table(jobs)
-    
-    # Render pagination
-    render_pagination(page, response.total_pages)
-    
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Render pagination with professional styling
+    if response.total_pages > 1:
+        st.markdown("---")
+        render_pagination(page, response.total_pages)
+
     # Safety guard - prevents invalid pagination states
     if page > response.total_pages and response.total_pages > 0:
         StateManager.set_jobs_page(response.total_pages)
