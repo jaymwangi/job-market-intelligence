@@ -1,17 +1,19 @@
 # dashboard/pages/jobs.py
 """Professional Job Explorer page with modern UI."""
-import streamlit as st
-import time
 
+import streamlit as st
+from datetime import datetime
+
+from dashboard.components.alerts import show_error
+from dashboard.components.empty_state import render_empty_state
+from dashboard.components.filters import render_filters
+from dashboard.components.pagination import render_pagination
+from dashboard.components.tables import render_jobs_table
+from dashboard.components.icons import get_icon
+from dashboard.core.config import settings
+from dashboard.schemas import JobFilters
 from dashboard.utils import StateManager
 from dashboard.utils.service_factory import get_jobs_service
-from dashboard.components.filters import render_filters
-from dashboard.components.tables import render_jobs_table
-from dashboard.components.pagination import render_pagination
-from dashboard.components.empty_state import render_empty_state
-from dashboard.components.alerts import show_error
-from dashboard.schemas import JobFilters
-from dashboard.core.config import settings
 
 # Professional color palette
 COLORS = {
@@ -31,10 +33,20 @@ COLORS = {
 
 
 @st.cache_data(ttl=settings.CACHE_TTL)
-def fetch_jobs_cached(_service, search, company, location, source_site, min_salary, max_salary, page, page_size):
+def fetch_jobs_cached(
+    _service,
+    search,
+    company,
+    location,
+    source_site,
+    min_salary,
+    max_salary,
+    page,
+    page_size,
+):
     """
     Cached function to fetch jobs.
-    
+
     The underscore prefix on _service tells Streamlit not to hash it.
     TTL is configured in settings (default: 300 seconds / 5 minutes).
     """
@@ -52,7 +64,8 @@ def fetch_jobs_cached(_service, search, company, location, source_site, min_sala
 def render():
     """Render the professional Job Explorer page."""
     # Custom CSS for professional styling
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <style>
         .jobs-header {{
             display: flex;
@@ -126,18 +139,39 @@ def render():
             color: {COLORS['text_light']};
             font-size: 0.95rem;
         }}
+        .stat-icon {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.25rem;
+        }}
+        .header-icon-wrapper {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+        }}
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
-    # Header
-    st.markdown("""
+    # Header with SVG icon - fixed spacing
+    header_icon = get_icon("jobs", size=32, color="#1a1a2e")
+    st.markdown(
+        f"""
     <div class="jobs-header">
-        <div>
-            <div class="jobs-title">Job Explorer</div>
-            <div class="jobs-subtitle">Search and explore job opportunities in the technology market</div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span class="header-icon-wrapper">{header_icon}</span>
+            <div>
+                <div class="jobs-title">Job Explorer</div>
+                <div class="jobs-subtitle">Search and explore job opportunities in the technology market</div>
+            </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Get service singleton
     service = get_jobs_service()
@@ -175,8 +209,15 @@ def render():
     # Fetch data with caching
     try:
         response = fetch_jobs_cached(
-            service, search, company, location, source_site,
-            min_salary, max_salary, page, page_size
+            service,
+            search,
+            company,
+            location,
+            source_site,
+            min_salary,
+            max_salary,
+            page,
+            page_size,
         )
     except Exception as e:
         show_error(f"Failed to load jobs: {str(e)}")
@@ -184,16 +225,22 @@ def render():
 
     jobs = response.items
 
-    # Stats bar
+    # Stats bar with SVG icons
+    jobs_icon = get_icon("jobs", size=16, color="#1a1a2e")
+    page_icon = get_icon("overview", size=16, color="#1a1a2e")
+    
     if response.total > 0:
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div class="jobs-stats">
             <div class="jobs-stat-item">
+                <span class="stat-icon">{jobs_icon}</span>
                 <span class="jobs-stat-number">{response.total:,}</span>
                 <span class="jobs-stat-label">total jobs</span>
             </div>
             <span class="jobs-stat-divider">•</span>
             <div class="jobs-stat-item">
+                <span class="stat-icon">{page_icon}</span>
                 <span class="jobs-stat-number">{len(jobs):,}</span>
                 <span class="jobs-stat-label">shown on this page</span>
             </div>
@@ -203,36 +250,47 @@ def render():
                 <span class="jobs-stat-label">pages</span>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
     else:
-        st.markdown("""
+        st.markdown(
+            f"""
         <div class="jobs-stats">
             <div class="jobs-stat-item">
+                <span class="stat-icon">{jobs_icon}</span>
                 <span class="jobs-stat-number">0</span>
                 <span class="jobs-stat-label">jobs found</span>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
     # Render content
     if not jobs:
-        st.markdown("""
+        empty_icon = get_icon("jobs", size=48, color="#636e72")
+        st.markdown(
+            f"""
         <div class="jobs-empty">
-            <div class="jobs-empty-icon">🔍</div>
+            <div class="jobs-empty-icon">{empty_icon}</div>
             <div class="jobs-empty-title">No jobs found</div>
             <div class="jobs-empty-description">Try adjusting your search criteria or removing some filters</div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
         render_empty_state()
         return
 
     # Render jobs in a professional container
     st.markdown('<div class="jobs-container">', unsafe_allow_html=True)
 
-    # Render jobs table with inline expansion
+    # IMPORTANT: Use render_jobs_table for proper job display with expansion
+    # This preserves the individual job view functionality
     render_jobs_table(jobs)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # Render pagination with professional styling
     if response.total_pages > 1:

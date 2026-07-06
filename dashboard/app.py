@@ -1,10 +1,11 @@
 # dashboard/app.py
 """Professional Streamlit dashboard application."""
-import streamlit as st
-import sys
-import os
-from datetime import datetime
+
 import logging
+import os
+import sys
+
+import streamlit as st
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,9 +16,10 @@ dashboard_dir = os.path.dirname(os.path.abspath(__file__))
 if dashboard_dir not in sys.path:
     sys.path.insert(0, dashboard_dir)
 
-from core.config import settings
-from utils.state import StateManager
-from components.sidebar import render_sidebar
+# Imports after sys.path modification - suppress E402
+from components.sidebar import render_sidebar  # noqa: E402
+from core.config import settings  # noqa: E402
+from utils.state import StateManager  # noqa: E402
 
 # Professional color palette
 COLORS = {
@@ -44,7 +46,8 @@ st.set_page_config(
 )
 
 # Professional custom CSS
-st.markdown(f"""
+st.markdown(
+    f"""
 <style>
     /* Reset and base styles */
     .main {{
@@ -118,33 +121,42 @@ st.markdown(f"""
         transform: translateY(0);
     }}
     
-    /* Metric cards */
+    /* Professional Metric Cards - Enhanced */
     .stMetric {{
         background: {COLORS['card_bg']};
         padding: 1.25rem;
         border-radius: 12px;
         border: 1px solid {COLORS['border']};
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        transition: all 0.2s ease;
+        transition: all 0.25s ease;
+        cursor: default;
     }}
     
     .stMetric:hover {{
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        transform: translateY(-3px);
+        border-color: {COLORS['accent']}30;
     }}
     
     .stMetric label {{
         color: {COLORS['text_light']};
         font-weight: 500;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.06em;
     }}
     
     .stMetric div[data-testid="stMetricValue"] {{
         color: {COLORS['primary']};
         font-weight: 700;
         font-size: 1.75rem;
+        letter-spacing: -0.02em;
+        margin-top: 4px;
+    }}
+    
+    .stMetric div[data-testid="stMetricDelta"] {{
+        font-size: 0.85rem;
+        font-weight: 500;
     }}
     
     /* Tabs styling */
@@ -314,7 +326,9 @@ st.markdown(f"""
         background: {COLORS['text']};
     }}
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # Initialize session state
 StateManager.init()
@@ -324,14 +338,6 @@ render_sidebar()
 
 # Get navigation state
 page = StateManager.get_current_page()
-
-# Page routing with professional page titles
-page_titles = {
-    "overview": "Dashboard Overview",
-    "jobs": "Job Explorer",
-    "analytics": "Market Analytics",
-    "about": "About"
-}
 
 # Page routing
 try:
@@ -354,7 +360,8 @@ except Exception as e:
     logger.error(f"Page load error: {e}", exc_info=True)
 
 # Professional Footer
-st.markdown("""
+st.markdown(
+    """
 <div class="footer">
     <div class="footer-text">
         <strong>Job Market Intelligence</strong> • Real-time analytics platform
@@ -363,4 +370,6 @@ st.markdown("""
         © 2024 • Data powered by FastAPI backend
     </div>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)

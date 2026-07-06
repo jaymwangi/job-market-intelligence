@@ -1,14 +1,17 @@
 # dashboard/utils/formatting.py
 """Formatting utilities."""
-from typing import Any, Optional
+
 import re
+from typing import Optional
 
 
-def format_currency(amount: Optional[float], currency: str = "USD", locale: str = "en_US") -> str:
+def format_currency(
+    amount: Optional[float], currency: str = "USD", locale: str = "en_US"
+) -> str:
     """Format currency values."""
     if amount is None:
         return "N/A"
-    
+
     # Simple formatting without locale dependency
     if currency.upper() in ["USD", "CAD", "AUD", "NZD", "SGD"]:
         symbol = "$"
@@ -18,7 +21,7 @@ def format_currency(amount: Optional[float], currency: str = "USD", locale: str 
         symbol = "£"
     else:
         symbol = currency
-    
+
     return f"{symbol}{amount:,.0f}"
 
 
@@ -26,7 +29,7 @@ def format_number(num: Optional[float], decimals: int = 0) -> str:
     """Format numbers with commas."""
     if num is None:
         return "N/A"
-    
+
     if decimals == 0:
         return f"{num:,.0f}"
     else:
@@ -47,13 +50,13 @@ def truncate_text(text: str, max_length: int = 100) -> str:
 
 def to_snake_case(text: str) -> str:
     """Convert text to snake_case."""
-    text = re.sub(r'([A-Z])', r'_\1', text).lower()
-    text = re.sub(r'[^a-z0-9_]', '_', text)
-    text = re.sub(r'_+', '_', text)
-    return text.strip('_')
+    text = re.sub(r"([A-Z])", r"_\1", text).lower()
+    text = re.sub(r"[^a-z0-9_]", "_", text)
+    text = re.sub(r"_+", "_", text)
+    return text.strip("_")
 
 
 def to_title_case(text: str) -> str:
     """Convert text to title case."""
-    text = re.sub(r'_', ' ', text)
+    text = re.sub(r"_", " ", text)
     return text.title()

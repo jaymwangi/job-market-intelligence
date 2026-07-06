@@ -1,8 +1,8 @@
 # Job Market Intelligence
 
-A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive dashboard.
+A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive analytics dashboard.
 
-The project demonstrates production-ready software engineering practices, including clean architecture, layered design, repository and service patterns, data validation, analytics, and scalable backend development.
+The project demonstrates production-ready software engineering practices, including clean architecture, layered design, repository and service patterns, data validation, analytics, scalable backend development, and modern frontend integration.
 
 ---
 
@@ -10,21 +10,24 @@ The project demonstrates production-ready software engineering practices, includ
 
 Many portfolio projects stop after collecting data.
 
-This project aims to simulate a real-world data platform by implementing:
+This project simulates a real-world data platform by implementing:
 
 * Modular ETL pipeline
 * Layered architecture
 * Repository and Service patterns
 * Analytics engine
 * Production-ready REST API
-* Interactive dashboard
+* Interactive analytics dashboard
+* API-driven frontend architecture
 * Deployment-ready project structure
 
-The goal is to demonstrate backend engineering, data engineering, and analytics skills within a single cohesive application.
+The goal is to demonstrate backend engineering, data engineering, analytics engineering, API development, and frontend integration within a single cohesive application.
 
 ---
 
 # Features
+
+### ETL Pipeline
 
 * Extract job postings from external job APIs (currently Adzuna)
 * Transform external job data into a standardized internal format
@@ -32,14 +35,44 @@ The goal is to demonstrate backend engineering, data engineering, and analytics 
 * Load validated data into PostgreSQL
 * Prevent duplicate job records during ingestion
 * Track ETL pipeline executions and metadata
-* Perform analytics on skills, salaries, companies, locations, and hiring trends
-* Aggregate job market insights through an Analytics Repository
-* Expose job and analytics data through a FastAPI REST API
-* Provide dashboard-oriented analytics through an Analytics Service
-* Support filtering, pagination, and search for job data
-* Provide health and database health endpoints
-* Generate automatic OpenAPI documentation (Swagger & ReDoc)
-* Visualize insights with a Streamlit dashboard *(planned)*
+
+### Analytics Engine
+
+* Analyze skill demand
+* Analyze salary trends
+* Analyze hiring companies
+* Analyze job locations
+* Analyze employment types
+* Analyze posting trends
+* Aggregate dashboard metrics
+* Generate dataset summaries
+
+### REST API
+
+* Expose job data through FastAPI
+* Expose analytics through REST endpoints
+* Filtering
+* Pagination
+* Search
+* Health endpoints
+* Database health endpoint
+* OpenAPI documentation (Swagger & ReDoc)
+* Request validation
+* Structured error handling
+
+### Interactive Dashboard
+
+* Interactive Streamlit dashboard
+* API-driven frontend (no direct database access)
+* Job explorer
+* Interactive Plotly visualizations
+* KPI dashboard
+* Dashboard caching
+* Professional SVG icon system
+* Loading states
+* Friendly error handling
+* Empty-state components
+* Modular reusable UI components
 
 ---
 
@@ -63,12 +96,17 @@ The goal is to demonstrate backend engineering, data engineering, and analytics 
 
 ## Dashboard
 
-* Streamlit *(planned)*
+* Streamlit
+* Plotly
 
 ## Development
 
 * Git
 * GitHub
+* Ruff
+* Black
+* MyPy
+* Pytest
 
 ---
 
@@ -102,13 +140,22 @@ The goal is to demonstrate backend engineering, data engineering, and analytics 
                  Analytics Repository
                            ▲
                            │
-                  Service Layer
+                     Service Layer
                            ▲
                            │
                  FastAPI REST API
                            ▲
                            │
-              Streamlit Dashboard (Sprint 5)
+                    API Client Layer
+                           ▲
+                           │
+                  Dashboard Services
+                           ▲
+                           │
+                  Streamlit Dashboard
+                           ▲
+                           │
+                           User
 ```
 
 ---
@@ -116,36 +163,49 @@ The goal is to demonstrate backend engineering, data engineering, and analytics 
 # Project Structure
 
 ```text
-app/
-├── api/
-│   ├── routes/
-│   ├── dependencies.py
-│   ├── exception_handlers.py
-│   └── router.py
+job-market-intelligence/
 │
-├── core/
-│   ├── logging.py
-│   └── settings.py
+├── app/
+│   ├── api/
+│   │   ├── routes/
+│   │   ├── dependencies.py
+│   │   ├── exception_handlers.py
+│   │   └── router.py
+│   │
+│   ├── core/
+│   │   ├── logging.py
+│   │   └── settings.py
+│   │
+│   ├── database/
+│   ├── etl/
+│   │   ├── clients/
+│   │   ├── extractors/
+│   │   ├── loaders/
+│   │   ├── transformers/
+│   │   └── validators/
+│   │
+│   ├── models/
+│   ├── repositories/
+│   ├── schemas/
+│   ├── services/
+│   └── main.py
 │
-├── database/
-├── etl/
-│   ├── clients/
-│   ├── extractors/
-│   ├── loaders/
-│   ├── transformers/
-│   └── validators/
+├── dashboard/
+│   ├── api/
+│   ├── components/
+│   ├── core/
+│   ├── pages/
+│   ├── schemas/
+│   ├── services/
+│   ├── utils/
+│   └── app.py
 │
-├── models/
-├── repositories/
-├── schemas/
-├── services/
-└── main.py
-
-dashboard/
-docs/
-migrations/
-scripts/
-tests/
+├── docs/
+├── migrations/
+├── scripts/
+├── tests/
+├── requirements.txt
+└── README.md
 ```
 
 ---
@@ -170,7 +230,6 @@ tests/
 * SQLAlchemy ORM models
 * Database session management
 * Alembic migrations
-* Initial database schema
 * Repository layer
 * Database testing
 
@@ -193,7 +252,7 @@ tests/
 
 ### Sprint 2.3 — Validation
 
-* Pydantic validation models
+* Pydantic validation
 * Business rule validation
 * Data quality checks
 * Validation testing
@@ -231,8 +290,8 @@ tests/
 
 * Analytics Service layer
 * Dashboard summary orchestration
-* Query optimization
 * Repository improvements
+* Query optimization
 * Dataset quality reporting
 * Analytics integration testing
 
@@ -246,9 +305,10 @@ tests/
 * Centralized routing
 * API versioning
 * Health endpoint
+* Database health endpoint
 * Dependency injection
 * Global exception handling
-* Logging configuration
+* Structured logging
 * CORS middleware
 * OpenAPI documentation
 
@@ -260,7 +320,7 @@ tests/
 * Search
 * UUID support
 * Response schemas
-* Service layer integration
+* Repository and Service integration
 
 ### Sprint 4.3 — Analytics API
 
@@ -275,13 +335,63 @@ tests/
 
 * Request validation
 * Consistent response models
-* Improved exception handling
 * Structured logging
-* Database health check
-* Enhanced OpenAPI documentation
-* Route consistency
+* Enhanced exception handling
 * Dependency cleanup
+* Route consistency
+* Database health monitoring
+* OpenAPI improvements
 * End-to-end API verification
+
+---
+
+## ✅ Sprint 5 — Interactive Analytics Dashboard
+
+### Sprint 5.1 — Dashboard Foundation
+
+* Streamlit application
+* API client layer
+* Dashboard Services
+* Navigation
+* Shared layout
+* Configuration management
+* Error handling
+* Loading states
+
+### Sprint 5.2 — Job Explorer
+
+* Job browsing
+* Search
+* Filtering
+* Pagination
+* Job detail view
+* API integration
+
+### Sprint 5.3 — Analytics Dashboard
+
+* KPI overview
+* Skills analytics
+* Company analytics
+* Location analytics
+* Salary analytics
+* Employment analytics
+* Posting trends
+* Reusable Plotly chart library
+
+### Sprint 5.4 — Dashboard Polish & Production Readiness
+
+* Dashboard caching
+* Centralized configuration
+* Professional SVG icon system
+* Responsive layouts
+* Enhanced loading states
+* Empty-state components
+* Accessibility improvements
+* Structured dashboard logging
+* Architecture documentation
+* Regression verification
+* Code quality improvements
+* Ruff, Black, MyPy compliance
 
 ---
 
@@ -294,14 +404,20 @@ tests/
 * Complete ETL Pipeline
 * Analytics Engine
 * FastAPI REST API
+* Interactive Streamlit Dashboard
 * Repository Layer
 * Service Layer
+* API Client Layer
+* Dashboard Service Layer
 * PostgreSQL Integration
-* Pipeline Run Tracking
 * OpenAPI Documentation
+* Interactive Plotly Visualizations
+* Dashboard Caching
 * Health Monitoring
-* API Validation
+* Request Validation
 * End-to-End ETL Testing
+* API Testing
+* Dashboard Regression Testing
 
 ---
 
@@ -313,48 +429,74 @@ The project includes testing for:
 * Repository layer
 * Service layer
 * Analytics engine
-* REST API
+* FastAPI REST API
+* Dashboard services
+* Dashboard utilities
+* Dashboard caching
+* API integration
 * End-to-end ETL workflow
+* Sprint regression verification
+
+Example verification:
+
+```bash
+python scripts/verify_sprint5.py
+```
 
 ---
 
 # Next Milestone
 
-## 🚧 Sprint 5 — Streamlit Dashboard
+## 🚧 Sprint 6 — Deployment, Testing & DevOps
 
-* Dashboard layout
-* Interactive charts
-* API integration
-* Filtering controls
-* Dashboard pages
-* User experience improvements
+Planned improvements include:
+
+* Docker
+* Docker Compose
+* GitHub Actions CI/CD
+* Automated testing
+* Production configuration
+* Environment management
+* API integration tests
+* Dashboard testing
+* Cloud deployment
+* Monitoring & observability
+* Performance optimization
+* Security hardening
 
 ---
 
 # Project Roadmap
 
-* ✅ Sprint 0 — Planning
-* ✅ Sprint 1 — Database Foundation
-* ✅ Sprint 2 — ETL Pipeline
-* ✅ Sprint 3 — Analytics Engine
-* ✅ Sprint 4 — FastAPI REST API
-* 🚧 Sprint 5 — Streamlit Dashboard
-* ⏳ Sprint 6 — Testing, CI/CD & Deployment
+| Sprint      | Status      | Description                     |
+| ----------- | ----------- | ------------------------------- |
+| ✅ Sprint 0  | Complete    | Planning & Design               |
+| ✅ Sprint 1  | Complete    | Database Foundation             |
+| ✅ Sprint 2  | Complete    | ETL Pipeline                    |
+| ✅ Sprint 3  | Complete    | Analytics Engine                |
+| ✅ Sprint 4  | Complete    | FastAPI REST API                |
+| ✅ Sprint 5  | Complete    | Interactive Analytics Dashboard |
+| 🚧 Sprint 6 | In Progress | Deployment, Testing & DevOps    |
 
 ---
 
 # Future Enhancements
 
-* Multiple job data sources
+* Support multiple job data sources
 * Scheduled ETL execution
 * Authentication & authorization
-* Docker containerization
-* CI/CD pipeline
-* Cloud deployment
+* Background task processing
 * Historical trend analysis
 * Real-time analytics
-* Background task processing
-* API rate limiting and caching
+* API rate limiting
+* Distributed caching (Redis)
+* Docker containerization
+* Kubernetes deployment
+* Cloud-native infrastructure
+* Role-based access control
+* Export analytics (CSV/PDF)
+* Machine learning job demand forecasting
+* Recommendation engine for skills and careers
 
 ---
 

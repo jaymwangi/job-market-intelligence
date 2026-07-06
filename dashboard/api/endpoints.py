@@ -1,13 +1,13 @@
 class Endpoints:
     """API endpoint definitions matching the actual API."""
-    
+
     # Health
     HEALTH = "/api/v1/health"
-    
+
     # Jobs
     JOBS = "/api/v1/jobs"
     JOB_DETAIL = "/api/v1/jobs/{job_id}"
-    
+
     # Analytics
     TOP_SKILLS = "/api/v1/analytics/top-skills"
     TOP_COMPANIES = "/api/v1/analytics/top-companies"

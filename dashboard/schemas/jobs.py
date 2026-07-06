@@ -1,10 +1,12 @@
-from pydantic import BaseModel, computed_field
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel
 
 
 class Job(BaseModel):
     """Frontend domain model for Job."""
+
     id: str
     title: str
     company_name: str
@@ -21,6 +23,7 @@ class Job(BaseModel):
 
 class JobListResponse(BaseModel):
     """Frontend domain model - stable contract for UI."""
+
     items: List[Job]
     total: int
     page: int
@@ -31,9 +34,10 @@ class JobListResponse(BaseModel):
 class JobFilters(BaseModel):
     """
     Job filters - matches UI needs.
-    
+
     Note: These will be translated to API parameters in the service layer.
     """
+
     search: Optional[str] = None
     company: Optional[str] = None
     location: Optional[str] = None

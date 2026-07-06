@@ -1,12 +1,15 @@
 # dashboard/schemas/analytics.py
 """Domain models for analytics data."""
-from typing import List, Optional
+
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import List
+
+from pydantic import BaseModel
 
 
 class TopSkill(BaseModel):
     """Domain model for top skills."""
+
     skill: str
     count: int
     percentage: float
@@ -14,6 +17,7 @@ class TopSkill(BaseModel):
 
 class TopCompany(BaseModel):
     """Domain model for top companies."""
+
     company: str
     job_count: int
     percentage: float
@@ -21,6 +25,7 @@ class TopCompany(BaseModel):
 
 class LocationAnalytics(BaseModel):
     """Domain model for location analytics."""
+
     location: str
     job_count: int
     percentage: float
@@ -28,6 +33,7 @@ class LocationAnalytics(BaseModel):
 
 class SalaryStatistics(BaseModel):
     """Domain model for salary statistics."""
+
     average: float
     minimum: float
     maximum: float
@@ -38,6 +44,7 @@ class SalaryStatistics(BaseModel):
 
 class SalaryByLocation(BaseModel):
     """Domain model for salary by location."""
+
     location: str
     average_salary: float
     job_count: int
@@ -47,6 +54,7 @@ class SalaryByLocation(BaseModel):
 
 class SalaryByCompany(BaseModel):
     """Domain model for salary by company."""
+
     company: str
     average_salary: float
     job_count: int
@@ -56,6 +64,7 @@ class SalaryByCompany(BaseModel):
 
 class SalaryDistribution(BaseModel):
     """Domain model for salary distribution."""
+
     range: str
     count: int
     percentage: float
@@ -63,6 +72,7 @@ class SalaryDistribution(BaseModel):
 
 class EmploymentType(BaseModel):
     """Domain model for employment types."""
+
     employment_type: str
     count: int
     percentage: float
@@ -70,6 +80,7 @@ class EmploymentType(BaseModel):
 
 class PostingTrend(BaseModel):
     """Domain model for posting trends."""
+
     date: str
     count: int
     cumulative: int
@@ -77,6 +88,7 @@ class PostingTrend(BaseModel):
 
 class DatasetSummary(BaseModel):
     """Domain model for dataset summary."""
+
     total_jobs: int
     unique_companies: int
     unique_locations: int
@@ -87,6 +99,7 @@ class DatasetSummary(BaseModel):
 
 class DashboardSummary(BaseModel):
     """Domain model for complete dashboard summary."""
+
     total_jobs: int
     recent_jobs_count: int
     top_companies: List[TopCompany]

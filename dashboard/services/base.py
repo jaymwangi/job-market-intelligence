@@ -1,8 +1,11 @@
 # dashboard/services/base.py
 """Base service with shared infrastructure from Sprint 5.1."""
-from typing import Optional, Any, Dict
+from typing import Optional
 import logging
+
 from dashboard.api.client import APIClient
+
+# Import CacheManager directly, not through __init__
 from dashboard.utils.cache import CacheManager
 
 logger = logging.getLogger(__name__)

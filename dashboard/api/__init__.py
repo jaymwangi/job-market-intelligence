@@ -1,12 +1,7 @@
 from .client import APIClient
-from .exceptions import (
-    APIError,
-    APIConnectionError,
-    APITimeoutError,
-    APIServerError,
-    APINotFoundError,
-)
-from .endpoints import endpoints, HEALTH, JOBS, JOB_DETAIL
+from .endpoints import HEALTH, JOB_DETAIL, JOBS, endpoints
+from .exceptions import (APIConnectionError, APIError, APINotFoundError,
+                         APIServerError, APITimeoutError)
 
 __all__ = [
     "APIClient",

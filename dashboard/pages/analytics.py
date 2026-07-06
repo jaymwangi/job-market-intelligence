@@ -6,36 +6,25 @@ import logging
 import time
 
 # Import metrics from the new location
-from dashboard.components.metrics import create_metric_card
+from dashboard.components.metrics import render_metric_card
 
 # Import charts from charts.py
 from dashboard.components.charts import (
-    create_horizontal_bar_chart, create_bar_chart,
-    create_pie_chart, create_donut_chart, create_line_chart, create_histogram
+    create_horizontal_bar_chart,
+    create_bar_chart,
+    create_pie_chart,
+    create_donut_chart,
+    create_line_chart,
+    create_histogram,
 )
 
 from dashboard.components.loading import loading_spinner
 from dashboard.components.alerts import show_error
 from dashboard.components.empty_state import empty_state_analytics
-from dashboard.components.layout import page_header, section_header, timestamp, refresh_button
+from dashboard.components.layout import page_header, section_header, timestamp, divider
 from dashboard.utils.state import StateManager
 
 logger = logging.getLogger(__name__)
-
-# Professional color palette
-COLORS = {
-    "primary": "#1a1a2e",
-    "secondary": "#16213e",
-    "accent": "#0f3460",
-    "highlight": "#e94560",
-    "success": "#00b894",
-    "warning": "#fdcb6e",
-    "info": "#0984e3",
-    "background": "#f8f9fa",
-    "card_bg": "#ffffff",
-    "text": "#2d3436",
-    "text_light": "#636e72",
-}
 
 
 def render():
@@ -45,107 +34,7 @@ def render():
 
 def render_analytics_dashboard():
     """Render the professional analytics dashboard."""
-    # Custom CSS for professional look
-    st.markdown(f"""
-    <style>
-        /* Professional typography */
-        .main-title {{
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: {COLORS['primary']};
-            letter-spacing: -0.02em;
-            margin-bottom: 0.25rem;
-        }}
-        .main-subtitle {{
-            font-size: 1rem;
-            color: {COLORS['text_light']};
-            font-weight: 400;
-            margin-bottom: 2rem;
-        }}
-        .metric-card {{
-            background: {COLORS['card_bg']};
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.04);
-            transition: all 0.2s ease;
-        }}
-        .metric-card:hover {{
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transform: translateY(-2px);
-        }}
-        .metric-value {{
-            font-size: 2rem;
-            font-weight: 700;
-            color: {COLORS['primary']};
-            line-height: 1.2;
-        }}
-        .metric-label {{
-            font-size: 0.85rem;
-            color: {COLORS['text_light']};
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }}
-        .metric-icon {{
-            font-size: 1.5rem;
-            opacity: 0.7;
-        }}
-        .section-header {{
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: {COLORS['primary']};
-            margin: 1.5rem 0 1rem 0;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid {COLORS['background']};
-        }}
-        .refresh-container {{
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.5rem 0;
-        }}
-        .timestamp {{
-            color: {COLORS['text_light']};
-            font-size: 0.8rem;
-            font-weight: 400;
-        }}
-        .stTabs [data-baseweb="tab-list"] {{
-            gap: 0.5rem;
-            background-color: {COLORS['background']};
-            border-radius: 10px;
-            padding: 0.25rem;
-        }}
-        .stTabs [data-baseweb="tab"] {{
-            border-radius: 8px;
-            padding: 0.5rem 1.25rem;
-            font-weight: 500;
-            color: {COLORS['text_light']};
-            transition: all 0.2s ease;
-        }}
-        .stTabs [data-baseweb="tab"]:hover {{
-            background-color: rgba(0,0,0,0.04);
-        }}
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {{
-            background-color: {COLORS['card_bg']};
-            color: {COLORS['primary']};
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        }}
-        .stButton button {{
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            border: 1px solid rgba(0,0,0,0.08);
-        }}
-        .stButton button:hover {{
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }}
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Header using layout component
+    # Header
     page_header(
         title="Market Analytics",
         subtitle="Real-time insights into the technology job market",
@@ -155,10 +44,11 @@ def render_analytics_dashboard():
     # Get service from StateManager
     service = StateManager.get_analytics_service()
 
-    # Top bar with refresh
+    # Top bar with refresh - using simple button
     col_left, col_right = st.columns([3, 1])
     with col_right:
-        if refresh_button():
+        # Simple refresh button - works everywhere
+        if st.button("↻ Refresh", use_container_width=True, key="refresh_analytics"):
             with st.spinner("Refreshing data..."):
                 StateManager.clear_cache()
                 time.sleep(0.5)
@@ -166,7 +56,7 @@ def render_analytics_dashboard():
     with col_left:
         timestamp()
 
-    st.markdown("---")
+    divider()
 
     # KPI Cards
     render_kpi_cards(service)
@@ -198,16 +88,13 @@ def render_kpi_cards(service):
                 empty_state_analytics(
                     title="No Data Available",
                     description="No analytics data found. Please run the ETL pipeline.",
-                    icon="📭"
                 )
                 return
 
             cols = st.columns(len(metrics))
             for col, metric in zip(cols, metrics):
                 with col:
-                    card_html = create_metric_card(metric)
-                    st.markdown(card_html['html'], unsafe_allow_html=True)
-
+                    render_metric_card(metric)
         except Exception as e:
             show_error(f"Failed to load metrics: {str(e)}")
 
@@ -223,7 +110,6 @@ def render_location_analytics(service):
                 empty_state_analytics(
                     title="No Location Data",
                     description="No location data available.",
-                    icon="📍"
                 )
                 return
 
@@ -256,7 +142,6 @@ def render_skills_analytics(service):
                     empty_state_analytics(
                         title="No Skills Data",
                         description="No skills data available.",
-                        icon="🎯"
                     )
                     return
 
@@ -307,7 +192,6 @@ def render_company_analytics(service):
                     empty_state_analytics(
                         title="No Company Data",
                         description="No company data available.",
-                        icon="🏢"
                     )
                     return
 
@@ -358,18 +242,14 @@ def render_salary_analytics(service):
                     ("Average", f"${stats.average:,.0f}", stats.currency),
                     ("Median", f"${stats.median:,.0f}", stats.currency),
                     ("Minimum", f"${stats.minimum:,.0f}", stats.currency),
-                    ("Maximum", f"${stats.maximum:,.0f}", stats.currency)
+                    ("Maximum", f"${stats.maximum:,.0f}", stats.currency),
                 ]
 
                 for col, (label, value, currency) in zip(cols, metric_configs):
                     with col:
-                        st.metric(
-                            label=label,
-                            value=value,
-                            help=f"Currency: {currency}"
-                        )
+                        st.metric(label=label, value=value, help=f"Currency: {currency}")
 
-                st.caption(f"📊 Based on {stats.sample_size:,} job postings")
+                st.caption(f"Based on {stats.sample_size:,} job postings")
                 st.markdown("---")
 
         except Exception as e:
@@ -396,7 +276,6 @@ def render_salary_analytics(service):
                     empty_state_analytics(
                         title="No Distribution Data",
                         description="No salary distribution data available.",
-                        icon="📊"
                     )
 
             except Exception as e:
@@ -421,7 +300,6 @@ def render_salary_analytics(service):
                     empty_state_analytics(
                         title="No Location Salary Data",
                         description="No location salary data available.",
-                        icon="📍"
                     )
 
             except Exception as e:
@@ -452,7 +330,6 @@ def render_employment_analytics(service):
                     empty_state_analytics(
                         title="No Employment Data",
                         description="No employment type data available.",
-                        icon="💼"
                     )
 
             except Exception as e:
@@ -489,7 +366,7 @@ def render_posting_trends(service):
             "Time Period",
             options=[7, 14, 30, 60, 90],
             index=2,
-            format_func=lambda x: f"{x} Days"
+            format_func=lambda x: f"{x} Days",
         )
 
     with col1:
@@ -527,7 +404,6 @@ def render_posting_trends(service):
                     empty_state_analytics(
                         title="No Trend Data",
                         description="No posting trend data available.",
-                        icon="📈"
                     )
 
             except Exception as e:

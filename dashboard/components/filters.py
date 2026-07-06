@@ -7,35 +7,22 @@ def render_filters():
 
     filters = {
         "search": st.sidebar.text_input(
-            "Search",
-            placeholder="Job title or company...",
-            value=""
+            "Search", placeholder="Job title or company...", value=""
         ),
         "company": st.sidebar.text_input(
-            "Company Name",
-            placeholder="Filter by company..."
+            "Company Name", placeholder="Filter by company..."
         ),
         "location": st.sidebar.text_input(
-            "Location",
-            placeholder="City, country, or 'Remote'..."
+            "Location", placeholder="City, country, or 'Remote'..."
         ),
         "source_site": st.sidebar.selectbox(
-            "Source",
-            ["All", "adzuna", "reed", "indeed", "linkedin"]
+            "Source", ["All", "adzuna", "reed", "indeed", "linkedin"]
         ),
         "min_salary": st.sidebar.number_input(
-            "Min Salary",
-            min_value=0,
-            value=0,
-            step=5000,
-            format="%d"
+            "Min Salary", min_value=0, value=0, step=5000, format="%d"
         ),
         "max_salary": st.sidebar.number_input(
-            "Max Salary",
-            min_value=0,
-            value=0,
-            step=5000,
-            format="%d"
+            "Max Salary", min_value=0, value=0, step=5000, format="%d"
         ),
     }
 

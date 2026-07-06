@@ -1,15 +1,13 @@
 # dashboard/pages/about.py
 import streamlit as st
-from datetime import datetime
-
-from core.config import settings
 
 
 def render():
     """Render the professional About page."""
-    
+
     # Custom CSS for About page
-    st.markdown("""
+    st.markdown(
+        """
     <style>
         .about-header {
             margin-bottom: 2rem;
@@ -142,18 +140,24 @@ def render():
             margin: 0.2rem;
         }
     </style>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Header
-    st.markdown(f"""
+    st.markdown(
+        """
     <div class="about-header">
         <div class="about-title">ℹ️ About</div>
         <div class="about-subtitle">Job Market Intelligence Platform</div>
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Status Badge
-    st.markdown("""
+    st.markdown(
+        """
     <div style="margin-bottom: 1rem;">
         <span class="about-status-badge">
             <span class="about-status-dot"></span>
@@ -161,10 +165,13 @@ def render():
         </span>
         <span class="about-badge" style="margin-left: 0.5rem;">v1.0.0</span>
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Quick Info Grid
-    st.markdown("""
+    st.markdown(
+        """
     <div class="about-grid">
         <div class="about-grid-item">
             <div class="about-grid-item-label">📦 Version</div>
@@ -183,10 +190,13 @@ def render():
             <div class="about-grid-item-value">REST • FastAPI</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Architecture Section
-    st.markdown("""
+    st.markdown(
+        """
     <div class="about-card">
         <div class="about-card-title">🏛️ Architecture</div>
         <div class="about-card-content">
@@ -208,10 +218,13 @@ def render():
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Principles Section
-    st.markdown("""
+    st.markdown(
+        """
     <div class="about-card">
         <div class="about-card-title">📐 Principles</div>
         <div class="about-card-content">
@@ -224,10 +237,13 @@ def render():
             </ul>
         </div>
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Tech Stack
-    st.markdown("""
+    st.markdown(
+        """
     <div class="about-card">
         <div class="about-card-title">⚡ Technology Stack</div>
         <div class="about-card-content">
@@ -249,6 +265,8 @@ def render():
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     # Removed the footer section since app.py already has a global footer
