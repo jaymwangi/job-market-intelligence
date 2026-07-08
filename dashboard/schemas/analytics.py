@@ -2,7 +2,6 @@
 """Domain models for analytics data."""
 
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel
 
@@ -102,9 +101,9 @@ class DashboardSummary(BaseModel):
 
     total_jobs: int
     recent_jobs_count: int
-    top_companies: List[TopCompany]
-    top_locations: List[LocationAnalytics]
-    top_skills: List[TopSkill]
+    top_companies: list[TopCompany]
+    top_locations: list[LocationAnalytics]
+    top_skills: list[TopSkill]
     salary_statistics: SalaryStatistics
-    employment_types: List[EmploymentType]
-    posting_trend: List[PostingTrend]
+    employment_types: list[EmploymentType]
+    posting_trend: list[PostingTrend]

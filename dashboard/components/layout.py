@@ -2,7 +2,6 @@
 """Reusable layout components with SVG icons."""
 
 from datetime import datetime
-from typing import List, Optional
 
 import streamlit as st
 
@@ -17,9 +16,7 @@ SPACING = {
 }
 
 
-def page_header(
-    title: str, subtitle: Optional[str] = None, icon: Optional[str] = None
-) -> None:
+def page_header(title: str, subtitle: str | None = None, icon: str | None = None) -> None:
     """
     Render a professional page header with SVG icon.
 
@@ -39,7 +36,9 @@ def page_header(
         }
         icon_name = icon_map.get(icon, icon)
         icon_svg = get_icon(icon_name, size=32, color="#1a1a2e")
-        icon_html_content = f'<span style="display:inline-flex;margin-right:0.75rem;">{icon_svg}</span>'
+        icon_html_content = (
+            f'<span style="display:inline-flex;margin-right:0.75rem;">{icon_svg}</span>'
+        )
     else:
         icon_html_content = ""
 
@@ -66,9 +65,7 @@ def page_header(
     )
 
 
-def section_header(
-    title: str, subtitle: Optional[str] = None, icon: Optional[str] = None
-) -> None:
+def section_header(title: str, subtitle: str | None = None, icon: str | None = None) -> None:
     """
     Render a professional section header with SVG icon.
 
@@ -91,7 +88,9 @@ def section_header(
         }
         icon_name = icon_map.get(icon, icon)
         icon_svg = get_icon(icon_name, size=20, color="#1a1a2e")
-        icon_html_content = f'<span style="display:inline-flex;margin-right:0.5rem;">{icon_svg}</span>'
+        icon_html_content = (
+            f'<span style="display:inline-flex;margin-right:0.5rem;">{icon_svg}</span>'
+        )
     else:
         icon_html_content = ""
 
@@ -119,7 +118,7 @@ def section_header(
     )
 
 
-def stats_bar(stats: List[tuple]) -> None:
+def stats_bar(stats: list[tuple]) -> None:
     """
     Render a professional stats bar.
 
@@ -153,7 +152,7 @@ def stats_bar(stats: List[tuple]) -> None:
     st.markdown(html, unsafe_allow_html=True)
 
 
-def card(content: str, title: Optional[str] = None, icon: Optional[str] = None) -> None:
+def card(content: str, title: str | None = None, icon: str | None = None) -> None:
     """
     Render a consistent card.
 
@@ -165,7 +164,9 @@ def card(content: str, title: Optional[str] = None, icon: Optional[str] = None) 
     icon_html_content = ""
     if icon:
         icon_svg = get_icon(icon, size=16, color="#1a1a2e")
-        icon_html_content = f'<span style="display:inline-flex;margin-right:0.5rem;">{icon_svg}</span>'
+        icon_html_content = (
+            f'<span style="display:inline-flex;margin-right:0.5rem;">{icon_svg}</span>'
+        )
 
     title_html = (
         f'<div style="font-weight: 600; font-size: 1rem; color: #1a1a2e; margin-bottom: 0.5rem; display:flex; align-items:center;">{icon_html_content} {title}</div>'
@@ -257,11 +258,6 @@ def refresh_button(label: str = "Refresh", key: str = "refresh_button") -> bool:
         True if button was clicked
     """
     icon = get_icon("refresh", size=16, color="#ffffff")
-    
+
     # Use a simple approach - the SVG renders in the button label
-    return st.button(
-        f"{icon} {label}",
-        use_container_width=True,
-        key=key,
-        help="Refresh dashboard"
-    )
+    return st.button(f"{icon} {label}", use_container_width=True, key=key, help="Refresh dashboard")

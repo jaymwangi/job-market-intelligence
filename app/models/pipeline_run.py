@@ -1,9 +1,8 @@
 # app/models/pipeline_run.py
 import uuid
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import DateTime, Float, Integer, String, Text, func, text, Index
+from sqlalchemy import DateTime, Float, Index, Integer, String, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,6 +13,7 @@ class PipelineRun(Base):
     """
     Tracks ETL pipeline executions for auditing and monitoring.
     """
+
     __tablename__ = "pipeline_runs"
 
     # Primary key
@@ -31,7 +31,7 @@ class PipelineRun(Base):
         server_default=func.now(),
         index=True,
     )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
+    completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
@@ -48,13 +48,13 @@ class PipelineRun(Base):
         default=0,
         server_default=text("0"),
     )
-    duration_seconds: Mapped[Optional[float]] = mapped_column(
+    duration_seconds: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
     )
 
     # Error handling
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Source tracking
     source_site: Mapped[str] = mapped_column(
@@ -77,10 +77,7 @@ class PipelineRun(Base):
     )
 
     # Special indexes
-    __table_args__ = (
-        Index("idx_pipeline_runs_started_at_desc", started_at.desc()),
-    )
+    __table_args__ = (Index("idx_pipeline_runs_started_at_desc", started_at.desc()),)
 
     def __repr__(self) -> str:
         return f"<PipelineRun(id={self.id}, status={self.status}, source={self.source_site})>"
-    

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -11,20 +10,20 @@ class Job(BaseModel):
     title: str
     company_name: str
     location: str
-    description: Optional[str] = None
-    salary_min: Optional[float] = None
-    salary_max: Optional[float] = None
-    salary_currency: Optional[str] = "USD"
+    description: str | None = None
+    salary_min: float | None = None
+    salary_max: float | None = None
+    salary_currency: str | None = "USD"
     posted_date: datetime
-    source_site: Optional[str] = None
-    source_url: Optional[str] = None
+    source_site: str | None = None
+    source_url: str | None = None
     is_active: bool = True
 
 
 class JobListResponse(BaseModel):
     """Frontend domain model - stable contract for UI."""
 
-    items: List[Job]
+    items: list[Job]
     total: int
     page: int
     page_size: int
@@ -38,9 +37,9 @@ class JobFilters(BaseModel):
     Note: These will be translated to API parameters in the service layer.
     """
 
-    search: Optional[str] = None
-    company: Optional[str] = None
-    location: Optional[str] = None
-    source_site: Optional[str] = None
-    min_salary: Optional[float] = None
-    max_salary: Optional[float] = None
+    search: str | None = None
+    company: str | None = None
+    location: str | None = None
+    source_site: str | None = None
+    min_salary: float | None = None
+    max_salary: float | None = None

@@ -1,11 +1,9 @@
-from typing import List
-
 import streamlit as st
 
 from dashboard.schemas.jobs import Job
 
 
-def render_jobs_table(jobs: List[Job]):
+def render_jobs_table(jobs: list[Job]):
     """Render jobs in a clean, readable table format with inline expansion."""
     if not jobs:
         return
@@ -32,9 +30,7 @@ def render_jobs_table(jobs: List[Job]):
                 # Salary summary in header
                 if job.salary_min and job.salary_max:
                     currency = job.salary_currency or "USD"
-                    st.caption(
-                        f"💰 {currency} {job.salary_min:,.0f} - {job.salary_max:,.0f}"
-                    )
+                    st.caption(f"💰 {currency} {job.salary_min:,.0f} - {job.salary_max:,.0f}")
                 elif job.salary_min:
                     currency = job.salary_currency or "USD"
                     st.caption(f"💰 From {currency} {job.salary_min:,.0f}")
@@ -79,20 +75,14 @@ def render_jobs_table(jobs: List[Job]):
                         )
                     elif job.salary_min:
                         currency = job.salary_currency or "USD"
-                        st.markdown(
-                            f"**Salary:** From {currency} {job.salary_min:,.0f}"
-                        )
+                        st.markdown(f"**Salary:** From {currency} {job.salary_min:,.0f}")
                     elif job.salary_max:
                         currency = job.salary_currency or "USD"
-                        st.markdown(
-                            f"**Salary:** Up to {currency} {job.salary_max:,.0f}"
-                        )
+                        st.markdown(f"**Salary:** Up to {currency} {job.salary_max:,.0f}")
                     else:
                         st.markdown("**Salary:** Not specified")
 
-                    st.markdown(
-                        f"**Posted:** {job.posted_date.strftime('%Y-%m-%d %H:%M')}"
-                    )
+                    st.markdown(f"**Posted:** {job.posted_date.strftime('%Y-%m-%d %H:%M')}")
                     status = "Active" if job.is_active else "Inactive"
                     st.markdown(f"**Status:** {status}")
 

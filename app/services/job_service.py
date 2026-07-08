@@ -1,13 +1,13 @@
 # app/services/job_service.py
 """Job service layer for business logic."""
 
-from typing import Tuple, List, Optional
 from uuid import UUID
+
 from fastapi import HTTPException, status
 
+from app.models.job import Job
 from app.repositories.job_repository import JobRepository
 from app.schemas.job import JobFilters
-from app.models.job import Job
 
 
 class JobService:
@@ -17,38 +17,30 @@ class JobService:
         self.repo = repo
 
     def get_jobs(
-        self, 
-        page: int, 
-        limit: int, 
-        filters: JobFilters, 
-        search_query: Optional[str] = None
-    ) -> Tuple[List[Job], int]:
+        self, page: int, limit: int, filters: JobFilters, search_query: str | None = None
+    ) -> tuple[list[Job], int]:
         """
         Get paginated jobs with filters and search.
-        
+
         Args:
             page: Page number (1-indexed)
             limit: Items per page (clamped to 1-100)
             filters: JobFilters object
             search_query: Optional search string
-            
+
         Returns:
             Tuple of (jobs_list, total_count)
-            
+
         Raises:
             HTTPException: If pagination parameters are invalid
         """
         # Validate and sanitize pagination parameters
         if page < 1:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="page must be >= 1"
-            )
-        
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="page must be >= 1")
+
         if limit < 1 or limit > 100:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="limit must be between 1 and 100"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="limit must be between 1 and 100"
             )
 
         offset = (page - 1) * limit
@@ -57,28 +49,26 @@ class JobService:
         try:
             jobs = self.repo.get_jobs(filters, offset, limit, search_query)
             total = self.repo.count_jobs(filters, search_query)
-        except Exception as e:
+        except Exception:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve jobs"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve jobs"
             )
 
         return jobs, total
 
-    def get_job(self, job_id: UUID) -> Optional[Job]:
+    def get_job(self, job_id: UUID) -> Job | None:
         """
         Get a single job by ID.
-        
+
         Args:
             job_id: Job UUID to retrieve
-            
+
         Returns:
             Job object or None if not found
         """
         try:
             return self.repo.get_by_id(job_id)
-        except Exception as e:
+        except Exception:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve job"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve job"
             )

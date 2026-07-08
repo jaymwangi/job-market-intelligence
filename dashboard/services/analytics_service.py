@@ -2,7 +2,6 @@
 """Analytics service with full transformation pipeline."""
 
 import logging
-from typing import List, Optional
 
 from dashboard.api.client import APIClient
 from dashboard.mappers.analytics_mapper import AnalyticsMapper
@@ -42,16 +41,14 @@ class AnalyticsService(BaseService):
     4. Return presentation-ready data
     """
 
-    def __init__(
-        self, api_client: APIClient, cache_manager: Optional[CacheManager] = None
-    ):
+    def __init__(self, api_client: APIClient, cache_manager: CacheManager | None = None):
         super().__init__(api_client, cache_manager)
         self.mapper = AnalyticsMapper()
 
     # ========== Chart Model Methods (Presentation-Ready) ==========
 
     @cached(ttl=300)
-    def get_dashboard_metrics(self) -> List[MetricCardData]:
+    def get_dashboard_metrics(self) -> list[MetricCardData]:
         """Get presentation-ready dashboard metrics."""
         try:
             summary = self._fetch_dashboard_summary()
@@ -77,9 +74,7 @@ class AnalyticsService(BaseService):
             )
         except Exception as e:
             logger.error(f"Failed to get skills chart: {e}")
-            return HorizontalBarChartData(
-                title="Most In-Demand Skills", x_values=[], y_values=[]
-            )
+            return HorizontalBarChartData(title="Most In-Demand Skills", x_values=[], y_values=[])
 
     @cached(ttl=600)
     def get_skills_distribution_chart(self, limit: int = 8) -> PieChartData:
@@ -157,7 +152,7 @@ class AnalyticsService(BaseService):
             )
 
     @cached(ttl=900)
-    def get_salary_statistics(self) -> Optional[SalaryStatistics]:
+    def get_salary_statistics(self) -> SalaryStatistics | None:
         """Get salary statistics (domain model)."""
         try:
             return self._fetch_salary_statistics()
@@ -192,9 +187,7 @@ class AnalyticsService(BaseService):
             )
         except Exception as e:
             logger.error(f"Failed to get salary by location: {e}")
-            return BarChartData(
-                title="Average Salary by Location", x_values=[], y_values=[]
-            )
+            return BarChartData(title="Average Salary by Location", x_values=[], y_values=[])
 
     @cached(ttl=600)
     def get_employment_types_chart(self) -> DonutChartData:
@@ -211,9 +204,7 @@ class AnalyticsService(BaseService):
             )
         except Exception as e:
             logger.error(f"Failed to get employment types: {e}")
-            return DonutChartData(
-                title="Employment Type Distribution", labels=[], values=[]
-            )
+            return DonutChartData(title="Employment Type Distribution", labels=[], values=[])
 
     @cached(ttl=600)
     def get_employment_types_bar_chart(self) -> BarChartData:
@@ -232,9 +223,7 @@ class AnalyticsService(BaseService):
             )
         except Exception as e:
             logger.error(f"Failed to get employment types bar chart: {e}")
-            return BarChartData(
-                title="Employment Type Counts", x_values=[], y_values=[]
-            )
+            return BarChartData(title="Employment Type Counts", x_values=[], y_values=[])
 
     @cached(ttl=300)
     def get_posting_trend_chart(self, days: int = 30) -> LineChartData:
@@ -253,9 +242,7 @@ class AnalyticsService(BaseService):
             )
         except Exception as e:
             logger.error(f"Failed to get posting trend: {e}")
-            return LineChartData(
-                title="Job Postings Over Time", x_values=[], y_values=[]
-            )
+            return LineChartData(title="Job Postings Over Time", x_values=[], y_values=[])
 
     @cached(ttl=300)
     def get_daily_posting_trend_chart(self, days: int = 30) -> LineChartData:
@@ -283,25 +270,19 @@ class AnalyticsService(BaseService):
         data = self.api_client.get("/api/v1/analytics/dashboard-summary")
         return self._normalize_response(data, DashboardSummary)
 
-    def _fetch_top_skills(self, limit: int) -> List[TopSkill]:
+    def _fetch_top_skills(self, limit: int) -> list[TopSkill]:
         """Fetch and normalize top skills."""
-        data = self.api_client.get(
-            "/api/v1/analytics/top-skills", params={"limit": limit}
-        )
+        data = self.api_client.get("/api/v1/analytics/top-skills", params={"limit": limit})
         return self._normalize_list(data, TopSkill)
 
-    def _fetch_top_companies(self, limit: int) -> List[TopCompany]:
+    def _fetch_top_companies(self, limit: int) -> list[TopCompany]:
         """Fetch and normalize top companies."""
-        data = self.api_client.get(
-            "/api/v1/analytics/top-companies", params={"limit": limit}
-        )
+        data = self.api_client.get("/api/v1/analytics/top-companies", params={"limit": limit})
         return self._normalize_list(data, TopCompany)
 
-    def _fetch_jobs_by_location(self, limit: int) -> List[LocationAnalytics]:
+    def _fetch_jobs_by_location(self, limit: int) -> list[LocationAnalytics]:
         """Fetch and normalize jobs by location."""
-        data = self.api_client.get(
-            "/api/v1/analytics/jobs-by-location", params={"limit": limit}
-        )
+        data = self.api_client.get("/api/v1/analytics/jobs-by-location", params={"limit": limit})
         return self._normalize_list(data, LocationAnalytics)
 
     def _fetch_salary_statistics(self) -> SalaryStatistics:
@@ -309,31 +290,27 @@ class AnalyticsService(BaseService):
         data = self.api_client.get("/api/v1/analytics/salary-statistics")
         return self._normalize_response(data, SalaryStatistics)
 
-    def _fetch_salary_distribution(self) -> List[SalaryDistribution]:
+    def _fetch_salary_distribution(self) -> list[SalaryDistribution]:
         """Fetch and normalize salary distribution."""
         data = self.api_client.get("/api/v1/analytics/salary-distribution")
         return self._normalize_list(data, SalaryDistribution)
 
-    def _fetch_salary_by_location(self, limit: int) -> List:
+    def _fetch_salary_by_location(self, limit: int) -> list:
         """Fetch and normalize salary by location."""
-        data = self.api_client.get(
-            "/api/v1/analytics/salary-by-location", params={"limit": limit}
-        )
+        data = self.api_client.get("/api/v1/analytics/salary-by-location", params={"limit": limit})
         # Import here to avoid circular imports
         from dashboard.schemas.analytics import SalaryByLocation
 
         return self._normalize_list(data, SalaryByLocation)
 
-    def _fetch_employment_types(self) -> List[EmploymentType]:
+    def _fetch_employment_types(self) -> list[EmploymentType]:
         """Fetch and normalize employment types."""
         data = self.api_client.get("/api/v1/analytics/employment-types")
         return self._normalize_list(data, EmploymentType)
 
-    def _fetch_posting_trend(self, days: int) -> List[PostingTrend]:
+    def _fetch_posting_trend(self, days: int) -> list[PostingTrend]:
         """Fetch and normalize posting trend."""
-        data = self.api_client.get(
-            "/api/v1/analytics/posting-trend", params={"days": days}
-        )
+        data = self.api_client.get("/api/v1/analytics/posting-trend", params={"days": days})
         return self._normalize_list(data, PostingTrend)
 
     # ========== Helper Methods ==========
@@ -341,14 +318,14 @@ class AnalyticsService(BaseService):
     def _normalize_response(self, data, model_class):
         """
         Normalize backend response to domain model.
-        
+
         Handles None values gracefully for salary statistics.
         """
         try:
             # If data is None, return a default instance
             if data is None:
                 return model_class()
-            
+
             # Special handling for DashboardSummary
             if model_class.__name__ == "DashboardSummary":
                 # Ensure salary_statistics exists
@@ -359,7 +336,7 @@ class AnalyticsService(BaseService):
                         "maximum": 0,
                         "median": 0,
                         "sample_size": 0,
-                        "currency": "USD"
+                        "currency": "USD",
                     }
                 else:
                     # Clean up salary_statistics fields
@@ -371,7 +348,7 @@ class AnalyticsService(BaseService):
                         stats["currency"] = "USD"
                     if stats.get("sample_size") is None:
                         stats["sample_size"] = 0
-            
+
             # Special handling for SalaryStatistics
             if model_class.__name__ == "SalaryStatistics":
                 for key in ["average", "minimum", "maximum", "median"]:
@@ -381,14 +358,14 @@ class AnalyticsService(BaseService):
                     data["currency"] = "USD"
                 if data.get("sample_size") is None:
                     data["sample_size"] = 0
-            
+
             return model_class(**data)
         except Exception as e:
             logger.error(f"Failed to normalize response to {model_class.__name__}: {e}")
             # Return a default instance instead of raising
             try:
                 return model_class()
-            except:
+            except Exception:
                 raise ValueError(f"Invalid response format for {model_class.__name__}")
 
     def _normalize_list(self, data, model_class):

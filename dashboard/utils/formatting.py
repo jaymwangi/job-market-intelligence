@@ -2,12 +2,9 @@
 """Formatting utilities."""
 
 import re
-from typing import Optional
 
 
-def format_currency(
-    amount: Optional[float], currency: str = "USD", locale: str = "en_US"
-) -> str:
+def format_currency(amount: float | None, currency: str = "USD", locale: str = "en_US") -> str:
     """Format currency values."""
     if amount is None:
         return "N/A"
@@ -25,7 +22,7 @@ def format_currency(
     return f"{symbol}{amount:,.0f}"
 
 
-def format_number(num: Optional[float], decimals: int = 0) -> str:
+def format_number(num: float | None, decimals: int = 0) -> str:
     """Format numbers with commas."""
     if num is None:
         return "N/A"

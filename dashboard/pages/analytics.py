@@ -1,27 +1,28 @@
 # dashboard/pages/analytics.py
 """Professional analytics dashboard page with modern UI."""
-import streamlit as st
-from datetime import datetime
+
 import logging
 import time
 
-# Import metrics from the new location
-from dashboard.components.metrics import render_metric_card
+import streamlit as st
+
+from dashboard.components.alerts import show_error
 
 # Import charts from charts.py
 from dashboard.components.charts import (
-    create_horizontal_bar_chart,
     create_bar_chart,
-    create_pie_chart,
     create_donut_chart,
-    create_line_chart,
     create_histogram,
+    create_horizontal_bar_chart,
+    create_line_chart,
+    create_pie_chart,
 )
-
-from dashboard.components.loading import loading_spinner
-from dashboard.components.alerts import show_error
 from dashboard.components.empty_state import empty_state_analytics
-from dashboard.components.layout import page_header, section_header, timestamp, divider
+from dashboard.components.layout import divider, page_header, section_header, timestamp
+from dashboard.components.loading import loading_spinner
+
+# Import metrics from the new location
+from dashboard.components.metrics import render_metric_card
 from dashboard.utils.state import StateManager
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ def render_analytics_dashboard():
     page_header(
         title="Market Analytics",
         subtitle="Real-time insights into the technology job market",
-        icon="📊"
+        icon="📊",
     )
 
     # Get service from StateManager
@@ -230,7 +231,9 @@ def render_company_analytics(service):
 
 def render_salary_analytics(service):
     """Render salary analytics with professional styling."""
-    section_header("Compensation Analysis", "Salary trends and distribution across the market", "💰")
+    section_header(
+        "Compensation Analysis", "Salary trends and distribution across the market", "💰"
+    )
 
     # Salary Statistics Cards
     with loading_spinner("Loading salary statistics..."):

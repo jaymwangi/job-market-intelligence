@@ -1,20 +1,22 @@
 # dashboard/mappers/analytics_mapper.py
 """Presentation layer mapper with feature-specific public methods."""
 
-from typing import List, Optional
-
 from ..schemas.analytics import DashboardSummary, SalaryDistribution
-from ..schemas.chart_data import (BarChartData, DonutChartData, HistogramData,
-                                  HorizontalBarChartData, LineChartData,
-                                  MetricCardData, PieChartData)
+from ..schemas.chart_data import (
+    BarChartData,
+    DonutChartData,
+    HistogramData,
+    HorizontalBarChartData,
+    LineChartData,
+    MetricCardData,
+    PieChartData,
+)
 
 
 class AnalyticsMapper:
     """Transforms domain models to presentation chart models."""
 
-    def to_metric_cards(
-        self, summary: Optional[DashboardSummary]
-    ) -> List[MetricCardData]:
+    def to_metric_cards(self, summary: DashboardSummary | None) -> list[MetricCardData]:
         """Transform dashboard summary to metric cards."""
         if not summary:
             return []
@@ -29,9 +31,7 @@ class AnalyticsMapper:
         currency = salary_stats.currency if salary_stats else "USD"
 
         return [
-            MetricCardData(
-                title="Total Jobs", value=f"{total_jobs:,}", icon="📊", color="#1f77b4"
-            ),
+            MetricCardData(title="Total Jobs", value=f"{total_jobs:,}", icon="📊", color="#1f77b4"),
             MetricCardData(
                 title="Companies",
                 value=f"{unique_companies:,}" if unique_companies > 0 else "N/A",
@@ -55,7 +55,7 @@ class AnalyticsMapper:
 
     def to_horizontal_bar_chart(
         self,
-        data: List,
+        data: list,
         title: str,
         label_field: str,
         value_field: str,
@@ -85,7 +85,7 @@ class AnalyticsMapper:
 
     def to_bar_chart(
         self,
-        data: List,
+        data: list,
         title: str,
         label_field: str,
         value_field: str,
@@ -114,7 +114,7 @@ class AnalyticsMapper:
 
     def to_pie_chart(
         self,
-        data: List,
+        data: list,
         title: str,
         label_field: str,
         value_field: str,
@@ -133,7 +133,7 @@ class AnalyticsMapper:
 
     def to_donut_chart(
         self,
-        data: List,
+        data: list,
         title: str,
         label_field: str,
         value_field: str,
@@ -154,7 +154,7 @@ class AnalyticsMapper:
 
     def to_line_chart(
         self,
-        data: List,
+        data: list,
         title: str,
         x_field: str,
         y_field: str,
@@ -183,7 +183,7 @@ class AnalyticsMapper:
 
     def to_histogram(
         self,
-        data: List,
+        data: list,
         title: str,
         range_field: str,
         count_field: str,
@@ -193,9 +193,7 @@ class AnalyticsMapper:
     ) -> HistogramData:
         """Transform distribution data to histogram."""
         if not data:
-            return HistogramData(
-                title=title, bins=[], counts=[], x_label=x_label, y_label=y_label
-            )
+            return HistogramData(title=title, bins=[], counts=[], x_label=x_label, y_label=y_label)
 
         return HistogramData(
             title=title,
@@ -206,9 +204,7 @@ class AnalyticsMapper:
             color=color,
         )
 
-    def to_salary_histogram(
-        self, distribution: List[SalaryDistribution]
-    ) -> HistogramData:
+    def to_salary_histogram(self, distribution: list[SalaryDistribution]) -> HistogramData:
         """Transform salary distribution to histogram."""
         return self.to_histogram(
             data=distribution,

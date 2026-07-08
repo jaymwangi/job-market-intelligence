@@ -1,26 +1,26 @@
 # app/api/routes/analytics.py
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
-from typing import Optional
 
-from config import get_logger
 from app.database.session import get_db
 from app.repositories.analytics_repository import AnalyticsRepository
-from app.services.analytics_service import AnalyticsService
 from app.schemas.analytics import (
-    TopSkillResponse,
-    TopCompanyResponse,
-    LocationResponse,
-    SalaryStatisticsResponse,
-    EmploymentDistributionResponse,
-    SalaryDistributionResponse,
-    PostingTrendResponse,
-    DatasetSummaryResponse,
-    SalaryByLocationResponse,
-    SalaryByCompanyResponse,
-    OverviewResponse,
     DashboardSummaryResponse,
+    DatasetSummaryResponse,
+    EmploymentDistributionResponse,
+    LocationResponse,
+    OverviewResponse,
+    PostingTrendResponse,
+    SalaryByCompanyResponse,
+    SalaryByLocationResponse,
+    SalaryDistributionResponse,
+    SalaryStatisticsResponse,
+    TopCompanyResponse,
+    TopSkillResponse,
 )
+from app.services.analytics_service import AnalyticsService
+from config import get_logger
 
 logger = get_logger("app.api.routes.analytics")
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -36,7 +36,7 @@ def get_service(db: Session = Depends(get_db)) -> AnalyticsService:
     response_model=list[TopSkillResponse],
     status_code=status.HTTP_200_OK,
     summary="Get top skills",
-    description="Get the most in-demand skills with job counts and percentages."
+    description="Get the most in-demand skills with job counts and percentages.",
 )
 def get_top_skills(
     limit: int = Query(10, ge=1, le=50, description="Number of skills to return"),
@@ -51,7 +51,7 @@ def get_top_skills(
     response_model=list[TopCompanyResponse],
     status_code=status.HTTP_200_OK,
     summary="Get top companies",
-    description="Get companies with the most job postings."
+    description="Get companies with the most job postings.",
 )
 def get_top_companies(
     limit: int = Query(10, ge=1, le=50, description="Number of companies to return"),
@@ -66,7 +66,7 @@ def get_top_companies(
     response_model=list[LocationResponse],
     status_code=status.HTTP_200_OK,
     summary="Get jobs by location",
-    description="Get job distribution by location."
+    description="Get job distribution by location.",
 )
 def get_jobs_by_location(
     limit: int = Query(10, ge=1, le=50, description="Number of locations to return"),
@@ -81,7 +81,7 @@ def get_jobs_by_location(
     response_model=SalaryStatisticsResponse,
     status_code=status.HTTP_200_OK,
     summary="Get salary statistics",
-    description="Get aggregate salary statistics (average, min, max, median)."
+    description="Get aggregate salary statistics (average, min, max, median).",
 )
 def get_salary_statistics(
     service: AnalyticsService = Depends(get_service),
@@ -95,7 +95,7 @@ def get_salary_statistics(
     response_model=list[EmploymentDistributionResponse],
     status_code=status.HTTP_200_OK,
     summary="Get employment type distribution",
-    description="Get distribution of employment types."
+    description="Get distribution of employment types.",
 )
 def get_employment_types(
     service: AnalyticsService = Depends(get_service),
@@ -109,7 +109,7 @@ def get_employment_types(
     response_model=list[SalaryByLocationResponse],
     status_code=status.HTTP_200_OK,
     summary="Get salary by location",
-    description="Get average salary statistics grouped by location."
+    description="Get average salary statistics grouped by location.",
 )
 def get_salary_by_location(
     limit: int = Query(10, ge=1, le=50, description="Number of locations to return"),
@@ -124,7 +124,7 @@ def get_salary_by_location(
     response_model=list[SalaryByCompanyResponse],
     status_code=status.HTTP_200_OK,
     summary="Get salary by company",
-    description="Get average salary statistics grouped by company."
+    description="Get average salary statistics grouped by company.",
 )
 def get_salary_by_company(
     limit: int = Query(10, ge=1, le=50, description="Number of companies to return"),
@@ -139,7 +139,7 @@ def get_salary_by_company(
     response_model=list[PostingTrendResponse],
     status_code=status.HTTP_200_OK,
     summary="Get posting trends",
-    description="Get job posting trends over time with cumulative counts."
+    description="Get job posting trends over time with cumulative counts.",
 )
 def get_posting_trend(
     days: int = Query(30, ge=1, le=365, description="Number of days to look back"),
@@ -154,7 +154,7 @@ def get_posting_trend(
     response_model=int,
     status_code=status.HTTP_200_OK,
     summary="Get recent jobs count",
-    description="Get count of jobs posted in the last N days."
+    description="Get count of jobs posted in the last N days.",
 )
 def get_recent_jobs(
     days: int = Query(7, ge=1, le=30, description="Number of days to look back"),
@@ -169,7 +169,7 @@ def get_recent_jobs(
     response_model=list[SalaryDistributionResponse],
     status_code=status.HTTP_200_OK,
     summary="Get salary distribution",
-    description="Get salary distribution by salary ranges."
+    description="Get salary distribution by salary ranges.",
 )
 def get_salary_distribution(
     service: AnalyticsService = Depends(get_service),
@@ -183,7 +183,7 @@ def get_salary_distribution(
     response_model=DatasetSummaryResponse,
     status_code=status.HTTP_200_OK,
     summary="Get dataset summary",
-    description="Get comprehensive dataset summary with statistics."
+    description="Get comprehensive dataset summary with statistics.",
 )
 def get_dataset_summary(
     service: AnalyticsService = Depends(get_service),
@@ -197,7 +197,7 @@ def get_dataset_summary(
     response_model=OverviewResponse,
     status_code=status.HTTP_200_OK,
     summary="Get overview",
-    description="Lightweight overview for general API consumers and monitoring."
+    description="Lightweight overview for general API consumers and monitoring.",
 )
 def get_overview(
     service: AnalyticsService = Depends(get_service),
@@ -211,7 +211,7 @@ def get_overview(
     response_model=DashboardSummaryResponse,
     status_code=status.HTTP_200_OK,
     summary="Get dashboard summary",
-    description="Complete dashboard summary for Streamlit frontend with all widgets."
+    description="Complete dashboard summary for Streamlit frontend with all widgets.",
 )
 def get_dashboard_summary(
     service: AnalyticsService = Depends(get_service),

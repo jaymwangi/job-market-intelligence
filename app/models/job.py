@@ -2,21 +2,21 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
     DateTime,
-    Float,
+    Index,
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     func,
     text,
-    Index,
-    UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -30,6 +30,7 @@ class Job(Base):
     """
     Represents a job posting collected from external job boards.
     """
+
     __tablename__ = "jobs"
 
     # Primary key
@@ -56,33 +57,33 @@ class Job(Base):
     )
 
     # Location
-    location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    remote_type: Mapped[Optional[str]] = mapped_column(
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    remote_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         index=True,
     )
 
     # Compensation - using Decimal for precise currency handling
-    salary_min: Mapped[Optional[Decimal]] = mapped_column(
+    salary_min: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         index=True,
     )
-    salary_max: Mapped[Optional[Decimal]] = mapped_column(
+    salary_max: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 2),
         nullable=True,
         index=True,
     )
-    salary_currency: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    salary_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
     # Employment details
-    employment_type: Mapped[Optional[str]] = mapped_column(
+    employment_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         index=True,
     )
-    experience_level: Mapped[Optional[str]] = mapped_column(
+    experience_level: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         index=True,
@@ -102,7 +103,7 @@ class Job(Base):
     )
 
     # Dates
-    posted_date: Mapped[Optional[datetime]] = mapped_column(
+    posted_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         index=True,
@@ -140,7 +141,7 @@ class Job(Base):
     )
 
     # Flexible data storage for ETL resilience (PostgreSQL-specific)
-    raw_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    raw_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     # Relationships - using string forward references
     skills: Mapped[list["Skill"]] = relationship(

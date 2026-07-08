@@ -22,7 +22,7 @@ def show_skeleton_loader(rows: int = 3, height: int = 60):
     """Show skeleton loader for tables with shimmer animation."""
     # Add CSS for shimmer animation - escape curly braces with double braces
     st.markdown(
-        """
+        f"""
     <style>
         @keyframes shimmer {{
             0% {{ background-position: -200% 0; }}
@@ -37,7 +37,7 @@ def show_skeleton_loader(rows: int = 3, height: int = 60):
             margin: 6px 0;
         }}
     </style>
-    """.format(height=height),
+    """,
         unsafe_allow_html=True,
     )
 

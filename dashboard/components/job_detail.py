@@ -21,9 +21,7 @@ def render_job_detail(job: Job):
         with col2:
             if job.salary_min and job.salary_max:
                 currency = job.salary_currency or "USD"
-                st.markdown(
-                    f"**Salary:** {currency} {job.salary_min:,.0f} - {job.salary_max:,.0f}"
-                )
+                st.markdown(f"**Salary:** {currency} {job.salary_min:,.0f} - {job.salary_max:,.0f}")
             elif job.salary_min:
                 currency = job.salary_currency or "USD"
                 st.markdown(f"**Salary:** From {currency} {job.salary_min:,.0f}")
@@ -42,9 +40,7 @@ def render_job_detail(job: Job):
             st.markdown("---")
             st.markdown("### 📝 Description")
             st.markdown(
-                job.description[:1000] + "..."
-                if len(job.description) > 1000
-                else job.description
+                job.description[:1000] + "..." if len(job.description) > 1000 else job.description
             )
 
         # Close button

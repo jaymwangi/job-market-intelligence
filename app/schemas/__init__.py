@@ -1,20 +1,20 @@
 # app/schemas/__init__.py
-from .common import HealthResponse
-from .job import JobResponse, JobFilters, JobListResponse
 from .analytics import (
-    TopSkillResponse,
-    TopCompanyResponse,
-    LocationResponse,
-    SalaryStatisticsResponse,
-    EmploymentDistributionResponse,
-    SalaryDistributionResponse,
-    PostingTrendResponse,
-    DatasetSummaryResponse,
-    SalaryByLocationResponse,
-    SalaryByCompanyResponse,
-    OverviewResponse,
     DashboardSummaryResponse,
+    DatasetSummaryResponse,
+    EmploymentDistributionResponse,
+    LocationResponse,
+    OverviewResponse,
+    PostingTrendResponse,
+    SalaryByCompanyResponse,
+    SalaryByLocationResponse,
+    SalaryDistributionResponse,
+    SalaryStatisticsResponse,
+    TopCompanyResponse,
+    TopSkillResponse,
 )
+from .common import HealthResponse
+from .job import JobFilters, JobListResponse, JobResponse
 
 __all__ = [
     "HealthResponse",

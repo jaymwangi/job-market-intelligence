@@ -2,12 +2,17 @@
 
 import logging
 from types import TracebackType
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 import httpx
 
-from .exceptions import (APIConnectionError, APIError, APINotFoundError,
-                         APIServerError, APITimeoutError)
+from .exceptions import (
+    APIConnectionError,
+    APIError,
+    APINotFoundError,
+    APIServerError,
+    APITimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +44,10 @@ class APIClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        json: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Make HTTP request with retry logic.
 
@@ -127,9 +132,7 @@ class APIClient:
                     raise APIError(f"Validation error: {detail}") from e
                 elif e.response.status_code >= 500:
                     raise APIServerError(f"Server error: {detail}") from e
-                raise APIError(
-                    f"Request failed: {e.response.status_code} - {detail}"
-                ) from e
+                raise APIError(f"Request failed: {e.response.status_code} - {detail}") from e
 
             except Exception as e:
                 logger.exception("Unexpected error during API request")
@@ -141,8 +144,8 @@ class APIClient:
     def get(
         self,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Perform GET request.
 
@@ -158,9 +161,9 @@ class APIClient:
     def post(
         self,
         endpoint: str,
-        json: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Perform POST request.
 
@@ -177,9 +180,9 @@ class APIClient:
     def put(
         self,
         endpoint: str,
-        json: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Perform PUT request.
 
@@ -196,7 +199,7 @@ class APIClient:
     def delete(
         self,
         endpoint: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform DELETE request.
 
@@ -211,9 +214,9 @@ class APIClient:
     def patch(
         self,
         endpoint: str,
-        json: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Perform PATCH request.
 
@@ -237,9 +240,9 @@ class APIClient:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit context manager and close client."""
         self.close()

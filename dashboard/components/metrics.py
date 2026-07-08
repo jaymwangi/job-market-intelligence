@@ -1,15 +1,15 @@
 # dashboard/components/metrics.py
 """Professional metric card components with modern design."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 import streamlit as st
 
-from dashboard.schemas.chart_data import MetricCardData
 from dashboard.components.icons import get_icon
+from dashboard.schemas.chart_data import MetricCardData
 
 
-def create_metric_card(data: MetricCardData) -> Dict[str, Any]:
+def create_metric_card(data: MetricCardData) -> dict[str, Any]:
     """
     Create a professional metric card.
 
@@ -44,7 +44,7 @@ def create_metric_card(data: MetricCardData) -> Dict[str, Any]:
         "💰": "salary_metric",
         "📍": "location",
     }
-    
+
     icon_name = icon_map.get(data.icon, "jobs_metric") if data.icon else "jobs_metric"
     icon_svg = get_icon(icon_name, size=22, color=color)
 
@@ -56,9 +56,7 @@ def create_metric_card(data: MetricCardData) -> Dict[str, Any]:
             else "#e94560" if data.change_direction == "down" else colors["text_light"]
         )
         change_icon = (
-            "↑"
-            if data.change_direction == "up"
-            else "↓" if data.change_direction == "down" else ""
+            "↑" if data.change_direction == "up" else "↓" if data.change_direction == "down" else ""
         )
         change_html = f'<div style="margin-top:6px;color:{change_color};font-size:0.75rem;font-weight:500;display:flex;align-items:center;gap:2px;">{change_icon} {data.change:+.1f}%</div>'
 
@@ -74,14 +72,14 @@ def create_metric_card(data: MetricCardData) -> Dict[str, Any]:
         f'<div style="flex:1;">'
         f'<div style="color:{colors["text_light"]};font-size:0.65rem;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">{data.title}</div>'
         f'<div style="font-size:1.75rem;font-weight:700;color:{colors["primary"]};line-height:1.2;letter-spacing:-0.02em;">{data.value}</div>'
-        f'{change_html}'
-        f'</div>'
+        f"{change_html}"
+        f"</div>"
         f'<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:{color}08;border-radius:10px;margin-left:12px;flex-shrink:0;">'
-        f'{icon_svg}'
-        f'</div>'
-        f'</div>'
-        f'{subtitle_html}'
-        f'</div>'
+        f"{icon_svg}"
+        f"</div>"
+        f"</div>"
+        f"{subtitle_html}"
+        f"</div>"
     )
 
     return {"html": html}
@@ -93,7 +91,7 @@ def render_metric_card(data: MetricCardData) -> None:
     st.markdown(card["html"], unsafe_allow_html=True)
 
 
-def render_metric_row(metrics: List[MetricCardData], columns: int = 4) -> None:
+def render_metric_row(metrics: list[MetricCardData], columns: int = 4) -> None:
     """Render a row of professional metric cards."""
     if not metrics:
         st.info("No metrics to display")

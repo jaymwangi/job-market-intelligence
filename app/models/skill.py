@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String, func, text, Index
+from sqlalchemy import DateTime, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,6 +19,7 @@ class Skill(Base):
     Represents a skill that can be associated with job postings.
     Skills are normalized (e.g., "Python" instead of "python", "py").
     """
+
     __tablename__ = "skills"
 
     # Primary key
@@ -59,9 +60,7 @@ class Skill(Base):
     )
 
     # Special indexes
-    __table_args__ = (
-        Index("idx_skills_name_lower", func.lower(name)),  # Case-insensitive lookups
-    )
+    __table_args__ = (Index("idx_skills_name_lower", func.lower(name)),)  # Case-insensitive lookups
 
     def __repr__(self) -> str:
         return f"<Skill(id={self.id}, name={self.name})>"

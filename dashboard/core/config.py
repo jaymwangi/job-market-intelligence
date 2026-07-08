@@ -3,7 +3,6 @@
 
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -17,9 +16,7 @@ class DashboardConfig:
     # ===== App Settings =====
     app_title: str = os.getenv("APP_TITLE", "Job Market Dashboard")
     app_icon: str = os.getenv("APP_ICON", "📊")
-    dashboard_title: str = os.getenv(
-        "DASHBOARD_TITLE", "Job Market Intelligence Dashboard"
-    )
+    dashboard_title: str = os.getenv("DASHBOARD_TITLE", "Job Market Intelligence Dashboard")
     debug_mode: bool = os.getenv("DEBUG", "False").lower() == "true"
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
@@ -34,23 +31,13 @@ class DashboardConfig:
     cache_max_size: int = int(os.getenv("CACHE_MAX_SIZE", "100"))
 
     # Cache TTLs per endpoint (in seconds)
-    cache_ttl_dashboard_summary: int = int(
-        os.getenv("CACHE_TTL_DASHBOARD_SUMMARY", "300")
-    )
+    cache_ttl_dashboard_summary: int = int(os.getenv("CACHE_TTL_DASHBOARD_SUMMARY", "300"))
     cache_ttl_top_skills: int = int(os.getenv("CACHE_TTL_TOP_SKILLS", "600"))
     cache_ttl_top_companies: int = int(os.getenv("CACHE_TTL_TOP_COMPANIES", "600"))
-    cache_ttl_jobs_by_location: int = int(
-        os.getenv("CACHE_TTL_JOBS_BY_LOCATION", "600")
-    )
-    cache_ttl_salary_statistics: int = int(
-        os.getenv("CACHE_TTL_SALARY_STATISTICS", "900")
-    )
-    cache_ttl_salary_distribution: int = int(
-        os.getenv("CACHE_TTL_SALARY_DISTRIBUTION", "900")
-    )
-    cache_ttl_employment_types: int = int(
-        os.getenv("CACHE_TTL_EMPLOYMENT_TYPES", "600")
-    )
+    cache_ttl_jobs_by_location: int = int(os.getenv("CACHE_TTL_JOBS_BY_LOCATION", "600"))
+    cache_ttl_salary_statistics: int = int(os.getenv("CACHE_TTL_SALARY_STATISTICS", "900"))
+    cache_ttl_salary_distribution: int = int(os.getenv("CACHE_TTL_SALARY_DISTRIBUTION", "900"))
+    cache_ttl_employment_types: int = int(os.getenv("CACHE_TTL_EMPLOYMENT_TYPES", "600"))
     cache_ttl_posting_trend: int = int(os.getenv("CACHE_TTL_POSTING_TREND", "300"))
     cache_ttl_recent_jobs: int = int(os.getenv("CACHE_TTL_RECENT_JOBS", "300"))
 
@@ -72,12 +59,8 @@ class DashboardConfig:
 
     # ===== Analytics Configuration =====
     default_top_skills_limit: int = int(os.getenv("DEFAULT_TOP_SKILLS_LIMIT", "15"))
-    default_top_companies_limit: int = int(
-        os.getenv("DEFAULT_TOP_COMPANIES_LIMIT", "15")
-    )
-    default_top_locations_limit: int = int(
-        os.getenv("DEFAULT_TOP_LOCATIONS_LIMIT", "15")
-    )
+    default_top_companies_limit: int = int(os.getenv("DEFAULT_TOP_COMPANIES_LIMIT", "15"))
+    default_top_locations_limit: int = int(os.getenv("DEFAULT_TOP_LOCATIONS_LIMIT", "15"))
     default_posting_trend_days: int = int(os.getenv("DEFAULT_POSTING_TREND_DAYS", "30"))
 
     # ===== Feature Flags =====
@@ -130,7 +113,7 @@ class DashboardConfig:
 
 
 # ===== Singleton Instance =====
-_config: Optional[DashboardConfig] = None
+_config: DashboardConfig | None = None
 
 
 def get_config() -> DashboardConfig:

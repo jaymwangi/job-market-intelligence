@@ -3,9 +3,10 @@
 
 import functools
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from threading import Lock
-from typing import Any, Callable, Dict, Optional, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +19,10 @@ class CacheManager:
     """Simple in-memory cache manager."""
 
     def __init__(self):
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
         self._lock = Lock()
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get cached value if not expired."""
         with self._lock:
             if key not in self._cache:
@@ -55,9 +56,7 @@ class CacheManager:
             keys_to_delete = [k for k in self._cache.keys() if pattern in k]
             for key in keys_to_delete:
                 del self._cache[key]
-            logger.info(
-                f"Cleared {len(keys_to_delete)} cache entries matching pattern: {pattern}"
-            )
+            logger.info(f"Cleared {len(keys_to_delete)} cache entries matching pattern: {pattern}")
 
 
 def cached(ttl: int = 300) -> Callable[[Callable[P, R]], Callable[P, R]]:

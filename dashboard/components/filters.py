@@ -6,15 +6,9 @@ def render_filters():
     st.sidebar.header("🔍 Filters")
 
     filters = {
-        "search": st.sidebar.text_input(
-            "Search", placeholder="Job title or company...", value=""
-        ),
-        "company": st.sidebar.text_input(
-            "Company Name", placeholder="Filter by company..."
-        ),
-        "location": st.sidebar.text_input(
-            "Location", placeholder="City, country, or 'Remote'..."
-        ),
+        "search": st.sidebar.text_input("Search", placeholder="Job title or company...", value=""),
+        "company": st.sidebar.text_input("Company Name", placeholder="Filter by company..."),
+        "location": st.sidebar.text_input("Location", placeholder="City, country, or 'Remote'..."),
         "source_site": st.sidebar.selectbox(
             "Source", ["All", "adzuna", "reed", "indeed", "linkedin"]
         ),

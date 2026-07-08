@@ -1,14 +1,15 @@
 # app/main.py
+import time
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
-import time
 
-from config import settings, get_logger
 from app.api.router import api_router
+from config import get_logger, settings
 
 # Get logger
 logger = get_logger("app.main")
@@ -44,18 +45,9 @@ def create_app() -> FastAPI:
             "url": "https://opensource.org/licenses/MIT",
         },
         openapi_tags=[
-            {
-                "name": "Health",
-                "description": "Health check and monitoring endpoints"
-            },
-            {
-                "name": "Jobs",
-                "description": "Job search, filtering, and retrieval operations"
-            },
-            {
-                "name": "Analytics",
-                "description": "Analytics and insights about the job market"
-            },
+            {"name": "Health", "description": "Health check and monitoring endpoints"},
+            {"name": "Jobs", "description": "Job search, filtering, and retrieval operations"},
+            {"name": "Analytics", "description": "Analytics and insights about the job market"},
         ],
     )
 
@@ -66,9 +58,8 @@ def create_app() -> FastAPI:
         start_time = time.time()
         response = await call_next(request)
         process_time = time.time() - start_time
-        
+
         # Clean request logging - no emojis
-        status_indicator = "OK" if response.status_code < 400 else "ERR" if response.status_code < 500 else "ERR"
         logger.info(
             f"{request.method} {request.url.path} | "
             f"status={response.status_code} | "
@@ -98,7 +89,7 @@ def create_app() -> FastAPI:
                 "status_code": 422,
                 "path": request.url.path,
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            }
+            },
         )
 
     @app.exception_handler(SQLAlchemyError)
@@ -112,7 +103,7 @@ def create_app() -> FastAPI:
                 "status_code": 500,
                 "path": request.url.path,
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            }
+            },
         )
 
     @app.exception_handler(Exception)
@@ -126,7 +117,7 @@ def create_app() -> FastAPI:
                 "status_code": 500,
                 "path": request.url.path,
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            }
+            },
         )
 
     # Routes

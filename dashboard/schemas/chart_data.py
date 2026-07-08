@@ -2,7 +2,6 @@
 """Chart models for presentation layer."""
 
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -23,24 +22,24 @@ class MetricCardData(BaseModel):
 
     title: str
     value: str
-    change: Optional[float] = None
-    change_direction: Optional[str] = None  # "up" or "down"
-    icon: Optional[str] = None
-    color: Optional[str] = None
-    subtitle: Optional[str] = None
+    change: float | None = None
+    change_direction: str | None = None  # "up" or "down"
+    icon: str | None = None
+    color: str | None = None
+    subtitle: str | None = None
 
 
 class BarChartData(BaseModel):
     """Data for bar chart."""
 
     title: str
-    x_values: List[str]
-    y_values: List[float]
+    x_values: list[str]
+    y_values: list[float]
     x_label: str = ""
     y_label: str = ""
-    color: Optional[str] = None
+    color: str | None = None
     show_values: bool = False
-    sort_by: Optional[str] = None  # "value" or "label"
+    sort_by: str | None = None  # "value" or "label"
     sort_descending: bool = True
 
 
@@ -54,10 +53,10 @@ class PieChartData(BaseModel):
     """Data for pie/donut chart."""
 
     title: str
-    labels: List[str]
-    values: List[float]
+    labels: list[str]
+    values: list[float]
     show_percentage: bool = True
-    color_sequence: Optional[List[str]] = None
+    color_sequence: list[str] | None = None
 
 
 class DonutChartData(PieChartData):
@@ -70,21 +69,21 @@ class LineChartData(BaseModel):
     """Data for line chart."""
 
     title: str
-    x_values: List[str]
-    y_values: List[float]
+    x_values: list[str]
+    y_values: list[float]
     x_label: str = ""
     y_label: str = ""
     fill_area: bool = False
     show_markers: bool = True
-    color: Optional[str] = None
+    color: str | None = None
 
 
 class HistogramData(BaseModel):
     """Data for histogram."""
 
     title: str
-    bins: List[str]
-    counts: List[int]
+    bins: list[str]
+    counts: list[int]
     x_label: str = ""
     y_label: str = ""
-    color: Optional[str] = None
+    color: str | None = None

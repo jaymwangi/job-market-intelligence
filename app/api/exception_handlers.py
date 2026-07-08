@@ -1,9 +1,11 @@
 # app/api/exception_handlers.py
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
+
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+
 from config import get_logger
 
 logger = get_logger()
@@ -20,7 +22,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
             "path": request.url.path,
             "timestamp": datetime.utcnow().isoformat() + "Z",
-        }
+        },
     )
 
 
@@ -34,7 +36,7 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
             "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
             "path": request.url.path,
             "timestamp": datetime.utcnow().isoformat() + "Z",
-        }
+        },
     )
 
 
@@ -48,5 +50,5 @@ async def general_exception_handler(request: Request, exc: Exception):
             "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
             "path": request.url.path,
             "timestamp": datetime.utcnow().isoformat() + "Z",
-        }
+        },
     )

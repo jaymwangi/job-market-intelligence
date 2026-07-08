@@ -2,7 +2,7 @@
 """Session state management - unified StateManager for Sprint 5.1+ infrastructure."""
 
 import logging
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 import streamlit as st
 
@@ -21,9 +21,9 @@ class StateManager:
     """
 
     # Cache for service instances
-    _services: Dict[str, Any] = {}
-    _api_client: Optional[APIClient] = None
-    _cache_manager: Optional[CacheManager] = None
+    _services: dict[str, Any] = {}
+    _api_client: APIClient | None = None
+    _cache_manager: CacheManager | None = None
 
     @classmethod
     def init(cls):
@@ -54,7 +54,7 @@ class StateManager:
         return cls._cache_manager
 
     @classmethod
-    def get_service(cls, service_class: Type) -> Any:
+    def get_service(cls, service_class: type) -> Any:
         """
         Get or create a service instance.
         Uses both class-level cache and session state for persistence.
@@ -139,12 +139,12 @@ class StateManager:
     # ========== Job Filter Methods ==========
 
     @classmethod
-    def get_jobs_filters(cls) -> Dict:
+    def get_jobs_filters(cls) -> dict:
         """Get job filters from session state."""
         return st.session_state.get("job_filters", {})
 
     @classmethod
-    def set_jobs_filters(cls, filters: Dict):
+    def set_jobs_filters(cls, filters: dict):
         """Set job filters in session state."""
         st.session_state.job_filters = filters
 
@@ -180,12 +180,12 @@ class StateManager:
     # ========== Backward Compatibility Methods ==========
 
     @classmethod
-    def get_job_filters(cls) -> Dict:
+    def get_job_filters(cls) -> dict:
         """Alias for get_jobs_filters() for backward compatibility."""
         return cls.get_jobs_filters()
 
     @classmethod
-    def set_job_filters(cls, filters: Dict):
+    def set_job_filters(cls, filters: dict):
         """Alias for set_jobs_filters() for backward compatibility."""
         cls.set_jobs_filters(filters)
 
@@ -202,12 +202,12 @@ class StateManager:
     # ========== Job Selection Methods ==========
 
     @classmethod
-    def get_selected_job_id(cls) -> Optional[str]:
+    def get_selected_job_id(cls) -> str | None:
         """Get selected job ID."""
         return st.session_state.get("selected_job_id", None)
 
     @classmethod
-    def set_selected_job_id(cls, job_id: Optional[str]):
+    def set_selected_job_id(cls, job_id: str | None):
         """Set selected job ID."""
         st.session_state.selected_job_id = job_id
 

@@ -53,7 +53,7 @@ st.markdown(
     .main {{
         padding: 0 1rem;
     }}
-    
+
     /* Typography */
     h1, h2, h3, h4, h5, h6 {{
         font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
@@ -61,22 +61,22 @@ st.markdown(
         font-weight: 600;
         letter-spacing: -0.01em;
     }}
-    
+
     /* Sidebar styling */
     .css-1d391kg, .css-12oz5g7 {{
         background: {COLORS['primary']};
     }}
-    
+
     .sidebar .sidebar-content {{
         background: {COLORS['primary']};
         padding: 1.5rem 0;
     }}
-    
+
     /* Sidebar navigation */
     .stRadio > div {{
         gap: 0.25rem;
     }}
-    
+
     .stRadio label {{
         padding: 0.5rem 1rem;
         border-radius: 8px;
@@ -85,20 +85,20 @@ st.markdown(
         font-weight: 500;
         cursor: pointer;
     }}
-    
+
     .stRadio label:hover {{
         background: rgba(255,255,255,0.08);
         color: #ffffff;
     }}
-    
+
     .stRadio label[data-baseweb="radio"] {{
         background: transparent;
     }}
-    
+
     .stRadio label[data-testid="stRadioLabel"] {{
         padding: 0.5rem 1rem;
     }}
-    
+
     /* Button styling */
     .stButton button {{
         background: {COLORS['accent']};
@@ -110,17 +110,17 @@ st.markdown(
         transition: all 0.2s ease;
         font-size: 0.9rem;
     }}
-    
+
     .stButton button:hover {{
         background: {COLORS['secondary']};
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }}
-    
+
     .stButton button:active {{
         transform: translateY(0);
     }}
-    
+
     /* Professional Metric Cards - Enhanced */
     .stMetric {{
         background: {COLORS['card_bg']};
@@ -131,13 +131,13 @@ st.markdown(
         transition: all 0.25s ease;
         cursor: default;
     }}
-    
+
     .stMetric:hover {{
         box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         transform: translateY(-3px);
         border-color: {COLORS['accent']}30;
     }}
-    
+
     .stMetric label {{
         color: {COLORS['text_light']};
         font-weight: 500;
@@ -145,7 +145,7 @@ st.markdown(
         text-transform: uppercase;
         letter-spacing: 0.06em;
     }}
-    
+
     .stMetric div[data-testid="stMetricValue"] {{
         color: {COLORS['primary']};
         font-weight: 700;
@@ -153,12 +153,12 @@ st.markdown(
         letter-spacing: -0.02em;
         margin-top: 4px;
     }}
-    
+
     .stMetric div[data-testid="stMetricDelta"] {{
         font-size: 0.85rem;
         font-weight: 500;
     }}
-    
+
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {{
         gap: 0.25rem;
@@ -167,7 +167,7 @@ st.markdown(
         padding: 0.25rem;
         border: 1px solid {COLORS['border']};
     }}
-    
+
     .stTabs [data-baseweb="tab"] {{
         border-radius: 8px;
         padding: 0.5rem 1.25rem;
@@ -176,19 +176,19 @@ st.markdown(
         transition: all 0.2s ease;
         font-size: 0.9rem;
     }}
-    
+
     .stTabs [data-baseweb="tab"]:hover {{
         background: rgba(0,0,0,0.04);
         color: {COLORS['text']};
     }}
-    
+
     .stTabs [data-baseweb="tab"][aria-selected="true"] {{
         background: {COLORS['card_bg']};
         color: {COLORS['primary']};
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         border: 1px solid {COLORS['border']};
     }}
-    
+
     /* Containers and borders */
     .stContainer {{
         border: 1px solid {COLORS['border']};
@@ -197,11 +197,11 @@ st.markdown(
         background: {COLORS['card_bg']};
         transition: all 0.2s ease;
     }}
-    
+
     .stContainer:hover {{
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }}
-    
+
     /* Expander styling */
     .streamlit-expanderHeader {{
         font-weight: 600;
@@ -209,46 +209,46 @@ st.markdown(
         border-radius: 8px;
         transition: all 0.2s ease;
     }}
-    
+
     .streamlit-expanderHeader:hover {{
         background: {COLORS['background']};
     }}
-    
+
     /* Selectbox and inputs */
     .stSelectbox div[data-baseweb="select"] {{
         border-radius: 8px;
         border: 1px solid {COLORS['border']};
         transition: all 0.2s ease;
     }}
-    
+
     .stSelectbox div[data-baseweb="select"]:hover {{
         border-color: {COLORS['accent']};
     }}
-    
+
     .stTextInput input {{
         border-radius: 8px;
         border: 1px solid {COLORS['border']};
         transition: all 0.2s ease;
         padding: 0.5rem 0.75rem;
     }}
-    
+
     .stTextInput input:focus {{
         border-color: {COLORS['accent']};
         box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
     }}
-    
+
     .stNumberInput input {{
         border-radius: 8px;
         border: 1px solid {COLORS['border']};
         transition: all 0.2s ease;
         padding: 0.5rem 0.75rem;
     }}
-    
+
     .stNumberInput input:focus {{
         border-color: {COLORS['accent']};
         box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
     }}
-    
+
     /* Footer */
     .footer {{
         padding: 2rem 0 1rem 0;
@@ -256,42 +256,42 @@ st.markdown(
         margin-top: 2rem;
         text-align: center;
     }}
-    
+
     .footer-text {{
         color: {COLORS['text_light']};
         font-size: 0.85rem;
         font-weight: 400;
         letter-spacing: 0.02em;
     }}
-    
+
     .footer-text strong {{
         color: {COLORS['primary']};
         font-weight: 500;
     }}
-    
+
     /* Loading and progress */
     .stSpinner > div {{
         border-color: {COLORS['accent']} !important;
     }}
-    
+
     /* Info, success, warning, error boxes */
     .stAlert {{
         border-radius: 10px;
         border-left-width: 4px;
         padding: 1rem;
     }}
-    
+
     /* Dataframe styling */
     .dataframe {{
         border-radius: 8px !important;
         border: 1px solid {COLORS['border']} !important;
         overflow: hidden !important;
     }}
-    
+
     .dataframe thead {{
         background: {COLORS['background']} !important;
     }}
-    
+
     .dataframe th {{
         color: {COLORS['primary']} !important;
         font-weight: 600 !important;
@@ -300,28 +300,28 @@ st.markdown(
         text-transform: uppercase !important;
         letter-spacing: 0.04em !important;
     }}
-    
+
     .dataframe td {{
         padding: 0.75rem 1rem !important;
         border-bottom: 1px solid {COLORS['border']} !important;
     }}
-    
+
     /* Custom scrollbar */
     ::-webkit-scrollbar {{
         width: 8px;
         height: 8px;
     }}
-    
+
     ::-webkit-scrollbar-track {{
         background: {COLORS['background']};
         border-radius: 4px;
     }}
-    
+
     ::-webkit-scrollbar-thumb {{
         background: {COLORS['text_light']};
         border-radius: 4px;
     }}
-    
+
     ::-webkit-scrollbar-thumb:hover {{
         background: {COLORS['text']};
     }}
@@ -343,15 +343,19 @@ page = StateManager.get_current_page()
 try:
     if page == "overview":
         from pages.overview import render
+
         render()
     elif page == "jobs":
         from pages.jobs import render
+
         render()
     elif page == "analytics":
         from pages.analytics import render
+
         render()
     elif page == "about":
         from pages.about import render
+
         render()
     else:
         st.error(f"Page '{page}' not found")
@@ -367,7 +371,7 @@ st.markdown(
         <strong>Job Market Intelligence</strong> • Real-time analytics platform
     </div>
     <div class="footer-text" style="margin-top: 0.25rem; font-size: 0.75rem;">
-        © 2024 • Data powered by FastAPI backend
+        © 2026 • Data powered by FastAPI backend
     </div>
 </div>
 """,

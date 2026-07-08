@@ -13,6 +13,7 @@ class JobSkill(Base):
     """
     Association table linking jobs to skills (many-to-many).
     """
+
     __tablename__ = "job_skills"
 
     # Composite primary key - automatically creates needed indexes

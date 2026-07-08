@@ -1,23 +1,24 @@
 # app/schemas/job.py
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
+
+from pydantic import BaseModel
 
 
 class JobResponse(BaseModel):
     """Response schema for a single job."""
+
     id: UUID
     title: str
-    company_name: Optional[str] = None
-    location: Optional[str] = None
-    description: Optional[str] = None
-    salary_min: Optional[float] = None
-    salary_max: Optional[float] = None
-    salary_currency: Optional[str] = None
-    posted_date: Optional[datetime] = None
-    source_site: Optional[str] = None
-    source_url: Optional[str] = None
+    company_name: str | None = None
+    location: str | None = None
+    description: str | None = None
+    salary_min: float | None = None
+    salary_max: float | None = None
+    salary_currency: str | None = None
+    posted_date: datetime | None = None
+    source_site: str | None = None
+    source_url: str | None = None
     is_active: bool = True
 
     class Config:
@@ -26,16 +27,18 @@ class JobResponse(BaseModel):
 
 class JobFilters(BaseModel):
     """Filter parameters for job listing."""
-    company_name: Optional[str] = None
-    location: Optional[str] = None
-    source_site: Optional[str] = None
-    min_salary: Optional[float] = None
-    max_salary: Optional[float] = None
+
+    company_name: str | None = None
+    location: str | None = None
+    source_site: str | None = None
+    min_salary: float | None = None
+    max_salary: float | None = None
 
 
 class JobListResponse(BaseModel):
     """Response schema for paginated job list."""
+
     page: int
     limit: int
     total: int
-    data: List[JobResponse]
+    data: list[JobResponse]

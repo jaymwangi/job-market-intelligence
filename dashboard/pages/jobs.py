@@ -2,14 +2,13 @@
 """Professional Job Explorer page with modern UI."""
 
 import streamlit as st
-from datetime import datetime
 
 from dashboard.components.alerts import show_error
 from dashboard.components.empty_state import render_empty_state
 from dashboard.components.filters import render_filters
+from dashboard.components.icons import get_icon
 from dashboard.components.pagination import render_pagination
 from dashboard.components.tables import render_jobs_table
-from dashboard.components.icons import get_icon
 from dashboard.core.config import settings
 from dashboard.schemas import JobFilters
 from dashboard.utils import StateManager
@@ -228,7 +227,7 @@ def render():
     # Stats bar with SVG icons
     jobs_icon = get_icon("jobs", size=16, color="#1a1a2e")
     page_icon = get_icon("overview", size=16, color="#1a1a2e")
-    
+
     if response.total > 0:
         st.markdown(
             f"""

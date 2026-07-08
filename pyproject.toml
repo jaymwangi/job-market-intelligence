@@ -1,0 +1,99 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "N",   # PEP8 naming
+    "UP",  # pyupgrade
+]
+
+ignore = [
+    "E501",  # Line too long (HTML strings)
+    "W293",  # Blank line contains whitespace
+    "E402",  # Module level import not at top (scripts)
+    "N806",  # Variable name uppercase (patch mocks)
+    "E712",  # Comparison to True/False (SQLAlchemy filter style)
+    "F811",  # Redefinition of unused (intentional logger reassignment)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"dashboard/**/*.py" = ["E501", "W293"]
+"scripts/**/*.py" = ["E402", "E501"]
+"tests/**/*.py" = ["E501", "N806"]
+"migrations/**/*.py" = ["E501"]
+"app/repositories/**/*.py" = ["E712"]
+"config/logging_config.py" = ["F811"]  # Intentional logger reassignment
+"dashboard/core/config.py" = ["N802"]  # Backward compatibility aliases
+
+[tool.mypy]
+python_version = "3.11"
+
+strict = true
+
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+
+show_error_codes = true
+pretty = true
+
+ignore_missing_imports = true
+
+exclude = [
+    "dashboard/",
+    "migrations/",
+    "tests/",
+    "scripts/",
+    ".venv/",
+    "__pycache__",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+
+python_files = [
+    "test_*.py",
+]
+
+python_classes = [
+    "Test*",
+]
+
+python_functions = [
+    "test_*",
+]
+
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+
+[tool.coverage.run]
+source = [
+    "app",
+    "dashboard",
+]
+
+omit = [
+    "migrations/*",
+    "scripts/*",
+    "tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80

@@ -1,10 +1,9 @@
 # config/settings.py
 from functools import lru_cache
 from urllib.parse import quote_plus
-from typing import List, Optional
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import os
 
 
 class Settings(BaseSettings):
@@ -38,7 +37,7 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = Field(default="INFO")
-    
+
     # API Configuration
     api_title: str = Field(default="Job Market Intelligence API")
     api_description: str = Field(
@@ -46,7 +45,7 @@ class Settings(BaseSettings):
     )
     api_version: str = Field(default="1.0.0")
     api_prefix: str = Field(default="/api/v1")
-    allowed_origins: List[str] = Field(
+    allowed_origins: list[str] = Field(
         default=["http://localhost:3000", "http://localhost:8501", "http://localhost:8000"]
     )
 

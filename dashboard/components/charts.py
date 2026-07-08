@@ -6,10 +6,14 @@ import logging
 import plotly.express as px
 import plotly.graph_objects as go
 
-from dashboard.schemas.chart_data import (BarChartData, DonutChartData,
-                                          HistogramData,
-                                          HorizontalBarChartData,
-                                          LineChartData, PieChartData)
+from dashboard.schemas.chart_data import (
+    BarChartData,
+    DonutChartData,
+    HistogramData,
+    HorizontalBarChartData,
+    LineChartData,
+    PieChartData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,11 +88,7 @@ def create_horizontal_bar_chart(data: HorizontalBarChartData) -> go.Figure:
             showlegend=False,
             template="plotly_white",
             height=max(400, len(data.x_values) * 30 + 100),
-            yaxis=(
-                {"categoryorder": "total ascending"}
-                if data.sort_by == "value"
-                else None
-            ),
+            yaxis=({"categoryorder": "total ascending"} if data.sort_by == "value" else None),
             font=dict(family="Inter, sans-serif", size=12),
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",

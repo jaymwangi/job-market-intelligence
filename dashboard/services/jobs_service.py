@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from dashboard.api import JOB_DETAIL, JOBS
 from dashboard.api.client import APIClient
@@ -21,15 +21,11 @@ class JobsService(BaseService):
     Inherits from BaseService for consistent API client access.
     """
 
-    def __init__(
-        self, api_client: APIClient, cache_manager: Optional[CacheManager] = None
-    ):
+    def __init__(self, api_client: APIClient, cache_manager: CacheManager | None = None):
         """Initialize JobsService with API client and cache manager."""
         super().__init__(api_client, cache_manager)
 
-    def fetch_jobs(
-        self, filters: JobFilters, page: int, page_size: int
-    ) -> JobListResponse:
+    def fetch_jobs(self, filters: JobFilters, page: int, page_size: int) -> JobListResponse:
         """Fetch jobs with filters and pagination."""
         # Ensure page is valid
         page = max(1, page)
@@ -52,7 +48,7 @@ class JobsService(BaseService):
         # Normalize API response → Frontend domain model
         return self._normalize_job_list_response(raw_response)
 
-    def fetch_job(self, job_id: str) -> Optional[Job]:
+    def fetch_job(self, job_id: str) -> Job | None:
         """Fetch a single job by ID."""
         try:
             endpoint = JOB_DETAIL.format(job_id=job_id)
@@ -62,9 +58,7 @@ class JobsService(BaseService):
             logger.error(f"Failed to fetch job {job_id}: {e}")
             return None
 
-    def _build_params(
-        self, filters: JobFilters, page: int, page_size: int
-    ) -> Dict[str, Any]:
+    def _build_params(self, filters: JobFilters, page: int, page_size: int) -> dict[str, Any]:
         """
         Build API-compatible query parameters.
 
@@ -77,7 +71,7 @@ class JobsService(BaseService):
 
         Only include parameters that have valid, non-empty values.
         """
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "page": page,
             "limit": page_size,
         }
@@ -126,7 +120,7 @@ class JobsService(BaseService):
         logger.warning(f"Could not parse datetime from: {value}, using current time")
         return datetime.now()
 
-    def _normalize_job(self, raw: Dict[str, Any]) -> Job:
+    def _normalize_job(self, raw: dict[str, Any]) -> Job:
         """
         Normalize a single job from API format to frontend domain model.
 
@@ -161,7 +155,7 @@ class JobsService(BaseService):
             is_active=bool(raw.get("is_active", True)),
         )
 
-    def _normalize_job_list_response(self, raw: Dict[str, Any]) -> JobListResponse:
+    def _normalize_job_list_response(self, raw: dict[str, Any]) -> JobListResponse:
         """
         Normalize API response to frontend domain model.
 
@@ -171,7 +165,7 @@ class JobsService(BaseService):
         - total                         - total
         - data: [...]                   - items: [...]
         """
-        items: List[Job] = [self._normalize_job(item) for item in raw.get("data", [])]
+        items: list[Job] = [self._normalize_job(item) for item in raw.get("data", [])]
 
         total: int = raw.get("total", len(items))
         limit: int = raw.get("limit", 20)
