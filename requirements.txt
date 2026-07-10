@@ -2,7 +2,7 @@ fastapi
 uvicorn
 
 sqlalchemy
-psycopg2-binary
+psycopg[binary]
 
 pydantic
 pydantic-settings
@@ -21,3 +21,5 @@ alembic
 python-multipart
 
 loguru>=0.7.0
+
+requests

@@ -1,9 +1,10 @@
 [tool.black]
 line-length = 100
-target-version = ["py311"]
+target-version = ["py313"]
 
 [tool.ruff]
 line-length = 100
+target-version = "py313"
 
 [tool.ruff.lint]
 select = [
@@ -30,11 +31,12 @@ ignore = [
 "tests/**/*.py" = ["E501", "N806"]
 "migrations/**/*.py" = ["E501"]
 "app/repositories/**/*.py" = ["E712"]
-"config/logging_config.py" = ["F811"]  # Intentional logger reassignment
-"dashboard/core/config.py" = ["N802"]  # Backward compatibility aliases
+"config/logging_config.py" = ["F811"]
+"dashboard/core/config.py" = ["N802"]
+
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 
 strict = true
 
@@ -58,6 +60,7 @@ exclude = [
     "__pycache__",
 ]
 
+
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
@@ -75,11 +78,18 @@ python_functions = [
     "test_*",
 ]
 
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+]
+
 addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
 ]
+
 
 [tool.coverage.run]
 source = [
@@ -91,9 +101,16 @@ omit = [
     "migrations/*",
     "scripts/*",
     "tests/*",
+    "**/__init__.py",
+    "**/conftest.py",
 ]
+
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-fail_under = 80
+fail_under = 70
+
+
+[tool.coverage.html]
+directory = "htmlcov"

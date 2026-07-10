@@ -2,7 +2,7 @@
 
 A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive analytics dashboard.
 
-The project demonstrates production-ready software engineering practices, including clean architecture, layered design, repository and service patterns, data validation, analytics, scalable backend development, and modern frontend integration.
+The project demonstrates production-ready software engineering practices, including clean architecture, layered design, repository and service patterns, data validation, analytics, scalable backend development, and modern frontend integration, all orchestrated in a containerized environment.
 
 ---
 
@@ -19,9 +19,11 @@ This project simulates a real-world data platform by implementing:
 * Production-ready REST API
 * Interactive analytics dashboard
 * API-driven frontend architecture
+* Docker containerization
+* CI/CD pipeline
 * Deployment-ready project structure
 
-The goal is to demonstrate backend engineering, data engineering, analytics engineering, API development, and frontend integration within a single cohesive application.
+The goal is to demonstrate backend engineering, data engineering, analytics engineering, API development, frontend integration, and DevOps practices within a single cohesive application.
 
 ---
 
@@ -74,6 +76,18 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 * Empty-state components
 * Modular reusable UI components
 
+### DevOps & Containerization
+
+* Docker containerization for all services
+* Docker Compose orchestration
+* GitHub Actions CI/CD pipeline
+* Automated linting, type checking, and testing
+* Environment variable management
+* Persistent database volumes
+* Container health checks
+* Non-root container users for security
+* Automated database migrations on startup
+
 ---
 
 # Tech Stack
@@ -99,14 +113,18 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 * Streamlit
 * Plotly
 
-## Development
+## Development & DevOps
 
 * Git
 * GitHub
+* Docker
+* Docker Compose
+* GitHub Actions
 * Ruff
 * Black
 * MyPy
 * Pytest
+* Code Coverage
 
 ---
 
@@ -165,6 +183,10 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 ```text
 job-market-intelligence/
 │
+├── .github/
+│   └── workflows/
+│       └── quality.yml
+│
 ├── app/
 │   ├── api/
 │   │   ├── routes/
@@ -204,6 +226,13 @@ job-market-intelligence/
 ├── migrations/
 ├── scripts/
 ├── tests/
+│
+├── Dockerfile
+├── compose.yml
+├── .dockerignore
+├── .env.example
+├── Makefile
+├── pyproject.toml
 ├── requirements.txt
 └── README.md
 ```
@@ -395,6 +424,42 @@ job-market-intelligence/
 
 ---
 
+## ✅ Sprint 6.1 — Production Hardening
+
+* Configuration improvements
+* Testing improvements
+* Code quality improvements
+* API reliability improvements
+
+---
+
+## ✅ Sprint 6.2 — Containerization & CI/CD
+
+* Docker containerization
+  * Backend Docker image
+  * Dashboard Docker image
+  * PostgreSQL container
+* Docker Compose orchestration
+  * Environment variable management
+  * Persistent database volumes
+  * Container health checks
+  * Non-root container users
+* Database Initialization
+  * Automatic PostgreSQL startup
+  * Database health verification
+  * Automatic Alembic migrations
+  * Backend startup dependency management
+* Continuous Integration
+  * GitHub Actions workflow
+  * Automated linting (Ruff)
+  * Code formatting validation (Black)
+  * Static type checking (MyPy)
+  * Unit testing with PostgreSQL
+  * Integration testing
+  * Docker image build validation
+
+---
+
 # Current Status
 
 ## ✅ Completed
@@ -418,6 +483,114 @@ job-market-intelligence/
 * End-to-End ETL Testing
 * API Testing
 * Dashboard Regression Testing
+* Production Hardening
+* Docker Containerization
+* CI/CD with GitHub Actions
+
+---
+
+# Docker Development
+
+## Quick Start
+
+Clone the repository:
+
+```bash
+git clone https://github.com/jaymwangi/job-market-intelligence.git
+cd job-market-intelligence
+```
+
+Create environment configuration:
+
+```bash
+cp .env.example .env
+```
+
+Start the application:
+
+```bash
+docker compose up --build
+```
+
+## Startup Flow
+
+```text
+docker compose up
+│
+▼
+PostgreSQL container starts
+│
+▼
+Database health check passes
+│
+▼
+Alembic migrations execute
+│
+▼
+FastAPI backend starts
+│
+▼
+Backend health check passes
+│
+▼
+Streamlit dashboard starts
+```
+
+## Application Access
+
+| Service | URL |
+|---|---|
+| FastAPI API | http://localhost:8000 |
+| Swagger Docs | http://localhost:8000/docs |
+| Streamlit Dashboard | http://localhost:8501 |
+| PostgreSQL | localhost:5432 |
+
+## Useful Commands
+
+**Start application:**
+```bash
+docker compose up
+```
+
+**Run in background:**
+```bash
+docker compose up -d
+```
+
+**View logs:**
+```bash
+docker compose logs -f
+```
+
+**Stop containers:**
+```bash
+docker compose down
+```
+
+**Remove database volume:**
+```bash
+docker compose down -v
+```
+
+**Run migrations:**
+```bash
+docker compose exec backend alembic upgrade head
+```
+
+**Run tests:**
+```bash
+docker compose exec backend pytest
+```
+
+**Run linting checks:**
+```bash
+docker compose exec backend ruff check .
+```
+
+**Run type checking:**
+```bash
+docker compose exec backend mypy app
+```
 
 ---
 
@@ -437,46 +610,36 @@ The project includes testing for:
 * End-to-end ETL workflow
 * Sprint regression verification
 
-Example verification:
-
+**Example verification:**
 ```bash
 python scripts/verify_sprint5.py
 ```
 
----
+**Continuous Integration:**
+Testing is automatically validated through GitHub Actions. The CI pipeline executes:
 
-# Next Milestone
-
-## 🚧 Sprint 6 — Deployment, Testing & DevOps
-
-Planned improvements include:
-
-* Docker
-* Docker Compose
-* GitHub Actions CI/CD
-* Automated testing
-* Production configuration
-* Environment management
-* API integration tests
-* Dashboard testing
-* Cloud deployment
-* Monitoring & observability
-* Performance optimization
-* Security hardening
+* Ruff linting
+* Black formatting checks
+* MyPy type checking
+* Unit tests
+* PostgreSQL integration tests
+* Docker image builds
 
 ---
 
 # Project Roadmap
 
-| Sprint      | Status      | Description                     |
-| ----------- | ----------- | ------------------------------- |
-| ✅ Sprint 0  | Complete    | Planning & Design               |
-| ✅ Sprint 1  | Complete    | Database Foundation             |
-| ✅ Sprint 2  | Complete    | ETL Pipeline                    |
-| ✅ Sprint 3  | Complete    | Analytics Engine                |
-| ✅ Sprint 4  | Complete    | FastAPI REST API                |
-| ✅ Sprint 5  | Complete    | Interactive Analytics Dashboard |
-| 🚧 Sprint 6 | In Progress | Deployment, Testing & DevOps    |
+| Sprint | Status | Description |
+|---|---|---|
+| ✅ Sprint 0 | Complete | Planning & Design |
+| ✅ Sprint 1 | Complete | Database Foundation |
+| ✅ Sprint 2 | Complete | ETL Pipeline |
+| ✅ Sprint 3 | Complete | Analytics Engine |
+| ✅ Sprint 4 | Complete | FastAPI REST API |
+| ✅ Sprint 5 | Complete | Interactive Analytics Dashboard |
+| ✅ Sprint 6.1 | Complete | Production Hardening |
+| ✅ Sprint 6.2 | Complete | Docker & CI/CD |
+| 🚧 Sprint 6.3 | Planned | Cloud Deployment & Monitoring |
 
 ---
 
@@ -490,9 +653,11 @@ Planned improvements include:
 * Real-time analytics
 * API rate limiting
 * Distributed caching (Redis)
-* Docker containerization
 * Kubernetes deployment
 * Cloud-native infrastructure
+* AWS/Azure deployment
+* Monitoring with Prometheus/Grafana
+* Production logging pipeline
 * Role-based access control
 * Export analytics (CSV/PDF)
 * Machine learning job demand forecasting
