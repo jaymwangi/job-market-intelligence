@@ -5,7 +5,7 @@ from datetime import datetime
 
 import streamlit as st
 
-from dashboard.components.icons import get_icon
+from components.icons import get_icon
 
 # Consistent spacing constants
 SPACING = {

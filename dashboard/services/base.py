@@ -3,10 +3,10 @@
 
 import logging
 
-from dashboard.api.client import APIClient
+from api.client import APIClient
 
 # Import CacheManager directly, not through __init__
-from dashboard.utils.cache import CacheManager
+from utils.cache import CacheManager
 
 logger = logging.getLogger(__name__)
 

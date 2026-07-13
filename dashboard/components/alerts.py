@@ -3,7 +3,7 @@
 
 import streamlit as st
 
-from dashboard.components.icons import get_icon
+from components.icons import get_icon
 
 
 def show_error(message: str, role: str = "alert") -> None:

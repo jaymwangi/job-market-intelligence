@@ -7,9 +7,9 @@ from typing import Any
 import streamlit as st
 
 # Use relative imports to avoid circular dependency
-from dashboard.api.client import APIClient
-from dashboard.core.config import settings
-from dashboard.utils.cache import CacheManager
+from api.client import APIClient
+from core.config import settings
+from utils.cache import CacheManager
 
 logger = logging.getLogger(__name__)
 
@@ -87,21 +87,21 @@ class StateManager:
     @classmethod
     def get_analytics_service(cls):
         """Get analytics service - lazy import to avoid circular dependency."""
-        from dashboard.services.analytics_service import AnalyticsService
+        from services.analytics_service import AnalyticsService
 
         return cls.get_service(AnalyticsService)
 
     @classmethod
     def get_jobs_service(cls):
         """Get jobs service - lazy import to avoid circular dependency."""
-        from dashboard.services.jobs_service import JobsService
+        from services.jobs_service import JobsService
 
         return cls.get_service(JobsService)
 
     @classmethod
     def get_health_service(cls):
         """Get health service - lazy import to avoid circular dependency."""
-        from dashboard.services.health import HealthService
+        from services.health import HealthService
 
         return cls.get_service(HealthService)
 

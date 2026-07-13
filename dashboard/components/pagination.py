@@ -1,6 +1,6 @@
 import streamlit as st
 
-from dashboard.utils import StateManager
+from utils import StateManager
 
 
 def render_pagination(page: int, total_pages: int):

@@ -5,11 +5,11 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from dashboard.api import JOB_DETAIL, JOBS
-from dashboard.api.client import APIClient
-from dashboard.schemas.jobs import Job, JobFilters, JobListResponse
-from dashboard.services.base import BaseService
-from dashboard.utils.cache import CacheManager
+from api import JOB_DETAIL, JOBS
+from api.client import APIClient
+from schemas.jobs import Job, JobFilters, JobListResponse
+from services.base import BaseService
+from utils.cache import CacheManager
 
 logger = logging.getLogger(__name__)
 

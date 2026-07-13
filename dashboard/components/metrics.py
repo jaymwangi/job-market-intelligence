@@ -5,8 +5,8 @@ from typing import Any
 
 import streamlit as st
 
-from dashboard.components.icons import get_icon
-from dashboard.schemas.chart_data import MetricCardData
+from components.icons import get_icon
+from schemas.chart_data import MetricCardData
 
 
 def create_metric_card(data: MetricCardData) -> dict[str, Any]:

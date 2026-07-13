@@ -3,9 +3,9 @@
 
 import logging
 
-from dashboard.api import HEALTH
-from dashboard.schemas.health import HealthResponse
-from dashboard.services.base import BaseService
+from api import HEALTH
+from schemas.health import HealthResponse
+from services.base import BaseService
 
 logger = logging.getLogger(__name__)
 

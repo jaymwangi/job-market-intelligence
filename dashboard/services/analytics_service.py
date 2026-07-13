@@ -3,9 +3,9 @@
 
 import logging
 
-from dashboard.api.client import APIClient
-from dashboard.mappers.analytics_mapper import AnalyticsMapper
-from dashboard.schemas.analytics import (
+from api.client import APIClient
+from mappers.analytics_mapper import AnalyticsMapper
+from schemas.analytics import (
     DashboardSummary,
     EmploymentType,
     LocationAnalytics,
@@ -15,7 +15,7 @@ from dashboard.schemas.analytics import (
     TopCompany,
     TopSkill,
 )
-from dashboard.schemas.chart_data import (
+from schemas.chart_data import (
     BarChartData,
     DonutChartData,
     HistogramData,
@@ -24,8 +24,8 @@ from dashboard.schemas.chart_data import (
     MetricCardData,
     PieChartData,
 )
-from dashboard.services.base import BaseService
-from dashboard.utils.cache import CacheManager, cached
+from services.base import BaseService
+from utils.cache import CacheManager, cached
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +299,7 @@ class AnalyticsService(BaseService):
         """Fetch and normalize salary by location."""
         data = self.api_client.get("/api/v1/analytics/salary-by-location", params={"limit": limit})
         # Import here to avoid circular imports
-        from dashboard.schemas.analytics import SalaryByLocation
+        from schemas.analytics import SalaryByLocation
 
         return self._normalize_list(data, SalaryByLocation)
 

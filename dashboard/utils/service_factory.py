@@ -1,10 +1,10 @@
 # dashboard/utils/service_factory.py
 """Service factory - delegates to StateManager for consistency."""
 
-from dashboard.services.analytics_service import AnalyticsService
-from dashboard.services.health import HealthService
-from dashboard.services.jobs_service import JobsService
-from dashboard.utils.state import StateManager
+from services.analytics_service import AnalyticsService
+from services.health import HealthService
+from services.jobs_service import JobsService
+from utils.state import StateManager
 
 
 def get_jobs_service() -> JobsService:

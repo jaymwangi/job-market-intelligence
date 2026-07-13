@@ -3,16 +3,16 @@
 
 import streamlit as st
 
-from dashboard.components.alerts import show_error
-from dashboard.components.empty_state import render_empty_state
-from dashboard.components.filters import render_filters
-from dashboard.components.icons import get_icon
-from dashboard.components.pagination import render_pagination
-from dashboard.components.tables import render_jobs_table
-from dashboard.core.config import settings
-from dashboard.schemas import JobFilters
-from dashboard.utils import StateManager
-from dashboard.utils.service_factory import get_jobs_service
+from components.alerts import show_error
+from components.empty_state import render_empty_state
+from components.filters import render_filters
+from components.icons import get_icon
+from components.pagination import render_pagination
+from components.tables import render_jobs_table
+from core.config import settings
+from schemas import JobFilters
+from utils import StateManager
+from utils.service_factory import get_jobs_service
 
 # Professional color palette
 COLORS = {

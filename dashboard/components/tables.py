@@ -1,6 +1,6 @@
 import streamlit as st
 
-from dashboard.schemas.jobs import Job
+from schemas.jobs import Job
 
 
 def render_jobs_table(jobs: list[Job]):

@@ -6,15 +6,15 @@ from datetime import datetime
 
 import streamlit as st
 
-from dashboard.api.client import APIClient
-from dashboard.components.alerts import show_error
-from dashboard.components.icons import get_icon
-from dashboard.components.layout import divider
-from dashboard.components.loading import loading_spinner
-from dashboard.components.metrics import render_metric_card
-from dashboard.core.config import settings
-from dashboard.services.health import HealthService
-from dashboard.utils.state import StateManager
+from api.client import APIClient
+from components.alerts import show_error
+from components.icons import get_icon
+from components.layout import divider
+from components.loading import loading_spinner
+from components.metrics import render_metric_card
+from core.config import settings
+from services.health import HealthService
+from utils.state import StateManager
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ def render():
 
     try:
         jobs_service = StateManager.get_jobs_service()
-        from dashboard.schemas.jobs import JobFilters
+        from schemas.jobs import JobFilters
 
         response = jobs_service.fetch_jobs(filters=JobFilters(), page=1, page_size=5)
 

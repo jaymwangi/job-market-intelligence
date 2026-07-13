@@ -6,7 +6,7 @@ import logging
 import plotly.express as px
 import plotly.graph_objects as go
 
-from dashboard.schemas.chart_data import (
+from schemas.chart_data import (
     BarChartData,
     DonutChartData,
     HistogramData,
