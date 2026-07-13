@@ -1,8 +1,8 @@
 # dashboard/mappers/analytics_mapper.py
 """Presentation layer mapper with feature-specific public methods."""
 
-from ..schemas.analytics import DashboardSummary, SalaryDistribution
-from ..schemas.chart_data import (
+from schemas.analytics import DashboardSummary, SalaryDistribution
+from schemas.chart_data import (
     BarChartData,
     DonutChartData,
     HistogramData,
