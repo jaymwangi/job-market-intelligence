@@ -9,6 +9,10 @@ services:
       alembic upgrade head &&
       uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
 
+    healthCheckPath: /api/v1/health/live
+
+    autoDeploy: true
+
     envVars:
       - key: ENVIRONMENT
         value: production
@@ -20,33 +24,10 @@ services:
         generateValue: true
 
       - key: DATABASE_URL
-        fromDatabase:
-          name: job-market-db
-          property: connectionString
+        sync: false
 
       - key: LOG_LEVEL
         value: INFO
 
       - key: LOG_FORMAT
         value: json
-
-      - key: ALLOWED_ORIGINS
-        value: '["https://your-dashboard.streamlit.app"]'
-
-      - key: DB_POOL_SIZE
-        value: "5"
-
-      - key: DB_MAX_OVERFLOW
-        value: "10"
-
-      - key: PYTHONUNBUFFERED
-        value: "1"
-
-    healthCheckPath: /api/v1/health/live
-
-    autoDeploy: true
-
-databases:
-  - name: job-market-db
-    databaseName: job_market
-    user: job_market_user
