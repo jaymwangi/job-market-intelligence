@@ -1,4 +1,3 @@
-# Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -26,9 +25,5 @@ USER appuser
 
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/api/v1/health/live')" || exit 1
-
-# Run migrations and start FastAPI
+# Run migrations then start FastAPI
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
