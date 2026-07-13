@@ -2,7 +2,7 @@
 Unit tests for pipeline repository.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -44,7 +44,7 @@ class TestPipelineRunRepository:
     def test_create_with_custom_start_time(self, repository, mock_db):
         """Test creating a pipeline run with custom start time."""
         mock_run = Mock()
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
 
         with patch("app.repositories.pipeline_run_repository.PipelineRun") as MockPipelineRun:
             MockPipelineRun.return_value = mock_run
@@ -61,7 +61,7 @@ class TestPipelineRunRepository:
     def test_finish_success(self, repository, mock_db):
         """Test finishing a pipeline run with success."""
         mock_run = Mock()
-        mock_run.started_at = datetime.now(timezone.utc)
+        mock_run.started_at = datetime.now(UTC)
         mock_run.completed_at = None
         mock_run.duration_seconds = None
 
@@ -78,7 +78,7 @@ class TestPipelineRunRepository:
     def test_finish_with_error(self, repository, mock_db):
         """Test finishing a pipeline run with error."""
         mock_run = Mock()
-        mock_run.started_at = datetime.now(timezone.utc)
+        mock_run.started_at = datetime.now(UTC)
         mock_run.completed_at = None
         mock_run.duration_seconds = None
 
@@ -94,7 +94,7 @@ class TestPipelineRunRepository:
 
     def test_finish_calculates_duration(self, repository, mock_db):
         """Test finish calculates duration correctly."""
-        started = datetime.now(timezone.utc)
+        started = datetime.now(UTC)
         mock_run = Mock()
         mock_run.started_at = started
         mock_run.completed_at = None

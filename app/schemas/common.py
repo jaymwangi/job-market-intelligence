@@ -1,15 +1,19 @@
-# app/schemas/common.py
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
-    """Health check response."""
+    """Health check response with comprehensive production metrics."""
 
     status: str = Field(default="healthy", description="API health status")
     database: str = Field(default="connected", description="Database connection status")
+    database_response_ms: float | None = Field(
+        None, description="Database response time in milliseconds"
+    )
     environment: str = Field(..., description="Current environment")
+    version: str = Field(default="1.0.0", description="API version")
+    uptime_seconds: float = Field(..., description="Application uptime in seconds")
     timestamp: str = Field(..., description="UTC timestamp of health check")
 
 

@@ -1,12 +1,12 @@
 # dashboard/schemas/chart_data.py
 """Chart models for presentation layer."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel
 
 
-class ChartType(str, Enum):
+class ChartType(StrEnum):
     """Types of charts."""
 
     BAR = "bar"

@@ -2,7 +2,7 @@
 Unit tests for ETL job loader.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -51,7 +51,7 @@ class TestJobLoader:
                 description="Test job",
                 currency="USD",
                 source_url=HttpUrl("https://example.com/job/1"),
-                posted_date=datetime.now(timezone.utc),
+                posted_date=datetime.now(UTC),
                 source="test_source",
             ),  # type: ignore
             JobValidated(
@@ -62,7 +62,7 @@ class TestJobLoader:
                 description="Test job 2",
                 currency="USD",
                 source_url=HttpUrl("https://example.com/job/2"),
-                posted_date=datetime.now(timezone.utc),
+                posted_date=datetime.now(UTC),
                 source="test_source",
             ),  # type: ignore
         ]

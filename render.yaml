@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: job-market-intelligence-api
+    runtime: python
+
+    buildCommand: pip install -r requirements.txt
+
+    startCommand: >
+      alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+
+      - key: DEBUG
+        value: "false"
+
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: job-market-db
+          property: connectionString
+
+      - key: LOG_LEVEL
+        value: INFO
+
+      - key: LOG_FORMAT
+        value: json
+
+      - key: ALLOWED_ORIGINS
+        value: '["https://your-dashboard.streamlit.app"]'
+
+      - key: DB_POOL_SIZE
+        value: "5"
+
+      - key: DB_MAX_OVERFLOW
+        value: "10"
+
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+    healthCheckPath: /api/v1/health/live
+
+    autoDeploy: true
+
+databases:
+  - name: job-market-db
+    databaseName: job_market
+    user: job_market_user

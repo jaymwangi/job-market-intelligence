@@ -1,7 +1,7 @@
 # app/repositories/pipeline_run_repository.py
 """Pipeline run repository for tracking ETL runs."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -22,7 +22,7 @@ class PipelineRunRepository:
     ) -> PipelineRun:
         """Create a new pipeline run."""
         if started_at is None:
-            started_at = datetime.now(timezone.utc)
+            started_at = datetime.now(UTC)
 
         run = PipelineRun(
             source_site=source_site,
@@ -42,7 +42,7 @@ class PipelineRunRepository:
         error_message: str | None = None,
     ) -> PipelineRun:
         """Finish a pipeline run with results."""
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         run.status = status
         run.records_processed = records_processed
 

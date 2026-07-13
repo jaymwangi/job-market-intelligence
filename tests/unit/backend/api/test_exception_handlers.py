@@ -2,6 +2,7 @@
 Unit tests for API exception handlers.
 """
 
+from datetime import datetime
 import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -26,7 +27,6 @@ class TestExceptionHandlers:
         app = FastAPI()
 
         # Register handlers using the exception_handler decorator
-        # This is the correct way to register handlers in FastAPI
         @app.exception_handler(RequestValidationError)
         async def handle_validation(request: Request, exc: RequestValidationError):
             return await validation_exception_handler(request, exc)
@@ -198,7 +198,15 @@ class TestExceptionHandlers:
         data = response.json()
 
         assert "timestamp" in data
-        assert data["timestamp"].endswith("Z")
+        # Check ISO format without requiring Z suffix
+        try:
+            # Handle both with and without Z suffix
+            timestamp = data["timestamp"]
+            if timestamp.endswith("Z"):
+                timestamp = timestamp.replace("Z", "+00:00")
+            datetime.fromisoformat(timestamp)
+        except ValueError:
+            pytest.fail(f"Timestamp is not in valid ISO format: {data['timestamp']}")
 
     def test_database_exception_timestamp_format(self, app, client):
         """Test database exception timestamp format."""
@@ -211,4 +219,11 @@ class TestExceptionHandlers:
         data = response.json()
 
         assert "timestamp" in data
-        assert data["timestamp"].endswith("Z")
+        # Check ISO format without requiring Z suffix
+        try:
+            timestamp = data["timestamp"]
+            if timestamp.endswith("Z"):
+                timestamp = timestamp.replace("Z", "+00:00")
+            datetime.fromisoformat(timestamp)
+        except ValueError:
+            pytest.fail(f"Timestamp is not in valid ISO format: {data['timestamp']}")

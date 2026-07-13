@@ -2,7 +2,7 @@
 """Job loader for persisting validated jobs to the database."""
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -64,7 +64,7 @@ class JobLoader:
 
         # Start pipeline run tracking
         pipeline_run = self.pipeline_run_repo.create(
-            source_site=self.source_site, started_at=datetime.now(timezone.utc)
+            source_site=self.source_site, started_at=datetime.now(UTC)
         )
 
         try:

@@ -36,7 +36,7 @@ def test_db_engine():
 
 
 @pytest.fixture
-def db_session(test_db_engine) -> Generator[Session, None, None]:
+def db_session(test_db_engine) -> Generator[Session]:
     """Create a new database session for a test."""
     connection = test_db_engine.connect()
     transaction = connection.begin()
@@ -51,7 +51,7 @@ def db_session(test_db_engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def api_client(db_session) -> Generator[TestClient, None, None]:
+def api_client(db_session) -> Generator[TestClient]:
     """Create a FastAPI test client with database session override."""
 
     def override_get_db():

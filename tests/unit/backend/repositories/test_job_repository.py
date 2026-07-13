@@ -2,7 +2,7 @@
 Unit tests for job repository.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -40,7 +40,7 @@ class TestJobRepository:
         mock.source = "adzuna"
         mock.external_id = "job_123"
         mock.source_url = "https://example.com/job/123"
-        mock.posted_date = datetime.now(timezone.utc)
+        mock.posted_date = datetime.now(UTC)
         return mock
 
     def test_init(self, repository, mock_db):

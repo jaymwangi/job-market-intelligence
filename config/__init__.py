@@ -1,5 +1,9 @@
 # config/__init__.py
-from .logging_config import get_logger, setup_logging
-from .settings import get_settings, settings
+from config.logging_config import get_logger, setup_logging
+from config.settings import settings
 
-__all__ = ["settings", "get_settings", "setup_logging", "get_logger"]
+__all__ = [
+    "settings",
+    "get_logger",
+    "setup_logging",
+]

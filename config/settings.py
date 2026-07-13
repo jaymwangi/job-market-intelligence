@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """
     Application settings loaded from environment variables.
+    Supports both DATABASE_URL and individual database fields.
     """
 
     model_config = SettingsConfigDict(
@@ -23,12 +24,26 @@ class Settings(BaseSettings):
     environment: str = Field(default="development")
     debug: bool = Field(default=False)
 
-    # Database
+    # Server - ADD THESE TWO LINES
+    host: str = Field(default="0.0.0.0", description="Server host to bind to")
+    port: int = Field(default=8000, description="Server port to bind to", ge=1, le=65535)
+
+    # Security - Optional for development, required in production
+    secret_key: str | None = Field(default=None)
+
+    # Database - Support both DATABASE_URL and individual fields
+    database_url: str | None = Field(default=None)
     database_host: str = Field(default="localhost")
     database_port: int = Field(default=5432)
     database_name: str = Field(default="job_market_intelligence")
     database_user: str = Field(default="postgres")
     database_password: str = Field(default="password")
+
+    # Database Pool
+    db_pool_size: int = Field(default=5, ge=1, le=50)
+    db_max_overflow: int = Field(default=10, ge=0, le=100)
+    db_pool_timeout: int = Field(default=30, ge=5)
+    db_pool_pre_ping: bool = Field(default=True)
 
     # Adzuna API
     adzuna_base_url: str = Field(default="https://api.adzuna.com/v1/api")
@@ -37,6 +52,7 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = Field(default="INFO")
+    log_format: str = Field(default="standard")  # 'standard' or 'json'
 
     # API Configuration
     api_title: str = Field(default="Job Market Intelligence API")
@@ -50,8 +66,23 @@ class Settings(BaseSettings):
     )
 
     @property
-    def database_url(self) -> str:
-        """Build database URL with properly encoded password."""
+    def sqlalchemy_database_url(self) -> str:
+        """Get SQLAlchemy database URL with proper driver."""
+        if self.database_url:
+            url = self.database_url
+
+            # Handle various URL formats
+            if url.startswith("postgres://"):
+                return url.replace("postgres://", "postgresql+psycopg://", 1)
+            elif url.startswith("postgresql://"):
+                return url.replace("postgresql://", "postgresql+psycopg://", 1)
+            elif url.startswith("postgresql+psycopg://"):
+                return url
+            else:
+                # Assume it's a valid URL, add driver if needed
+                return url
+
+        # Build from individual fields
         encoded_password = quote_plus(self.database_password)
         return (
             f"postgresql+psycopg://"
@@ -62,11 +93,36 @@ class Settings(BaseSettings):
             f"{self.database_name}"
         )
 
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.environment == "production"
+
+    def validate_production(self) -> list[str]:
+        """Validate production configuration, return list of errors."""
+        if not self.is_production():
+            return []
+
+        errors = []
+
+        if self.debug:
+            errors.append("DEBUG must be False in production")
+
+        if "*" in self.allowed_origins:
+            errors.append("Wildcard CORS origins (*) not allowed in production")
+
+        if self.secret_key in [None, "", "change-me", "change-me-in-production"]:
+            errors.append("SECRET_KEY must be configured in production")
+
+        if self.log_level.upper() == "DEBUG":
+            errors.append("LOG_LEVEL DEBUG is not recommended in production")
+
+        return errors
+
     @field_validator("environment")
     @classmethod
     def validate_environment(cls, v: str) -> str:
         """Validate that environment is one of the allowed values."""
-        allowed = {"development", "testing", "production"}
+        allowed = {"development", "staging", "production"}
         if v not in allowed:
             raise ValueError(f"environment must be one of {allowed}")
         return v
@@ -80,9 +136,18 @@ class Settings(BaseSettings):
             raise ValueError(f"log_level must be one of {allowed}")
         return v.upper()
 
+    @field_validator("log_format")
+    @classmethod
+    def validate_log_format(cls, v: str) -> str:
+        """Validate that log format is valid."""
+        allowed = {"standard", "json"}
+        if v.lower() not in allowed:
+            raise ValueError(f"log_format must be one of {allowed}")
+        return v.lower()
+
     @field_validator("database_port")
     @classmethod
-    def validate_port(cls, v: int) -> int:
+    def validate_database_port(cls, v: int) -> int:
         """Validate that database port is in valid range."""
         if not (1 <= v <= 65535):
             raise ValueError("database_port must be between 1 and 65535")

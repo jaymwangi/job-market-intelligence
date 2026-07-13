@@ -1,7 +1,7 @@
 # app/repositories/job_repository.py
 """Job repository for database operations."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import or_
@@ -59,7 +59,7 @@ class JobRepository:
             source_url=str(job.source_url) if job.source_url else "",
             # Dates
             posted_date=job.posted_date,
-            scraped_date=datetime.now(timezone.utc),
+            scraped_date=datetime.now(UTC),
             # Status
             is_active=True,
             is_deleted=False,

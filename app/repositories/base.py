@@ -1,4 +1,4 @@
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from sqlalchemy import asc, desc
@@ -9,7 +9,7 @@ from app.database.base import Base
 ModelType = TypeVar("ModelType", bound=Base)
 
 
-class BaseRepository(Generic[ModelType]):
+class BaseRepository[ModelType: Base]:
     """
     Generic repository with common CRUD operations.
     Assumes valid field names - no silent hasattr() checks.
