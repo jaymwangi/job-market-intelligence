@@ -1,9 +1,3 @@
-# 📝 Updated README.md
-
-Here's your updated README with the new Sprint 6.3, 6.4, and 6.5 accomplishments:
-
----
-
 # Job Market Intelligence
 
 A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive analytics dashboard.
