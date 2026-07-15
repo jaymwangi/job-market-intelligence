@@ -1,4 +1,3 @@
-# config/settings.py
 from functools import lru_cache
 from urllib.parse import quote_plus
 
@@ -24,7 +23,7 @@ class Settings(BaseSettings):
     environment: str = Field(default="development")
     debug: bool = Field(default=False)
 
-    # Server - ADD THESE TWO LINES
+    # Server
     host: str = Field(default="0.0.0.0", description="Server host to bind to")
     port: int = Field(default=8000, description="Server port to bind to", ge=1, le=65535)
 
@@ -49,6 +48,28 @@ class Settings(BaseSettings):
     adzuna_base_url: str = Field(default="https://api.adzuna.com/v1/api")
     adzuna_app_id: str = Field(default="")
     adzuna_app_key: str = Field(default="")
+
+    # ============================================================
+    # Pipeline Configuration (NEW - Add this section)
+    # ============================================================
+    pipeline_results_per_page: int = Field(
+        default=25,
+        ge=1,
+        le=50,
+        description="Number of results per page when fetching jobs"
+    )
+    pipeline_max_pages: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum number of pages to fetch"
+    )
+    pipeline_retention_days: int = Field(
+        default=90,
+        ge=30,
+        le=365,
+        description="Number of days to retain jobs (based on scraped_date)"
+    )
 
     # Logging
     log_level: str = Field(default="INFO")
@@ -116,6 +137,10 @@ class Settings(BaseSettings):
         if self.log_level.upper() == "DEBUG":
             errors.append("LOG_LEVEL DEBUG is not recommended in production")
 
+        # Validate pipeline settings
+        if self.pipeline_retention_days < 30 or self.pipeline_retention_days > 365:
+            errors.append("pipeline_retention_days must be between 30 and 365")
+
         return errors
 
     @field_validator("environment")
@@ -151,6 +176,30 @@ class Settings(BaseSettings):
         """Validate that database port is in valid range."""
         if not (1 <= v <= 65535):
             raise ValueError("database_port must be between 1 and 65535")
+        return v
+
+    @field_validator("pipeline_results_per_page")
+    @classmethod
+    def validate_pipeline_results_per_page(cls, v: int) -> int:
+        """Validate results per page is in valid range."""
+        if not (1 <= v <= 50):
+            raise ValueError("pipeline_results_per_page must be between 1 and 50")
+        return v
+
+    @field_validator("pipeline_max_pages")
+    @classmethod
+    def validate_pipeline_max_pages(cls, v: int) -> int:
+        """Validate max pages is in valid range."""
+        if not (1 <= v <= 20):
+            raise ValueError("pipeline_max_pages must be between 1 and 20")
+        return v
+
+    @field_validator("pipeline_retention_days")
+    @classmethod
+    def validate_pipeline_retention_days(cls, v: int) -> int:
+        """Validate retention days is in valid range."""
+        if not (30 <= v <= 365):
+            raise ValueError("pipeline_retention_days must be between 30 and 365")
         return v
 
 

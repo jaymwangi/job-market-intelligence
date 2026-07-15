@@ -1,4 +1,3 @@
-# app/schemas/analytics.py
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -105,13 +104,30 @@ class OverviewResponse(BaseModel):
 
 
 class DashboardSummaryResponse(BaseModel):
-    """Dashboard-oriented response for Streamlit frontend."""
+    """
+    Dashboard-oriented response for Streamlit frontend.
+    
+    Contains all metrics needed for the main dashboard view.
+    """
 
     total_jobs: int = 0
     recent_jobs_count: int = 0
+
+    # New: Summary metrics for dataset overview
+    unique_companies: int = 0
+    unique_locations: int = 0
+    unique_skills: int = 0
+
+    # Top lists
     top_companies: list[TopCompanyResponse] = Field(default_factory=list)
     top_locations: list[LocationResponse] = Field(default_factory=list)
     top_skills: list[TopSkillResponse] = Field(default_factory=list)
+
+    # Salary statistics
     salary_statistics: SalaryStatisticsResponse = Field(default_factory=SalaryStatisticsResponse)
+
+    # Employment distribution
     employment_types: list[EmploymentDistributionResponse] = Field(default_factory=list)
+
+    # Time series
     posting_trend: list[PostingTrendResponse] = Field(default_factory=list)

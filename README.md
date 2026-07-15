@@ -1,3 +1,9 @@
+# 📝 Updated README.md
+
+Here's your updated README with the new Sprint 6.3, 6.4, and 6.5 accomplishments:
+
+---
+
 # Job Market Intelligence
 
 A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive analytics dashboard.
@@ -22,6 +28,8 @@ This project simulates a real-world data platform by implementing:
 * Docker containerization
 * CI/CD pipeline
 * Deployment-ready project structure
+* Automated ETL scheduling
+* Production monitoring and observability
 
 The goal is to demonstrate backend engineering, data engineering, analytics engineering, API development, frontend integration, and DevOps practices within a single cohesive application.
 
@@ -29,16 +37,18 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 
 # Features
 
-### ETL Pipeline
+## ETL Pipeline
 
 * Extract job postings from external job APIs (currently Adzuna)
 * Transform external job data into a standardized internal format
 * Validate incoming data using Pydantic models
-* Load validated data into PostgreSQL
+* **Upsert** - Insert new jobs, update existing jobs by `source_id`
 * Prevent duplicate job records during ingestion
-* Track ETL pipeline executions and metadata
+* **90-day retention policy** - Automatic cleanup of jobs older than 90 days (based on `scraped_date`)
+* Track ETL pipeline executions with detailed metrics
+* **Automated daily execution** via GitHub Actions at 6:00 AM UTC
 
-### Analytics Engine
+## Analytics Engine
 
 * Analyze skill demand
 * Analyze salary trends
@@ -47,36 +57,36 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 * Analyze employment types
 * Analyze posting trends
 * Aggregate dashboard metrics
-* Generate dataset summaries
+* Dataset summaries with unique counts
+* Top skills, companies, and locations
 
-### REST API
+## REST API
 
 * Expose job data through FastAPI
 * Expose analytics through REST endpoints
-* Filtering
-* Pagination
-* Search
-* Health endpoints
+* Filtering, pagination, and search
+* Health endpoints (`/live`, `/ready`, `/health`)
 * Database health endpoint
 * OpenAPI documentation (Swagger & ReDoc)
 * Request validation
 * Structured error handling
+* Request correlation IDs
+* Production logging
 
-### Interactive Dashboard
+## Interactive Dashboard
 
 * Interactive Streamlit dashboard
 * API-driven frontend (no direct database access)
-* Job explorer
+* Job explorer with search and filtering
 * Interactive Plotly visualizations
-* KPI dashboard
+* KPI dashboard with unique counts
 * Dashboard caching
 * Professional SVG icon system
-* Loading states
+* Loading states and empty-state components
 * Friendly error handling
-* Empty-state components
 * Modular reusable UI components
 
-### DevOps & Containerization
+## DevOps & Containerization
 
 * Docker containerization for all services
 * Docker Compose orchestration
@@ -87,6 +97,16 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 * Container health checks
 * Non-root container users for security
 * Automated database migrations on startup
+
+## Production Automation
+
+* **Automated ETL Pipeline** - Runs daily without manual intervention
+* **Idempotent Processing** - Safe to run multiple times without duplicates
+* **Data Lifecycle Management** - Automatic cleanup of old jobs
+* **Operational Visibility** - Pipeline runs tracked with metrics
+* **Concurrency Protection** - Prevents overlapping pipeline runs
+* **Structured Logging** - JSON logs with request correlation
+* **Health Monitoring** - Liveness, readiness, and detailed health checks
 
 ---
 
@@ -131,6 +151,10 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 # Architecture
 
 ```text
+                    GitHub Actions
+                  (Daily at 6:00 AM UTC)
+                           │
+                           ▼
                     External Job APIs
                            │
                            ▼
@@ -146,7 +170,7 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
                   Validator (Pydantic)
                            │
                            ▼
-                         Loader
+             Loader (Upsert + Purge)
                            │
                            ▼
                   Repository Layer
@@ -184,8 +208,9 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 job-market-intelligence/
 │
 ├── .github/
-│   └── workflows/
-│       └── quality.yml
+│   ├── workflows/
+│   │   ├── quality.yml        # CI/CD pipeline
+│   │   └── etl-pipeline.yml   # Daily ETL automation
 │
 ├── app/
 │   ├── api/
@@ -223,12 +248,20 @@ job-market-intelligence/
 │   └── app.py
 │
 ├── docs/
+│   ├── automation.md          # Pipeline automation guide
+│   ├── deployment_checklist.md
+│   └── operations.md
+│
 ├── migrations/
 ├── scripts/
+│   └── run_pipeline.py         # ETL entry point
 ├── tests/
+│   └── smoke/
+│       └── test_production.py  # Production smoke tests
 │
 ├── Dockerfile
 ├── compose.yml
+├── render.yaml                 # Render deployment config
 ├── .dockerignore
 ├── .env.example
 ├── Makefile
@@ -460,15 +493,51 @@ job-market-intelligence/
 
 ---
 
+## ✅ Sprint 6.3 — Production Readiness & Health Monitoring
+
+* **Health Endpoints** - Liveness (`/live`), Readiness (`/ready`), and Detailed (`/health`)
+* **Request Correlation** - X-Request-ID middleware for tracing
+* **Structured JSON Logging** - Production-ready logging with UTC timestamps
+* **Production Configuration** - Validation and environment-based settings
+* **Database Connection Pooling** - Configurable pool settings
+* **Smoke Tests** - Production deployment verification
+* **Deployment Configuration** - Render.com deployment with health checks
+
+---
+
+## ✅ Sprint 6.4 — ETL Pipeline Enhancement
+
+* **Upsert Support** - Insert new jobs, update existing jobs by `source_id`
+* **Targeted Lookup** - Bulk source_id lookup (O(batch_size), no N+1 queries)
+* **90-Day Retention Policy** - Automatic cleanup based on `scraped_date`
+* **Pipeline Metrics** - Track inserted, updated, deleted, failed counts
+* **Clean Transaction Boundaries** - Caller (`run_pipeline.py`) owns commit/rollback
+* **Repository Pattern** - Pure database operations, no business logic
+* **Single Flush** - Efficient batch operations
+
+---
+
+## ✅ Sprint 6.5 — Pipeline Automation
+
+* **GitHub Actions Workflow** - Daily ETL at 6:00 AM UTC
+* **Concurrency Protection** - Prevents overlapping pipeline runs
+* **Manual Trigger** - `workflow_dispatch` for on-demand runs
+* **Entry Point Script** - `scripts/run_pipeline.py` with transaction ownership
+* **Secrets Management** - DATABASE_URL, ADZUNA_APP_ID, ADZUNA_APP_KEY
+* **Documentation** - `docs/automation.md` with setup guide
+* **Analytics Enhancement** - Unique counts in dashboard summary
+
+---
+
 # Current Status
 
 ## ✅ Completed
 
 * Planning & Architecture
 * Database Foundation
-* Complete ETL Pipeline
-* Analytics Engine
-* FastAPI REST API
+* Complete ETL Pipeline with Upsert
+* Analytics Engine with Dashboard Metrics
+* FastAPI REST API with Health Checks
 * Interactive Streamlit Dashboard
 * Repository Layer
 * Service Layer
@@ -486,6 +555,12 @@ job-market-intelligence/
 * Production Hardening
 * Docker Containerization
 * CI/CD with GitHub Actions
+* Automated ETL Pipeline
+* 90-Day Retention Policy
+* Pipeline Run Tracking
+* Structured JSON Logging
+* Request Correlation
+* Production Deployment Configuration
 
 ---
 
@@ -592,6 +667,11 @@ docker compose exec backend ruff check .
 docker compose exec backend mypy app
 ```
 
+**Run ETL pipeline manually:**
+```bash
+docker compose exec backend python scripts/run_pipeline.py
+```
+
 ---
 
 # Testing
@@ -608,11 +688,17 @@ The project includes testing for:
 * Dashboard caching
 * API integration
 * End-to-end ETL workflow
+* Production smoke tests
 * Sprint regression verification
 
 **Example verification:**
 ```bash
 python scripts/verify_sprint5.py
+```
+
+**Smoke Tests:**
+```bash
+pytest tests/smoke/ -v -m smoke
 ```
 
 **Continuous Integration:**
@@ -624,6 +710,57 @@ Testing is automatically validated through GitHub Actions. The CI pipeline execu
 * Unit tests
 * PostgreSQL integration tests
 * Docker image builds
+
+---
+
+# Production Deployment
+
+## Render Deployment
+
+The application can be deployed to Render using the provided `render.yaml`:
+
+```yaml
+services:
+  - type: web
+    name: job-market-intelligence-api
+    runtime: python
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: job-market-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+```
+
+## GitHub Actions Automation
+
+The ETL pipeline runs automatically every day:
+
+```text
+GitHub Actions (6:00 AM UTC)
+        │
+        ▼
+Checkout Code
+        │
+        ▼
+Install Dependencies
+        │
+        ▼
+Run Migrations
+        │
+        ▼
+Execute ETL Pipeline
+        │
+        ▼
+Update Database
+        │
+        ▼
+Record Pipeline Run
+```
 
 ---
 
@@ -639,32 +776,46 @@ Testing is automatically validated through GitHub Actions. The CI pipeline execu
 | ✅ Sprint 5 | Complete | Interactive Analytics Dashboard |
 | ✅ Sprint 6.1 | Complete | Production Hardening |
 | ✅ Sprint 6.2 | Complete | Docker & CI/CD |
-| 🚧 Sprint 6.3 | Planned | Cloud Deployment & Monitoring |
+| ✅ Sprint 6.3 | Complete | Production Readiness & Health Monitoring |
+| ✅ Sprint 6.4 | Complete | ETL Pipeline Enhancement |
+| ✅ Sprint 6.5 | Complete | Pipeline Automation |
+| 🚧 Sprint 6.6 | Planned | Cloud Deployment & Monitoring |
 
 ---
 
 # Future Enhancements
 
-* Support multiple job data sources
-* Scheduled ETL execution
-* Authentication & authorization
-* Background task processing
+* Support multiple job data sources (Indeed, LinkedIn, Glassdoor)
+* Scheduled ETL execution with monitoring dashboard
+* Authentication & authorization (JWT, OAuth2)
+* Background task processing (Celery, Redis)
 * Historical trend analysis
-* Real-time analytics
+* Real-time analytics with WebSocket support
 * API rate limiting
 * Distributed caching (Redis)
 * Kubernetes deployment
-* Cloud-native infrastructure
-* AWS/Azure deployment
+* Cloud-native infrastructure (AWS/Azure/GCP)
 * Monitoring with Prometheus/Grafana
-* Production logging pipeline
+* Production logging pipeline (ELK Stack)
 * Role-based access control
 * Export analytics (CSV/PDF)
 * Machine learning job demand forecasting
 * Recommendation engine for skills and careers
+* Email notifications for failed pipelines
+* SLA monitoring and alerting
 
 ---
 
 # License
 
 This project is licensed under the MIT License.
+
+---
+
+# Contact
+
+**Author:** Jay Mwangi
+
+**GitHub:** [jaymwangi](https://github.com/jaymwangi)
+
+**Project:** [job-market-intelligence](https://github.com/jaymwangi/job-market-intelligence)

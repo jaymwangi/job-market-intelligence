@@ -1,4 +1,3 @@
-# app/services/analytics_service.py
 """Analytics service layer for business logic and orchestration."""
 
 from app.repositories.analytics_repository import AnalyticsRepository
@@ -189,13 +188,33 @@ class AnalyticsService:
 
     def get_dashboard_summary(self) -> DashboardSummaryResponse:
         """Get comprehensive dashboard summary for Streamlit."""
+        # Get dataset summary for unique counts
+        dataset_summary = self.repo.get_dataset_summary()
+        
+        # Get recent jobs count
+        recent_jobs_count = self.repo.count_recent_jobs(7)
+
         return DashboardSummaryResponse(
-            total_jobs=self.repo.get_total_jobs(),
-            recent_jobs_count=self.repo.count_recent_jobs(7),
+            # Core metrics
+            total_jobs=dataset_summary.get("total_jobs", 0),
+            recent_jobs_count=recent_jobs_count,
+            
+            # Unique counts from dataset summary
+            unique_companies=dataset_summary.get("unique_companies", 0),
+            unique_locations=dataset_summary.get("unique_locations", 0),
+            unique_skills=dataset_summary.get("unique_skills", 0),
+            
+            # Top lists
             top_companies=self.get_top_companies(10),
             top_locations=self.get_jobs_by_location(10),
             top_skills=self.get_top_skills(10),
+            
+            # Salary statistics
             salary_statistics=self.get_salary_statistics(),
+            
+            # Employment distribution
             employment_types=self.get_employment_types(),
+            
+            # Time series
             posting_trend=self.get_posting_trend(30),
         )

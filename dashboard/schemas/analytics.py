@@ -1,4 +1,3 @@
-# dashboard/schemas/analytics.py
 """Domain models for analytics data."""
 
 from datetime import datetime
@@ -101,6 +100,12 @@ class DashboardSummary(BaseModel):
 
     total_jobs: int
     recent_jobs_count: int
+
+    # New: Summary metrics for dataset overview
+    unique_companies: int = 0
+    unique_locations: int = 0
+    unique_skills: int = 0
+
     top_companies: list[TopCompany]
     top_locations: list[LocationAnalytics]
     top_skills: list[TopSkill]

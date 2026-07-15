@@ -33,7 +33,7 @@ class StateManager:
             st.session_state.current_page = "overview"
             st.session_state.job_filters = {}
             st.session_state.jobs_page = 1
-            st.session_state.jobs_page_size = 20
+            st.session_state.jobs_page_size = 10
             st.session_state.selected_job_id = None
             st.session_state.services = {}
 

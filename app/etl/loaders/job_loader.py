@@ -1,14 +1,12 @@
-# app/etl/loaders/job_loader.py
 """Job loader for persisting validated jobs to the database."""
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.etl.validators import JobValidated
 from app.repositories.job_repository import JobRepository
-from app.repositories.pipeline_run_repository import PipelineRunRepository
 
 
 @dataclass
@@ -17,21 +15,25 @@ class LoadResult:
 
     processed: int = 0
     inserted: int = 0
-    skipped: int = 0
+    updated: int = 0
+    deleted: int = 0
     failed: int = 0
     errors: list[str] = field(default_factory=list)
 
 
 class JobLoader:
     """
-    Loads validated jobs into the database.
+    Loads validated jobs into the database with upsert support.
 
     Responsibilities:
     - Accept validated JobValidated objects
-    - Orchestrate loading and transactions
+    - Upsert: Insert new jobs, Update existing jobs by source_site + source_id
+    - Purge jobs older than retention period (based on scraped_date)
     - Use repositories for persistence
-    - Skip duplicates via source_site + source_id
     - Track loading statistics
+    
+    Transaction management belongs to the caller.
+    This class never commits or rolls back.
     """
 
     def __init__(self, db_session: Session, source_site: str = "adzuna"):
@@ -45,63 +47,84 @@ class JobLoader:
         self.db_session = db_session
         self.source_site = source_site
         self.job_repo = JobRepository(db_session)
-        self.pipeline_run_repo = PipelineRunRepository(db_session)
 
-    def load(self, jobs: list[JobValidated]) -> LoadResult:
+    def upsert(self, jobs: list[JobValidated]) -> LoadResult:
         """
-        Load validated jobs into the database.
-
-        All jobs are loaded in a single transaction.
-        If any job fails, the entire transaction is rolled back.
+        Upsert validated jobs into the database.
+        
+        - If job exists by source_site + source_id: UPDATE
+        - If job doesn't exist: INSERT
+        
+        Uses targeted lookup to avoid N+1 queries:
+        1. Get source_ids from current batch
+        2. Fetch only those that exist in one query
+        3. Build a lookup dict
+        4. Process each job in memory
 
         Args:
             jobs: List of validated JobValidated objects
 
         Returns:
             LoadResult: Summary of the loading operation
+            
+        Note:
+            Caller owns the transaction. This method only flushes.
+            Caller must commit or rollback.
         """
         result = LoadResult(processed=len(jobs))
 
-        # Start pipeline run tracking
-        pipeline_run = self.pipeline_run_repo.create(
-            source_site=self.source_site, started_at=datetime.now(UTC)
+        if not jobs:
+            return result
+
+        # Extract source_ids from current batch
+        source_ids = list({job.external_id for job in jobs})
+
+        # Fetch only those that exist (targeted query)
+        existing_jobs = self.job_repo.get_by_source_ids(
+            self.source_site, source_ids
         )
+        
+        # Build lookup dict
+        existing_by_source_id = {job.source_id: job for job in existing_jobs}
 
-        try:
-            # Begin transaction - load all jobs
-            for job in jobs:
-                # Check if job already exists by source_site + source_id
-                if self.job_repo.exists(self.source_site, job.external_id):
-                    result.skipped += 1
-                    continue
-
-                # Create new job - repository handles ORM construction
+        # Process each job
+        for job in jobs:
+            if job.external_id in existing_by_source_id:
+                # UPDATE existing job
+                existing = existing_by_source_id[job.external_id]
+                self.job_repo.update_from_validated(existing, job)
+                result.updated += 1
+            else:
+                # INSERT new job
                 self.job_repo.create_from_validated(job)
                 result.inserted += 1
 
-            # Commit transaction
-            self.db_session.commit()
-
-            # Finish pipeline run with success
-            self.pipeline_run_repo.finish(
-                pipeline_run,
-                status="completed",
-                records_processed=result.inserted,
-            )
-
-        except Exception as e:
-            # Rollback on any failure
-            self.db_session.rollback()
-            result.failed = result.processed - result.inserted - result.skipped
-            result.errors.append(str(e))
-
-            # Finish pipeline run with failure
-            self.pipeline_run_repo.finish(
-                pipeline_run,
-                status="failed",
-                records_processed=result.inserted,
-                error_message=str(e),
-            )
-            raise
+        # Single flush for all operations - caller decides when to commit
+        self.db_session.flush()
 
         return result
+
+    def purge_older_than(self, retention_days: int) -> int:
+        """
+        Delete jobs older than retention period.
+        
+        Uses scraped_date (when the job was last seen) rather than posted_date.
+        This prevents jobs that are reposted from being repeatedly deleted and re-inserted.
+
+        Args:
+            retention_days: Number of days to retain jobs
+
+        Returns:
+            int: Number of jobs deleted
+            
+        Note:
+            Caller owns the transaction. This method only flushes.
+            Caller must commit or rollback.
+        """
+        cutoff_date = datetime.now(UTC) - timedelta(days=retention_days)
+        deleted_count = self.job_repo.delete_jobs_older_than(cutoff_date)
+        
+        # Flush but don't commit - caller owns the transaction
+        self.db_session.flush()
+        
+        return deleted_count
