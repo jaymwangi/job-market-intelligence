@@ -19,7 +19,6 @@ jobs:
       ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
       ENVIRONMENT: production
       LOG_LEVEL: INFO
-      PYTHONPATH: ${{ github.workspace }}
 
     steps:
       - name: Checkout code
@@ -41,4 +40,4 @@ jobs:
         run: alembic upgrade head
 
       - name: Run ETL pipeline
-        run: python scripts/run_pipeline.py
+        run: python -m scripts.run_pipeline
