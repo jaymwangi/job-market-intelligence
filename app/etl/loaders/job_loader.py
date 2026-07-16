@@ -25,24 +25,11 @@ class JobLoader:
     """
     Loads validated jobs into the database with upsert support.
 
-    Responsibilities:
-    - Accept validated JobValidated objects
-    - Use repository for PostgreSQL upsert (INSERT ... ON CONFLICT DO UPDATE)
-    - Purge jobs older than retention period (based on scraped_date)
-    - Track loading statistics
-    
     Transaction management belongs to the caller.
     This class never commits or rolls back.
     """
 
     def __init__(self, db_session: Session, source_site: str = "adzuna"):
-        """
-        Initialize the job loader.
-
-        Args:
-            db_session: SQLAlchemy session for database operations
-            source_site: Name of the source site for tracking
-        """
         self.db_session = db_session
         self.source_site = source_site
         self.job_repo = JobRepository(db_session)
@@ -50,19 +37,18 @@ class JobLoader:
     def upsert(self, jobs: list[JobValidated]) -> LoadResult:
         """
         Upsert validated jobs into the database using PostgreSQL ON CONFLICT.
-        
-        Each job is upserted individually using INSERT ... ON CONFLICT DO UPDATE.
-        PostgreSQL handles the conflict resolution - no prior SELECT needed.
-        
-        Since the upsert operation doesn't tell us whether it inserted or updated,
-        we track processed count only. The actual insert/update counts are
-        handled by the database.
+
+        IMPORTANT: If any job fails, the entire transaction is aborted.
+        The caller must handle rollback.
 
         Args:
             jobs: List of validated JobValidated objects
 
         Returns:
             LoadResult: Summary of the loading operation
+
+        Raises:
+            Exception: If any database operation fails
             
         Note:
             Caller owns the transaction. This method only flushes.
@@ -73,43 +59,19 @@ class JobLoader:
         if not jobs:
             return result
 
-        # Upsert each job - PostgreSQL handles insert vs update decision
+        # FIX 2: Don't catch exceptions - let them propagate to caller
+        # The caller (run_pipeline.py) handles rollback
         for job in jobs:
-            try:
-                self.job_repo.upsert_from_validated(job)
-                # PostgreSQL's ON CONFLICT handles insert/update internally
-                # We can't easily distinguish insert vs update from the returning clause
-                # without additional complexity, so we just track processed
-            except Exception as e:
-                result.failed += 1
-                result.errors.append(f"Failed to upsert job {job.external_id}: {str(e)}")
+            self.job_repo.upsert_from_validated(job)
 
-        # Single flush for all operations - caller decides when to commit
+        # Single flush for all operations
         self.db_session.flush()
 
         return result
 
     def purge_older_than(self, retention_days: int) -> int:
-        """
-        Delete jobs older than retention period.
-        
-        Uses scraped_date (when the job was last seen) rather than posted_date.
-        This prevents jobs that are reposted from being repeatedly deleted and re-inserted.
-
-        Args:
-            retention_days: Number of days to retain jobs
-
-        Returns:
-            int: Number of jobs deleted
-            
-        Note:
-            Caller owns the transaction. This method only flushes.
-            Caller must commit or rollback.
-        """
+        """Delete jobs older than retention period."""
         cutoff_date = datetime.now(UTC) - timedelta(days=retention_days)
         deleted_count = self.job_repo.delete_jobs_older_than(cutoff_date)
-        
-        # Flush but don't commit - caller owns the transaction
         self.db_session.flush()
-        
         return deleted_count

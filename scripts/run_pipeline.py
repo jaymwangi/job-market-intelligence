@@ -113,6 +113,9 @@ def run_pipeline() -> int:
         logger.info("\n💾 STEP 4: UPSERT")
 
         loader = JobLoader(session, source_site="adzuna")
+        
+        # FIX: loader.upsert() now raises exceptions instead of swallowing them
+        # If any job fails, the exception propagates here and we rollback
         result = loader.upsert(validated)
 
         logger.info("\n📊 Upsert Summary")
@@ -175,13 +178,17 @@ def run_pipeline() -> int:
     except Exception as e:
         logger.error(f"❌ Pipeline failed: {e}", exc_info=True)
         
-        # Rollback transaction (caller owns this)
+        # CRITICAL FIX: Rollback the transaction BEFORE trying to record failure
+        # This clears the aborted transaction state
         session.rollback()
         logger.warning("⚠️ Transaction rolled back")
         
         # Record failure only if pipeline_run was created
+        # Note: This creates a NEW transaction for the failure recording
         if pipeline_run is not None:
             try:
+                # Use a fresh session or ensure the existing session is usable
+                # The rollback above makes the session usable again
                 pipeline_run_repo.finish(
                     pipeline_run,
                     status="failed",
@@ -189,8 +196,14 @@ def run_pipeline() -> int:
                     error_message=str(e),
                 )
                 session.commit()
+                logger.info("✅ Pipeline failure recorded")
             except Exception as finish_error:
                 logger.error(f"❌ Failed to record pipeline failure: {finish_error}")
+                # Try to rollback again if needed
+                try:
+                    session.rollback()
+                except Exception:
+                    pass
         
         return 1
 
