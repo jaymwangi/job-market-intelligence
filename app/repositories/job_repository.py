@@ -1,9 +1,11 @@
 """Job repository for database operations."""
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import or_
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.etl.validators import JobValidated
@@ -21,69 +23,96 @@ class JobRepository:
     # ETL Methods
     # ============================================================
 
-    def get_by_source_ids(self, source_site: str, source_ids: list[str]) -> list[Job]:
+    def _to_decimal(self, value: float | None) -> Decimal | None:
+        """Convert float to Decimal for database storage."""
+        if value is None:
+            return None
+        return Decimal(str(value))
+
+    def _build_job_dict(self, job: JobValidated) -> dict:
+        """Build a dictionary of job fields for database operations."""
+        now = datetime.now(UTC)
+        return {
+            "title": job.title,
+            "description": job.description or "",
+            "company_name": job.company_name or "Unknown",
+            "location": job.location,
+            "salary_min": self._to_decimal(job.salary_min),
+            "salary_max": self._to_decimal(job.salary_max),
+            "salary_currency": job.currency,
+            "source_site": job.source,
+            "source_id": job.external_id,
+            "source_url": str(job.source_url) if job.source_url else "",
+            "posted_date": job.posted_date,
+            "scraped_date": now,
+            "is_active": True,
+            "is_deleted": False,
+        }
+
+    def upsert_from_validated(self, job: JobValidated) -> Job:
         """
-        Get multiple jobs by source site and source IDs.
-        Used for targeted lookups during upsert to avoid N+1 queries.
-        """
-        if not source_ids:
-            return []
+        Upsert a single validated job using PostgreSQL's ON CONFLICT.
+
+        If a job with the same source_site and source_id exists, update it.
+        Otherwise, insert a new job.
+
+        This uses a single database operation with no prior SELECT.
+        The conflict resolution is handled entirely by PostgreSQL.
+
+        Args:
+            job: Validated JobValidated object
+
+        Returns:
+            Job: The persisted Job instance
             
-        return (
-            self.session.query(Job)
-            .filter(
-                Job.source_site == source_site,
-                Job.source_id.in_(source_ids)
-            )
-            .all()
-        )
+        Note:
+            Caller owns the transaction. This method only executes SQL.
+        """
+        job_dict = self._build_job_dict(job)
 
-    def create_from_validated(self, job: JobValidated) -> Job:
-        """
-        Create a new job from a validated job model.
-        """
-        now = datetime.now(UTC)
+        # Build the INSERT statement with ON CONFLICT
+        stmt = insert(Job).values(**job_dict)
+
+        # Define what to update on conflict
+        # Exclude primary key, timestamps, and conflict columns from update
+        update_columns = {
+            "title": stmt.excluded.title,
+            "description": stmt.excluded.description,
+            "company_name": stmt.excluded.company_name,
+            "location": stmt.excluded.location,
+            "salary_min": stmt.excluded.salary_min,
+            "salary_max": stmt.excluded.salary_max,
+            "salary_currency": stmt.excluded.salary_currency,
+            "source_url": stmt.excluded.source_url,
+            "posted_date": stmt.excluded.posted_date,
+            "scraped_date": stmt.excluded.scraped_date,
+            "is_active": stmt.excluded.is_active,
+            "is_deleted": stmt.excluded.is_deleted,
+        }
+
+        # Specify the conflict target: unique constraint on source_site + source_id
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_job_source_site_source_id",  # Name of the unique constraint
+            set_=update_columns,
+        ).returning(Job)
+
+        # Execute and return the affected row
+        result = self.session.execute(stmt)
         
-        db_job = Job(
-            title=job.title,
-            description=job.description or "",
-            company_name=job.company_name or "Unknown",
-            location=job.location,
-            salary_min=job.salary_min,
-            salary_max=job.salary_max,
-            salary_currency=job.currency,
-            source_site=job.source,
-            source_id=job.external_id,
-            source_url=str(job.source_url) if job.source_url else "",
-            posted_date=job.posted_date,
-            scraped_date=now,
-            is_active=True,
-            is_deleted=False,
-        )
-
-        self.session.add(db_job)
-        return db_job
-
-    def update_from_validated(self, existing: Job, job: JobValidated) -> Job:
-        """
-        Update an existing job from a validated job model.
-        """
-        now = datetime.now(UTC)
+        # Get the single result and merge it into the session
+        # This ensures the object is properly tracked by SQLAlchemy
+        job_instance = result.scalar_one()
         
-        existing.title = job.title
-        existing.description = job.description or ""
-        existing.company_name = job.company_name or "Unknown"
-        existing.location = job.location
-        existing.salary_min = job.salary_min
-        existing.salary_max = job.salary_max
-        existing.salary_currency = job.currency
-        existing.source_url = str(job.source_url) if job.source_url else ""
-        existing.posted_date = job.posted_date
-        existing.scraped_date = now
-        existing.is_active = True
-        existing.is_deleted = False
-
-        return existing
+        # If the job was inserted, it's already in the session.
+        # If it was updated, we need to merge it to ensure the session
+        # has the latest data.
+        if job_instance.id:
+            # Merge ensures the object is attached to the session
+            # and any pending changes are resolved
+            merged_job = self.session.merge(job_instance)
+            return merged_job
+        
+        return job_instance
 
     def delete_jobs_older_than(self, cutoff_date: datetime) -> int:
         """

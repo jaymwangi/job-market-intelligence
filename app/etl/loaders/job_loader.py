@@ -27,9 +27,8 @@ class JobLoader:
 
     Responsibilities:
     - Accept validated JobValidated objects
-    - Upsert: Insert new jobs, Update existing jobs by source_site + source_id
+    - Use repository for PostgreSQL upsert (INSERT ... ON CONFLICT DO UPDATE)
     - Purge jobs older than retention period (based on scraped_date)
-    - Use repositories for persistence
     - Track loading statistics
     
     Transaction management belongs to the caller.
@@ -50,16 +49,14 @@ class JobLoader:
 
     def upsert(self, jobs: list[JobValidated]) -> LoadResult:
         """
-        Upsert validated jobs into the database.
+        Upsert validated jobs into the database using PostgreSQL ON CONFLICT.
         
-        - If job exists by source_site + source_id: UPDATE
-        - If job doesn't exist: INSERT
+        Each job is upserted individually using INSERT ... ON CONFLICT DO UPDATE.
+        PostgreSQL handles the conflict resolution - no prior SELECT needed.
         
-        Uses targeted lookup to avoid N+1 queries:
-        1. Get source_ids from current batch
-        2. Fetch only those that exist in one query
-        3. Build a lookup dict
-        4. Process each job in memory
+        Since the upsert operation doesn't tell us whether it inserted or updated,
+        we track processed count only. The actual insert/update counts are
+        handled by the database.
 
         Args:
             jobs: List of validated JobValidated objects
@@ -76,28 +73,16 @@ class JobLoader:
         if not jobs:
             return result
 
-        # Extract source_ids from current batch
-        source_ids = list({job.external_id for job in jobs})
-
-        # Fetch only those that exist (targeted query)
-        existing_jobs = self.job_repo.get_by_source_ids(
-            self.source_site, source_ids
-        )
-        
-        # Build lookup dict
-        existing_by_source_id = {job.source_id: job for job in existing_jobs}
-
-        # Process each job
+        # Upsert each job - PostgreSQL handles insert vs update decision
         for job in jobs:
-            if job.external_id in existing_by_source_id:
-                # UPDATE existing job
-                existing = existing_by_source_id[job.external_id]
-                self.job_repo.update_from_validated(existing, job)
-                result.updated += 1
-            else:
-                # INSERT new job
-                self.job_repo.create_from_validated(job)
-                result.inserted += 1
+            try:
+                self.job_repo.upsert_from_validated(job)
+                # PostgreSQL's ON CONFLICT handles insert/update internally
+                # We can't easily distinguish insert vs update from the returning clause
+                # without additional complexity, so we just track processed
+            except Exception as e:
+                result.failed += 1
+                result.errors.append(f"Failed to upsert job {job.external_id}: {str(e)}")
 
         # Single flush for all operations - caller decides when to commit
         self.db_session.flush()
