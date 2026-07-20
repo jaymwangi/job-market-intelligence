@@ -1,4 +1,5 @@
-# app/models/job.py
+"""Job model."""
+
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -143,6 +144,38 @@ class Job(Base):
     # Flexible data storage for ETL resilience (PostgreSQL-specific)
     raw_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
+    # ============================================================
+    # Sprint 6.6: Enrichment Fields
+    # ============================================================
+    
+    # Technology classification
+    technology_category: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        index=True,
+        # description removed - SQLAlchemy doesn't accept this
+    )
+    is_tech_role: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("true"),
+        index=True,
+        # description removed - SQLAlchemy doesn't accept this
+    )
+    
+    # Geographic enrichment
+    country_code: Mapped[str | None] = mapped_column(
+        String(2),
+        nullable=True,
+        index=True,
+        # description removed - SQLAlchemy doesn't accept this
+    )
+    currency: Mapped[str | None] = mapped_column(
+        String(3),
+        nullable=True,
+        # description removed - SQLAlchemy doesn't accept this
+    )
+
     # Relationships - using string forward references
     skills: Mapped[list["Skill"]] = relationship(
         "Skill",  # String forward reference
@@ -163,6 +196,11 @@ class Job(Base):
         Index("idx_jobs_posted_date_desc", posted_date.desc()),
         Index("idx_jobs_scraped_date_desc", scraped_date.desc()),
         Index("idx_jobs_salary_range", salary_min, salary_max),
+        # Sprint 6.6: Enrichment indexes
+        Index("idx_jobs_country_code", country_code),
+        Index("idx_jobs_technology_category", technology_category),
+        Index("idx_jobs_is_tech_role", is_tech_role),
+        Index("idx_jobs_employment_type", employment_type),
     )
 
     def __repr__(self) -> str:

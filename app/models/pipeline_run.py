@@ -15,6 +15,10 @@ class PipelineRun(Base):
     """
 
     __tablename__ = "pipeline_runs"
+    __table_args__ = (
+        Index("idx_pipeline_runs_started_at_desc", "started_at", postgresql_ops={"started_at": "DESC"}),
+        {"schema": "public"},  # This MUST be the last element in the tuple
+    )
 
     # Primary key
     id: Mapped[uuid.UUID] = mapped_column(
@@ -75,9 +79,6 @@ class PipelineRun(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-
-    # Special indexes
-    __table_args__ = (Index("idx_pipeline_runs_started_at_desc", started_at.desc()),)
 
     def __repr__(self) -> str:
         return f"<PipelineRun(id={self.id}, status={self.status}, source={self.source_site})>"

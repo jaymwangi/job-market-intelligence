@@ -1,5 +1,6 @@
 from functools import lru_cache
 from urllib.parse import quote_plus
+from typing import List, Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,7 +51,7 @@ class Settings(BaseSettings):
     adzuna_app_key: str = Field(default="")
 
     # ============================================================
-    # Pipeline Configuration (NEW - Add this section)
+    # Pipeline Configuration (Sprint 6.4 - 6.5)
     # ============================================================
     pipeline_results_per_page: int = Field(
         default=25,
@@ -69,6 +70,60 @@ class Settings(BaseSettings):
         ge=30,
         le=365,
         description="Number of days to retain jobs (based on scraped_date)"
+    )
+
+    # ============================================================
+    # Sprint 6.6: Enrichment Configuration (Pure Configuration)
+    # ============================================================
+    
+    # Geographic
+    default_countries: List[str] = Field(
+        default=["gb", "us", "de", "fr", "ca", "au"],
+        description="Default countries to fetch jobs from"
+    )
+    
+    # Analytics Filtering
+    tech_only_analytics: bool = Field(
+        default=True,
+        description="Filter analytics to technology roles only"
+    )
+    
+    # Salary Normalization (optional - off by default)
+    normalize_salaries: bool = Field(
+        default=False,
+        description="Whether to normalize salaries to USD (requires exchange rates)"
+    )
+    
+    # Technology Keywords (configurable, can be overridden via external file)
+    tech_keywords: List[str] = Field(
+        default=[
+            # Programming Languages
+            "python", "javascript", "typescript", "java", "go", "rust",
+            "c++", "c#", "ruby", "php", "swift", "kotlin", "scala",
+            # Frameworks & Libraries
+            "react", "angular", "vue", "node", "django", "flask",
+            "spring", "rails", "laravel", "fastapi", "nextjs",
+            # Cloud & DevOps
+            "aws", "azure", "gcp", "docker", "kubernetes",
+            "terraform", "ansible", "jenkins", "gitlab",
+            # Data & ML
+            "sql", "postgresql", "mongodb", "redis", "elasticsearch",
+            "kafka", "spark", "hadoop", "airflow", "dbt",
+            "machine learning", "data science", "ai", "deep learning",
+            "tensorflow", "pytorch", "nlp", "computer vision",
+            # Frontend
+            "html", "css", "sass", "tailwind", "bootstrap",
+            # Backend
+            "nginx", "apache", "gunicorn", "celery", "rabbitmq",
+            "graphql", "rest", "api", "microservices"
+        ],
+        description="Keywords used for technology skill extraction"
+    )
+    
+    # Path to external skill data (optional - overrides tech_keywords)
+    skills_data_path: Optional[str] = Field(
+        default=None,
+        description="Path to external skills data file (JSON) - overrides tech_keywords"
     )
 
     # Logging
@@ -141,6 +196,13 @@ class Settings(BaseSettings):
         if self.pipeline_retention_days < 30 or self.pipeline_retention_days > 365:
             errors.append("pipeline_retention_days must be between 30 and 365")
 
+        # Sprint 6.6: Validate enrichment settings
+        if not self.default_countries:
+            errors.append("default_countries cannot be empty")
+
+        if self.tech_only_analytics and not self.tech_keywords:
+            errors.append("tech_keywords cannot be empty when tech_only_analytics is True")
+
         return errors
 
     @field_validator("environment")
@@ -201,6 +263,26 @@ class Settings(BaseSettings):
         if not (30 <= v <= 365):
             raise ValueError("pipeline_retention_days must be between 30 and 365")
         return v
+
+    # ============================================================
+    # Sprint 6.6: Field Validators
+    # ============================================================
+    
+    @field_validator("default_countries")
+    @classmethod
+    def validate_default_countries(cls, v: List[str]) -> List[str]:
+        """Validate that default countries is non-empty."""
+        if not v:
+            raise ValueError("default_countries cannot be empty")
+        return [c.lower() for c in v]
+    
+    @field_validator("tech_keywords")
+    @classmethod
+    def validate_tech_keywords(cls, v: List[str]) -> List[str]:
+        """Validate that tech keywords is non-empty."""
+        if not v:
+            raise ValueError("tech_keywords cannot be empty")
+        return [kw.lower() for kw in v]
 
 
 @lru_cache

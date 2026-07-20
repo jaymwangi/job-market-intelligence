@@ -4,11 +4,9 @@ import sys
 import logging
 from datetime import UTC, datetime
 
+from sqlalchemy import text
+from app.etl import ETLPipeline
 from app.database.session import get_db
-from app.etl.extractors.jobs_api import JobsExtractor
-from app.etl.loaders import JobLoader
-from app.etl.transformers.jobs_transformer import JobsTransformer
-from app.etl.validators import validate_jobs
 from app.repositories.pipeline_run_repository import PipelineRunRepository
 from config.settings import settings
 
@@ -27,6 +25,34 @@ def mask_sensitive(value: str, show: int = 4) -> str:
     return f"{value[:show]}..."
 
 
+def print_summary(metrics, pipeline_run_id=None) -> None:
+    """Print a formatted summary of pipeline results."""
+    print("\n" + "=" * 70)
+    print("📊 ETL Pipeline Summary")
+    print("=" * 70)
+    if pipeline_run_id:
+        print(f"  Run ID:              {pipeline_run_id}")
+    print(f"  Duration:            {metrics.duration_seconds:.2f}s")
+    print("-" * 70)
+    print(f"  Extracted:           {metrics.extracted}")
+    print(f"  Transformed:         {metrics.transformed}")
+    print(f"  Enriched:            {metrics.enriched}")
+    print(f"  Validated:           {metrics.validated}")
+    print(f"  Inserted:            {metrics.inserted}")
+    print(f"  Updated:             {metrics.updated}")
+    print(f"  Purged:              {metrics.purged}")
+    print(f"  Skills Added:        {metrics.skills_added}")
+    print(f"  Relationships Added: {metrics.relationships_added}")
+    print("=" * 70)
+
+    if metrics.validated > 0 and metrics.extracted > 0:
+        success_rate = (metrics.validated / metrics.extracted) * 100
+        print(f"  Success Rate:        {success_rate:.1f}%")
+    else:
+        print("  Success Rate:        N/A")
+    print("=" * 70)
+
+
 def run_pipeline() -> int:
     """
     Run the full ETL pipeline using settings from configuration.
@@ -43,6 +69,7 @@ def run_pipeline() -> int:
     logger.info(f"Pages: {settings.pipeline_max_pages}, "
                 f"Results/page: {settings.pipeline_results_per_page}, "
                 f"Retention: {settings.pipeline_retention_days} days")
+    logger.info(f"Countries: {', '.join(settings.default_countries)}")
 
     if not settings.adzuna_app_id or not settings.adzuna_app_key:
         logger.error("❌ Adzuna credentials not configured.")
@@ -50,9 +77,22 @@ def run_pipeline() -> int:
 
     db_gen = get_db()
     session = next(db_gen)
+    
+    # ============================================================
+    # Set database timeouts to prevent idle-in-transaction timeout
+    # ============================================================
+    try:
+        logger.info("⏱️ Setting database timeouts...")
+        session.execute(text("SET idle_in_transaction_session_timeout = '15min'"))
+        session.execute(text("SET statement_timeout = '10min'"))
+        session.commit()
+        logger.info("✅ Database timeouts set successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not set timeouts: {e}")
+        # Continue anyway - the pipeline will try to run
+    
     pipeline_run_repo = PipelineRunRepository(session)
     
-    # Initialize pipeline_run to None so it exists in the except block
     pipeline_run = None
 
     try:
@@ -63,93 +103,27 @@ def run_pipeline() -> int:
         )
 
         # ------------------------------------------------------------------
-        # STEP 1: EXTRACT (multiple pages)
+        # Initialize and run the ETL pipeline
         # ------------------------------------------------------------------
-        logger.info("\n📡 STEP 1: EXTRACT")
-        logger.info(f"   App ID:  {mask_sensitive(settings.adzuna_app_id)}")
+        logger.info("\n" + "=" * 60)
+        logger.info("📡 STEP 1-5: EXTRACT → TRANSFORM → ENRICH → VALIDATE → LOAD")
+        logger.info("=" * 60)
 
-        extractor = JobsExtractor(
-            api_url=settings.adzuna_base_url,
-            app_id=settings.adzuna_app_id,
-            api_key=settings.adzuna_app_key,
-            debug=False,
-        )
-
-        all_raw_jobs = []
-        for page in range(1, settings.pipeline_max_pages + 1):
-            logger.info(f"   Fetching page {page}/{settings.pipeline_max_pages}...")
-            data = extractor.fetch_page(
-                page=page,
-                results_per_page=settings.pipeline_results_per_page
-            )
-            raw_jobs = data.get("results", [])
-            all_raw_jobs.extend(raw_jobs)
-            logger.info(f"   Page {page}: {len(raw_jobs)} jobs")
-
-        logger.info(f"✅ Extracted {len(all_raw_jobs)} total jobs")
+        # Create and run pipeline (database already initialized via Alembic)
+        pipeline = ETLPipeline()
+        metrics = pipeline.run(countries=settings.default_countries)
 
         # ------------------------------------------------------------------
-        # STEP 2: TRANSFORM
-        # ------------------------------------------------------------------
-        logger.info("\n🔄 STEP 2: TRANSFORM")
-
-        transformer = JobsTransformer()
-        transformed = transformer.transform(all_raw_jobs)
-
-        logger.info(f"✅ Transformed {len(transformed)} jobs")
-
-        # ------------------------------------------------------------------
-        # STEP 3: VALIDATE
-        # ------------------------------------------------------------------
-        logger.info("\n✅ STEP 3: VALIDATE")
-
-        validated = validate_jobs(transformed)
-
-        logger.info(f"✅ Validated {len(validated)} jobs")
-
-        # ------------------------------------------------------------------
-        # STEP 4: UPSERT (Insert or Update)
-        # ------------------------------------------------------------------
-        logger.info("\n💾 STEP 4: UPSERT")
-
-        loader = JobLoader(session, source_site="adzuna")
-        
-        # FIX: loader.upsert() now raises exceptions instead of swallowing them
-        # If any job fails, the exception propagates here and we rollback
-        result = loader.upsert(validated)
-
-        logger.info("\n📊 Upsert Summary")
-        logger.info("-" * 40)
-        logger.info(f"Processed : {result.processed}")
-        logger.info(f"Inserted  : {result.inserted}")
-        logger.info(f"Updated   : {result.updated}")
-        logger.info(f"Failed    : {result.failed}")
-
-        if result.errors:
-            logger.warning("\n⚠ Errors")
-            for error in result.errors:
-                logger.warning(f" - {error}")
-
-        # ------------------------------------------------------------------
-        # STEP 5: DELETE OLD JOBS (Retention based on scraped_date)
-        # ------------------------------------------------------------------
-        logger.info(f"\n🗑️ STEP 5: DELETE JOBS OLDER THAN {settings.pipeline_retention_days} DAYS")
-
-        deleted_count = loader.purge_older_than(settings.pipeline_retention_days)
-        result.deleted = deleted_count
-        logger.info(f"✅ Deleted {deleted_count} jobs")
-
-        # ------------------------------------------------------------------
-        # STEP 6: FINISH PIPELINE RUN
+        # FINISH PIPELINE RUN
         # ------------------------------------------------------------------
         pipeline_run_repo.finish(
             pipeline_run,
             status="completed",
-            records_processed=result.processed,
+            records_processed=metrics.validated,
         )
 
         # ------------------------------------------------------------------
-        # COMMIT TRANSACTION (caller owns this)
+        # COMMIT TRANSACTION
         # ------------------------------------------------------------------
         session.commit()
         logger.info("✅ Transaction committed successfully")
@@ -157,17 +131,7 @@ def run_pipeline() -> int:
         # ------------------------------------------------------------------
         # FINAL SUMMARY
         # ------------------------------------------------------------------
-        logger.info("\n📝 Pipeline Summary")
-        logger.info("-" * 40)
-        logger.info(f"Run ID    : {pipeline_run.id}")
-        logger.info(f"Extracted : {len(all_raw_jobs)}")
-        logger.info(f"Validated : {len(validated)}")
-        logger.info(f"Processed : {result.processed}")
-        logger.info(f"Inserted  : {result.inserted}")
-        logger.info(f"Updated   : {result.updated}")
-        logger.info(f"Deleted   : {result.deleted}")
-        logger.info(f"Failed    : {result.failed}")
-        logger.info(f"Retention : {settings.pipeline_retention_days} days (based on scraped_date)")
+        print_summary(metrics, pipeline_run.id)
 
         logger.info("\n" + "=" * 60)
         logger.info("🎉 ETL PIPELINE COMPLETED SUCCESSFULLY")
@@ -175,20 +139,20 @@ def run_pipeline() -> int:
 
         return 0
 
+    except KeyboardInterrupt:
+        logger.warning("⚠️ Pipeline interrupted by user")
+        return 130
+
     except Exception as e:
         logger.error(f"❌ Pipeline failed: {e}", exc_info=True)
         
-        # CRITICAL FIX: Rollback the transaction BEFORE trying to record failure
-        # This clears the aborted transaction state
+        # Rollback the transaction
         session.rollback()
         logger.warning("⚠️ Transaction rolled back")
         
-        # Record failure only if pipeline_run was created
-        # Note: This creates a NEW transaction for the failure recording
+        # Record failure
         if pipeline_run is not None:
             try:
-                # Use a fresh session or ensure the existing session is usable
-                # The rollback above makes the session usable again
                 pipeline_run_repo.finish(
                     pipeline_run,
                     status="failed",
@@ -199,7 +163,6 @@ def run_pipeline() -> int:
                 logger.info("✅ Pipeline failure recorded")
             except Exception as finish_error:
                 logger.error(f"❌ Failed to record pipeline failure: {finish_error}")
-                # Try to rollback again if needed
                 try:
                     session.rollback()
                 except Exception:
@@ -215,10 +178,10 @@ def run_pipeline() -> int:
             pass
 
 
-def main():
+def main() -> int:
     """Entry point."""
-    sys.exit(run_pipeline())
+    return run_pipeline()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

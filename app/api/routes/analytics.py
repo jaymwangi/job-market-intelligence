@@ -1,4 +1,4 @@
-# app/api/routes/analytics.py
+"""Analytics API routes."""
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
@@ -18,6 +18,11 @@ from app.schemas.analytics import (
     SalaryStatisticsResponse,
     TopCompanyResponse,
     TopSkillResponse,
+    # Sprint 6.6: New schemas
+    SkillCount,
+    CountryDistribution,
+    TechnologyDistribution,
+    SalaryStatistics,
 )
 from app.services.analytics_service import AnalyticsService
 from config import get_logger
@@ -29,6 +34,11 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 def get_service(db: Session = Depends(get_db)) -> AnalyticsService:
     """Dependency to get analytics service instance."""
     return AnalyticsService(AnalyticsRepository(db))
+
+
+# ============================================================
+# Existing Analytics Endpoints (unchanged)
+# ============================================================
 
 
 @router.get(
@@ -43,6 +53,7 @@ def get_top_skills(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get top skills by job count."""
+    logger.debug("Fetching top %d skills", limit)
     return service.get_top_skills(limit)
 
 
@@ -58,6 +69,7 @@ def get_top_companies(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get top companies by job count."""
+    logger.debug("Fetching top %d companies", limit)
     return service.get_top_companies(limit)
 
 
@@ -73,6 +85,7 @@ def get_jobs_by_location(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get job distribution by location."""
+    logger.debug("Fetching jobs by location (limit=%d)", limit)
     return service.get_jobs_by_location(limit)
 
 
@@ -87,6 +100,7 @@ def get_salary_statistics(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get salary statistics."""
+    logger.debug("Fetching salary statistics")
     return service.get_salary_statistics()
 
 
@@ -101,6 +115,7 @@ def get_employment_types(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get employment type distribution."""
+    logger.debug("Fetching employment type distribution")
     return service.get_employment_types()
 
 
@@ -116,6 +131,7 @@ def get_salary_by_location(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get salary statistics by location."""
+    logger.debug("Fetching salary by location (limit=%d)", limit)
     return service.get_salary_by_location(limit)
 
 
@@ -131,6 +147,7 @@ def get_salary_by_company(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get salary statistics by company."""
+    logger.debug("Fetching salary by company (limit=%d)", limit)
     return service.get_salary_by_company(limit)
 
 
@@ -146,6 +163,7 @@ def get_posting_trend(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get job posting trend over time."""
+    logger.debug("Fetching posting trend for last %d days", days)
     return service.get_posting_trend(days)
 
 
@@ -161,6 +179,7 @@ def get_recent_jobs(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get count of recently posted jobs."""
+    logger.debug("Fetching recent jobs count for last %d days", days)
     return service.get_recent_jobs_count(days)
 
 
@@ -175,6 +194,7 @@ def get_salary_distribution(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get salary distribution."""
+    logger.debug("Fetching salary distribution")
     return service.get_salary_distribution()
 
 
@@ -189,6 +209,7 @@ def get_dataset_summary(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get dataset summary."""
+    logger.debug("Fetching dataset summary")
     return service.get_dataset_summary()
 
 
@@ -203,6 +224,7 @@ def get_overview(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get lightweight overview."""
+    logger.debug("Fetching overview")
     return service.get_overview()
 
 
@@ -217,4 +239,133 @@ def get_dashboard_summary(
     service: AnalyticsService = Depends(get_service),
 ):
     """Get complete dashboard summary."""
+    logger.debug("Fetching dashboard summary")
     return service.get_dashboard_summary()
+
+
+# ============================================================
+# Sprint 6.6: New Enrichment Analytics Endpoints (RESTful Resources)
+# ============================================================
+
+
+@router.get(
+    "/enriched/skills",
+    response_model=list[SkillCount],
+    status_code=status.HTTP_200_OK,
+    summary="Get enriched skills",
+    description="Get skills with frequency counts and optional country filter.",
+)
+def get_enriched_skills(
+    limit: int = Query(20, ge=1, le=100, description="Number of skills to return"),
+    country_code: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="Filter by country code (e.g., GB, US, DE)",
+    ),
+    service: AnalyticsService = Depends(get_service),
+) -> list[SkillCount]:
+    """
+    Get skills with frequency counts and optional country filter.
+
+    Args:
+        limit: Number of skills to return (default: 20, max: 100)
+        country_code: Optional country filter
+
+    Returns:
+        List of SkillCount objects with skill name and count
+    """
+    logger.debug(
+        "Fetching enriched skills (limit=%d%s)",
+        limit,
+        f", country={country_code}" if country_code else "",
+    )
+
+    skills = service.get_enriched_top_skills(limit, country_code)
+
+    logger.info("Retrieved %d enriched skills", len(skills))
+    return skills
+
+
+@router.get(
+    "/enriched/countries",
+    response_model=list[CountryDistribution],
+    status_code=status.HTTP_200_OK,
+    summary="Get country distribution",
+    description="Get job distribution by country from enrichment data.",
+)
+def get_enriched_countries(
+    service: AnalyticsService = Depends(get_service),
+) -> list[CountryDistribution]:
+    """
+    Get job distribution by country.
+
+    Returns:
+        List of CountryDistribution objects with country and job count
+    """
+    logger.debug("Fetching country distribution")
+
+    distribution = service.get_country_distribution()
+
+    logger.info("Retrieved %d countries", len(distribution))
+    return distribution
+
+
+@router.get(
+    "/enriched/technology",
+    response_model=list[TechnologyDistribution],
+    status_code=status.HTTP_200_OK,
+    summary="Get technology distribution",
+    description="Get distribution of technology categories from enrichment data.",
+)
+def get_enriched_technology(
+    service: AnalyticsService = Depends(get_service),
+) -> list[TechnologyDistribution]:
+    """
+    Get distribution of technology categories.
+
+    Returns:
+        List of TechnologyDistribution objects with category and job count
+    """
+    logger.debug("Fetching technology distribution")
+
+    distribution = service.get_technology_distribution()
+
+    logger.info("Retrieved %d technology categories", len(distribution))
+    return distribution
+
+
+@router.get(
+    "/enriched/salary",
+    response_model=SalaryStatistics,
+    status_code=status.HTTP_200_OK,
+    summary="Get enriched salary statistics",
+    description="Get salary statistics with optional country filter from enrichment data.",
+)
+def get_enriched_salary(
+    country_code: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="Filter by country code",
+    ),
+    service: AnalyticsService = Depends(get_service),
+) -> SalaryStatistics:
+    """
+    Get salary statistics with optional country filter.
+
+    Args:
+        country_code: Optional country filter
+
+    Returns:
+        SalaryStatistics object with salary metrics
+    """
+    logger.debug(
+        "Fetching enriched salary statistics%s",
+        f" for country {country_code}" if country_code else "",
+    )
+
+    stats = service.get_enriched_salary_statistics(country_code)
+
+    logger.info("Retrieved enriched salary statistics")
+    return stats

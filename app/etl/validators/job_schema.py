@@ -1,100 +1,131 @@
-# app/etl/validators/job_schema.py
-"""Internal data contract for job listings using Pydantic validation."""
+"""Job validator - ensures data quality, pure validation."""
 
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+import logging
+from pydantic import ValidationError
+from app.etl.schemas.enriched import JobEnriched
+from app.etl.schemas.validated import JobValidated
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
+logger = logging.getLogger(__name__)
 
 
-class JobValidated(BaseModel):
+class JobValidator:
     """
-    Validated job record - the system's internal data contract.
+    Validate enriched job data - pure validation, no mutation.
 
-    From this point onward, all downstream layers trust this structure.
+    This validator takes JobEnriched objects and returns JobValidated objects.
+    Invalid jobs are logged and dropped.
+
+    Validation rules:
+        - Required fields: source_id, title, company
+        - Salary: non-negative, min <= max (with swap and warning)
+        - Country code: 2 characters if present
+        - Currency: 3 characters if present
     """
 
-    # Pydantic v2 configuration
-    model_config = ConfigDict(
-        frozen=True,  # Immutable after creation
-        str_strip_whitespace=True,  # Clean string fields
-    )
+    def validate(self, job: JobEnriched) -> Optional[JobValidated]:
+        """
+        Validate a single job.
 
-    # Required fields - must be present and non-empty
-    external_id: str = Field(min_length=1, description="Unique identifier from source")
-    title: str = Field(min_length=1, description="Job title")
+        Args:
+            job: Enriched job data
 
-    # Optional fields - can be None
-    company_name: str | None = Field(None, description="Company name")
-    location: str | None = Field(None, description="Job location")
-    description: str | None = Field(None, description="Job description")
+        Returns:
+            Validated job or None if invalid
 
-    # Salary fields with validation
-    salary_min: float | None = Field(default=None, ge=0, description="Minimum salary")
-    salary_max: float | None = Field(default=None, ge=0, description="Maximum salary")
-    currency: str | None = Field(None, min_length=3, max_length=3, description="Currency code")
+        Note: This is pure validation - the original job is not mutated.
+        """
+        warnings = []
 
-    # Metadata - using Pydantic's HttpUrl for validation
-    source: str = Field(default="adzuna", min_length=1, description="Data source")
-    source_url: HttpUrl | None = Field(None, description="Original job URL")
+        # Extract data for validation
+        data = job.model_dump()
 
-    posted_date: datetime | None = Field(None, description="Job posting date")
-
-    # ---- Validation logic ----
-
-    @field_validator("posted_date", mode="before")
-    @classmethod
-    def parse_date(cls, v):
-        """Parse ISO format dates, handling Zulu timezone indicator."""
-        if v is None:
+        # 1. Check required fields
+        if not data.get("source_id"):
+            logger.warning("Missing source_id")
             return None
-        if isinstance(v, datetime):
-            return v
-        if isinstance(v, str):
-            # Handle Z suffix (Zulu time) by converting to +00:00
-            return datetime.fromisoformat(v.replace("Z", "+00:00"))
-        raise ValueError(f"Invalid date format: {v}")
 
-    @model_validator(mode="after")
-    def validate_salary_range(self):
-        """Ensure salary_min doesn't exceed salary_max."""
-        if (
-            self.salary_min is not None
-            and self.salary_max is not None
-            and self.salary_min > self.salary_max
-        ):
-            raise ValueError(
-                f"salary_min ({self.salary_min}) cannot exceed salary_max ({self.salary_max})"
+        if not data.get("title"):
+            logger.warning("Missing title for job: %s", data.get("source_id"))
+            return None
+
+        if not data.get("company"):
+            logger.warning("Missing company for job: %s", data.get("source_id"))
+            return None
+
+        # 2. Validate salary ranges
+        salary_min = data.get("salary_min")
+        salary_max = data.get("salary_max")
+
+        if salary_min is not None and salary_max is not None:
+            if salary_min < 0 or salary_max < 0:
+                logger.warning(
+                    "Negative salary for job %s: min=%s, max=%s",
+                    data.get("source_id"),
+                    salary_min,
+                    salary_max,
+                )
+                return None
+
+            if salary_min > salary_max:
+                logger.warning(
+                    "Min salary > max salary for job %s: min=%s, max=%s",
+                    data.get("source_id"),
+                    salary_min,
+                    salary_max,
+                )
+                warnings.append("Min salary > max salary - values swapped")
+                # Create new data dict with swapped values (no mutation)
+                data = dict(data)
+                data["salary_min"] = salary_max
+                data["salary_max"] = salary_min
+
+        # 3. Ensure scraped_date is set (should be set by transformer, but defensive)
+        if not data.get("scraped_date"):
+            logger.warning(
+                "Missing scraped_date for job %s - using current time",
+                data.get("source_id"),
             )
-        return self
+            data["scraped_date"] = datetime.utcnow()
 
+        # 4. Build validated job (Pydantic handles field-level validation)
+        try:
+            return JobValidated(
+                **data,
+                validation_timestamp=datetime.utcnow(),
+                validation_warnings=warnings,
+            )
+        except ValidationError as e:
+            logger.warning(
+                "Pydantic validation failed for job %s: %s",
+                data.get("source_id"),
+                str(e),
+            )
+            return None
 
-def validate_job(job_dict: dict) -> JobValidated:
-    """
-    Convert transformed job dict to validated internal model.
+    def validate_batch(self, jobs: List[JobEnriched]) -> List[JobValidated]:
+        """
+        Validate a batch of jobs.
 
-    Args:
-        job_dict: Transformed job dictionary from JobsTransformer
+        Args:
+            jobs: List of enriched jobs
 
-    Returns:
-        JobValidated: Validated job record
+        Returns:
+            List of validated jobs (invalid ones are dropped)
+        """
+        if not jobs:
+            return []
 
-    Raises:
-        ValidationError: If data fails validation rules
-    """
-    return JobValidated(**job_dict)
+        valid = []
+        for job in jobs:
+            validated = self.validate(job)
+            if validated:
+                valid.append(validated)
 
-
-def validate_jobs(jobs: list[dict]) -> list[JobValidated]:
-    """
-    Convert a list of transformed job dicts to validated models.
-
-    Args:
-        jobs: List of transformed job dictionaries
-
-    Returns:
-        List[JobValidated]: List of validated job records
-
-    Raises:
-        ValidationError: If any job fails validation
-    """
-    return [validate_job(job) for job in jobs]
+        logger.info(
+            "Validation complete: %d/%d jobs passed",
+            len(valid),
+            len(jobs),
+        )
+        return valid

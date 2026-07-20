@@ -1,5 +1,6 @@
 """Analytics service layer for business logic and orchestration."""
 
+from typing import List
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.schemas.analytics import (
     DashboardSummaryResponse,
@@ -14,7 +15,15 @@ from app.schemas.analytics import (
     SalaryStatisticsResponse,
     TopCompanyResponse,
     TopSkillResponse,
+    # Sprint 6.6: New schemas
+    SkillCount,
+    CountryDistribution,
+    TechnologyDistribution,
+    SalaryStatistics,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyticsService:
@@ -22,6 +31,10 @@ class AnalyticsService:
 
     def __init__(self, repo: AnalyticsRepository):
         self.repo = repo
+
+    # ============================================================
+    # Existing Methods (unchanged)
+    # ============================================================
 
     def get_top_skills(self, limit: int = 10) -> list[TopSkillResponse]:
         """Get top skills with counts and percentages."""
@@ -217,4 +230,80 @@ class AnalyticsService:
             
             # Time series
             posting_trend=self.get_posting_trend(30),
+        )
+
+    # ============================================================
+    # Sprint 6.6: New Enrichment Methods (RESTful Resources)
+    # ============================================================
+
+    def get_enriched_top_skills(
+        self,
+        limit: int = 20,
+        country_code: str | None = None,
+    ) -> list[SkillCount]:
+        """
+        Get skills with frequency counts and optional country filter.
+
+        Args:
+            limit: Number of skills to return
+            country_code: Optional country filter
+
+        Returns:
+            List of SkillCount objects
+        """
+        logger.debug(
+            "Fetching enriched skills (limit=%d%s)",
+            limit,
+            f", country={country_code}" if country_code else "",
+        )
+        results = self.repo.get_enriched_top_skills(limit, country_code)
+        return [SkillCount(skill=r["skill"], count=r["count"]) for r in results]
+
+    def get_country_distribution(self) -> list[CountryDistribution]:
+        """
+        Get job distribution by country.
+
+        Returns:
+            List of CountryDistribution objects
+        """
+        logger.debug("Fetching country distribution")
+        results = self.repo.get_country_distribution()
+        return [CountryDistribution(country=r["country"], count=r["count"]) for r in results]
+
+    def get_technology_distribution(self) -> list[TechnologyDistribution]:
+        """
+        Get distribution of technology categories.
+
+        Returns:
+            List of TechnologyDistribution objects
+        """
+        logger.debug("Fetching technology distribution")
+        results = self.repo.get_technology_distribution()
+        return [TechnologyDistribution(category=r["category"], count=r["count"]) for r in results]
+
+    def get_enriched_salary_statistics(
+        self,
+        country_code: str | None = None,
+    ) -> SalaryStatistics:
+        """
+        Get salary statistics with optional country filter.
+
+        Args:
+            country_code: Optional country filter
+
+        Returns:
+            SalaryStatistics object
+        """
+        logger.debug(
+            "Fetching enriched salary statistics%s",
+            f" for country {country_code}" if country_code else "",
+        )
+        stats = self.repo.get_enriched_salary_statistics(country_code)
+        return SalaryStatistics(
+            average_min=stats.get("average_min"),
+            average_max=stats.get("average_max"),
+            minimum=stats.get("minimum"),
+            maximum=stats.get("maximum"),
+            median=stats.get("median"),
+            currency=stats.get("currency", "USD"),
         )

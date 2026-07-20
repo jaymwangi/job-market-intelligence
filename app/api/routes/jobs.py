@@ -1,4 +1,5 @@
-# app/api/routes/jobs.py
+"""Jobs API routes."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
@@ -18,6 +19,11 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 def get_service(db: Session = Depends(get_db)) -> JobService:
     """Dependency to get job service instance."""
     return JobService(JobRepository(db))
+
+
+# ============================================================
+# Static routes first (no path parameters)
+# ============================================================
 
 
 @router.get(
@@ -47,10 +53,38 @@ def get_jobs(
     ),
     min_salary: float | None = Query(None, ge=0, description="Minimum salary filter"),
     max_salary: float | None = Query(None, ge=0, description="Maximum salary filter"),
+    # Sprint 6.6: New enrichment filters
+    country_code: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="Filter by ISO country code (e.g., GB, US, DE)",
+    ),
+    technology_category: str | None = Query(
+        None,
+        min_length=1,
+        max_length=50,
+        description="Filter by technology category (e.g., backend, frontend, data)",
+    ),
+    employment_type: str | None = Query(
+        None,
+        min_length=1,
+        max_length=50,
+        description="Filter by employment type (e.g., FULL_TIME, CONTRACT)",
+    ),
     service: JobService = Depends(get_service),
 ):
     """
     Get paginated jobs with search and filters.
+
+    Supports filtering by:
+    - Company name
+    - Location
+    - Source site
+    - Salary range
+    - Country code (Sprint 6.6)
+    - Technology category (Sprint 6.6)
+    - Employment type (Sprint 6.6)
     """
     # Log the request (debug level - only shown in debug mode)
     logger.debug(f"Fetching jobs: page={page}, limit={limit}, q={q}")
@@ -70,6 +104,9 @@ def get_jobs(
         source_site=source_site,
         min_salary=min_salary,
         max_salary=max_salary,
+        country_code=country_code,
+        technology_category=technology_category,
+        employment_type=employment_type,
     )
 
     jobs, total = service.get_jobs(page, limit, filters, q)
@@ -80,6 +117,110 @@ def get_jobs(
     return JobListResponse(
         page=page, limit=limit, total=total, data=[JobResponse.model_validate(j) for j in jobs]
     )
+
+
+@router.get(
+    "/skills/top",
+    response_model=list[dict[str, str | int]],
+    status_code=status.HTTP_200_OK,
+    summary="Get top skills",
+    description="Get the most frequently occurring skills across all jobs.",
+)
+def get_top_skills(
+    limit: int = Query(20, ge=1, le=100, description="Number of skills to return"),
+    country_code: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="Filter by country code",
+    ),
+    service: JobService = Depends(get_service),
+) -> list[dict[str, str | int]]:
+    """
+    Get the most frequently occurring skills.
+    """
+    logger.debug(f"Fetching top {limit} skills" + (f" for country {country_code}" if country_code else ""))
+
+    skills = service.get_top_skills(limit, country_code)
+
+    logger.info(f"Retrieved {len(skills)} top skills")
+    return skills
+
+
+@router.get(
+    "/countries/distribution",
+    response_model=list[dict[str, str | int]],
+    status_code=status.HTTP_200_OK,
+    summary="Get job distribution by country",
+    description="Get the number of jobs per country.",
+)
+def get_country_distribution(
+    service: JobService = Depends(get_service),
+) -> list[dict[str, str | int]]:
+    """
+    Get the number of jobs per country.
+    """
+    logger.debug("Fetching country distribution")
+
+    distribution = service.get_country_distribution()
+
+    logger.info(f"Retrieved {len(distribution)} countries")
+    return distribution
+
+
+@router.get(
+    "/technology/distribution",
+    response_model=list[dict[str, str | int]],
+    status_code=status.HTTP_200_OK,
+    summary="Get technology category distribution",
+    description="Get the distribution of technology categories.",
+)
+def get_technology_distribution(
+    service: JobService = Depends(get_service),
+) -> list[dict[str, str | int]]:
+    """
+    Get the distribution of technology categories.
+    """
+    logger.debug("Fetching technology distribution")
+
+    distribution = service.get_technology_distribution()
+
+    logger.info(f"Retrieved {len(distribution)} technology categories")
+    return distribution
+
+
+@router.get(
+    "/stats/summary",
+    response_model=dict[str, int | float | None],
+    status_code=status.HTTP_200_OK,
+    summary="Get job statistics summary",
+    description="Get summary statistics about jobs.",
+)
+def get_job_stats(
+    service: JobService = Depends(get_service),
+) -> dict[str, int | float | None]:
+    """
+    Get summary statistics about jobs.
+
+    Includes:
+    - Total jobs
+    - Total companies
+    - Total countries
+    - Total skills
+    - Average salary (min and max)
+    - Technology role count
+    """
+    logger.debug("Fetching job statistics")
+
+    stats = service.get_stats()
+
+    logger.info("Retrieved job statistics")
+    return stats
+
+
+# ============================================================
+# Dynamic routes last (path parameters)
+# ============================================================
 
 
 @router.get(

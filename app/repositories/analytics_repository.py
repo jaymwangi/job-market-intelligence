@@ -39,6 +39,12 @@ class AnalyticsRepository:
         """Apply active and non-deleted filter."""
         return query.filter(Job.is_active == True, Job.is_deleted == False)
 
+    def _apply_country_filter(self, query, country_code: str | None = None):
+        """Apply country code filter if provided."""
+        if country_code:
+            return query.filter(Job.country_code == country_code.upper())
+        return query
+
     # ============ Sprint 3.1 Methods ============
 
     def get_top_skills(self, limit: int = 10) -> list[dict[str, Any]]:
@@ -51,12 +57,18 @@ class AnalyticsRepository:
         Returns:
             List of dicts with skill and count
         """
-        results = (
-            self.db.query(Skill.name.label("skill"), func.count(JobSkill.job_id).label("count"))
+        query = (
+            self.db.query(
+                Skill.name.label("skill"),
+                func.count(JobSkill.job_id).label("count"),
+            )
             .join(JobSkill, Skill.id == JobSkill.skill_id)
-            .join(Job, JobSkill.job_id == Job.id)
-            .filter(Job.is_active == True, Job.is_deleted == False)
-            .group_by(Skill.id, Skill.name)
+            .join(Job, Job.id == JobSkill.job_id)
+        )
+        query = self._apply_active_filter(query)
+
+        results = (
+            query.group_by(Skill.id, Skill.name)
             .order_by(desc("count"))
             .limit(limit)
             .all()
@@ -77,11 +89,18 @@ class AnalyticsRepository:
             List of dicts with company and job_count
         """
         query = self.db.query(
-            Job.company_name.label("company"), func.count(Job.id).label("job_count")
-        ).filter(Job.company_name.isnot(None), Job.is_active == True, Job.is_deleted == False)
+            Job.company_name.label("company"),
+            func.count(Job.id).label("job_count"),
+        ).filter(Job.company_name.isnot(None))
+        query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = query.group_by(Job.company_name).order_by(desc("job_count")).limit(limit).all()
+        results = (
+            query.group_by(Job.company_name)
+            .order_by(desc("job_count"))
+            .limit(limit)
+            .all()
+        )
         return [{"company": r.company, "job_count": r.job_count} for r in results]
 
     def get_jobs_by_location(
@@ -98,11 +117,18 @@ class AnalyticsRepository:
             List of dicts with location and job_count
         """
         query = self.db.query(
-            Job.location.label("location"), func.count(Job.id).label("job_count")
-        ).filter(Job.location.isnot(None), Job.is_active == True, Job.is_deleted == False)
+            Job.location.label("location"),
+            func.count(Job.id).label("job_count"),
+        ).filter(Job.location.isnot(None))
+        query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = query.group_by(Job.location).order_by(desc("job_count")).limit(limit).all()
+        results = (
+            query.group_by(Job.location)
+            .order_by(desc("job_count"))
+            .limit(limit)
+            .all()
+        )
         return [{"location": r.location, "job_count": r.job_count} for r in results]
 
     def get_salary_statistics(self) -> dict[str, Any]:
@@ -112,22 +138,20 @@ class AnalyticsRepository:
         Returns:
             Dictionary with average, min, max, median, sample_size, currency
         """
-        # Get aggregate stats
+        query = self.db.query(
+            func.avg(Job.salary_min).label("average"),
+            func.min(Job.salary_min).label("minimum"),
+            func.max(Job.salary_max).label("maximum"),
+            func.count(Job.id).label("sample_size"),
+            Job.salary_currency.label("currency"),
+        ).filter(
+            Job.salary_min.isnot(None),
+            Job.salary_max.isnot(None),
+        )
+        query = self._apply_active_filter(query)
+
         stats = (
-            self.db.query(
-                func.avg(Job.salary_min).label("average"),
-                func.min(Job.salary_min).label("minimum"),
-                func.max(Job.salary_max).label("maximum"),
-                func.count(Job.id).label("sample_size"),
-                Job.salary_currency.label("currency"),
-            )
-            .filter(
-                Job.is_active == True,
-                Job.is_deleted == False,
-                Job.salary_min.isnot(None),
-                Job.salary_max.isnot(None),
-            )
-            .group_by(Job.salary_currency)
+            query.group_by(Job.salary_currency)
             .order_by(desc("sample_size"))
             .first()
         )
@@ -142,13 +166,12 @@ class AnalyticsRepository:
                 "currency": None,
             }
 
-        # Calculate median (approximate)
-        salaries = (
-            self.db.query(Job.salary_min)
-            .filter(Job.is_active == True, Job.is_deleted == False, Job.salary_min.isnot(None))
-            .order_by(Job.salary_min)
-            .all()
+        # Calculate median
+        median_query = self.db.query(Job.salary_min).filter(
+            Job.salary_min.isnot(None)
         )
+        median_query = self._apply_active_filter(median_query)
+        salaries = median_query.order_by(Job.salary_min).all()
 
         median = None
         if salaries:
@@ -175,17 +198,20 @@ class AnalyticsRepository:
         Returns:
             List of dicts with employment_type and count
         """
+        query = self.db.query(
+            Job.employment_type.label("employment_type"),
+            func.count(Job.id).label("count"),
+        ).filter(Job.employment_type.isnot(None))
+        query = self._apply_active_filter(query)
+
         results = (
-            self.db.query(
-                Job.employment_type.label("employment_type"), func.count(Job.id).label("count")
-            )
-            .filter(Job.employment_type.isnot(None), Job.is_active == True, Job.is_deleted == False)
-            .group_by(Job.employment_type)
+            query.group_by(Job.employment_type)
             .order_by(desc("count"))
             .all()
         )
         return [
-            {"employment_type": r.employment_type or "Unknown", "count": r.count} for r in results
+            {"employment_type": r.employment_type or "Unknown", "count": r.count}
+            for r in results
         ]
 
     # ============ Sprint 3.2 Methods ============
@@ -215,12 +241,16 @@ class AnalyticsRepository:
             Job.location.isnot(None),
             Job.salary_min.isnot(None),
             Job.salary_max.isnot(None),
-            Job.is_active == True,
-            Job.is_deleted == False,
         )
+        query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = query.group_by(Job.location).order_by(desc("job_count")).limit(limit).all()
+        results = (
+            query.group_by(Job.location)
+            .order_by(desc("job_count"))
+            .limit(limit)
+            .all()
+        )
         return [
             {
                 "location": r.location,
@@ -257,12 +287,16 @@ class AnalyticsRepository:
             Job.company_name.isnot(None),
             Job.salary_min.isnot(None),
             Job.salary_max.isnot(None),
-            Job.is_active == True,
-            Job.is_deleted == False,
         )
+        query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = query.group_by(Job.company_name).order_by(desc("job_count")).limit(limit).all()
+        results = (
+            query.group_by(Job.company_name)
+            .order_by(desc("job_count"))
+            .limit(limit)
+            .all()
+        )
         return [
             {
                 "company": r.company,
@@ -286,17 +320,17 @@ class AnalyticsRepository:
         """
         cutoff_date = datetime.now() - timedelta(days=days)
 
+        query = self.db.query(
+            cast(Job.posted_date, Date).label("date"),
+            func.count(Job.id).label("count"),
+        ).filter(
+            Job.posted_date >= cutoff_date,
+            Job.posted_date.isnot(None),
+        )
+        query = self._apply_active_filter(query)
+
         results = (
-            self.db.query(
-                cast(Job.posted_date, Date).label("date"), func.count(Job.id).label("count")
-            )
-            .filter(
-                Job.posted_date >= cutoff_date,
-                Job.posted_date.isnot(None),
-                Job.is_active == True,
-                Job.is_deleted == False,
-            )
-            .group_by(cast(Job.posted_date, Date))
+            query.group_by(cast(Job.posted_date, Date))
             .order_by(cast(Job.posted_date, Date).asc())
             .all()
         )
@@ -321,12 +355,13 @@ class AnalyticsRepository:
         cutoff_date = datetime.now() - timedelta(days=days)
 
         query = self.db.query(Job).filter(
-            Job.posted_date >= cutoff_date, Job.is_active == True, Job.is_deleted == False
+            Job.posted_date >= cutoff_date,
+            Job.posted_date.isnot(None),
         )
+        query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = query.order_by(Job.posted_date.desc()).limit(limit).all()
-        return results
+        return query.order_by(Job.posted_date.desc()).limit(limit).all()
 
     def get_salary_distribution(self) -> list[dict[str, Any]]:
         """
@@ -349,24 +384,25 @@ class AnalyticsRepository:
         results = []
         for min_val, max_val, label in ranges:
             query = self.db.query(func.count(Job.id)).filter(
-                Job.is_active == True,
-                Job.is_deleted == False,
                 Job.salary_min.isnot(None),
                 Job.salary_min >= min_val,
             )
             if max_val != float("inf"):
                 query = query.filter(Job.salary_min < max_val)
+            query = self._apply_active_filter(query)
 
             count = query.scalar() or 0
             results.append({"range": label, "count": count})
 
         return results
 
-    # ============ Sprint 3.3 Methods (Updated) ============
+    # ============ Sprint 3.3 Methods ============
 
     def get_total_jobs(self) -> int:
         """Get total number of active jobs in the database."""
-        return self.db.query(Job).filter(Job.is_active == True, Job.is_deleted == False).count()
+        query = self.db.query(Job)
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def count_recent_jobs(self, days: int = 30) -> int:
         """
@@ -379,85 +415,64 @@ class AnalyticsRepository:
             Count of recent jobs
         """
         cutoff_date = datetime.now() - timedelta(days=days)
-        return (
-            self.db.query(func.count(Job.id))
-            .filter(Job.posted_date >= cutoff_date, Job.is_active == True, Job.is_deleted == False)
-            .scalar()
-        )
+        query = self.db.query(Job).filter(Job.posted_date >= cutoff_date)
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def count_jobs_by_source_site(self, source_site: str) -> int:
         """Count jobs from a specific source site efficiently."""
-        return (
-            self.db.query(func.count(Job.id))
-            .filter(Job.source_site == source_site, Job.is_active == True, Job.is_deleted == False)
-            .scalar()
-        )
+        query = self.db.query(Job).filter(Job.source_site == source_site)
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def get_jobs_with_company_count(self) -> int:
         """Get count of jobs with company name populated."""
-        return (
-            self.db.query(Job)
-            .filter(Job.company_name.isnot(None), Job.is_active == True, Job.is_deleted == False)
-            .count()
-        )
+        query = self.db.query(Job).filter(Job.company_name.isnot(None))
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def get_jobs_with_location_count(self) -> int:
         """Get count of jobs with location populated."""
-        return (
-            self.db.query(Job)
-            .filter(Job.location.isnot(None), Job.is_active == True, Job.is_deleted == False)
-            .count()
-        )
+        query = self.db.query(Job).filter(Job.location.isnot(None))
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def get_jobs_with_salary_count(self) -> int:
         """Get count of jobs with salary data populated."""
-        return (
-            self.db.query(Job)
-            .filter(Job.salary_min.isnot(None), Job.is_active == True, Job.is_deleted == False)
-            .count()
-        )
+        query = self.db.query(Job).filter(Job.salary_min.isnot(None))
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def get_jobs_with_employment_type_count(self) -> int:
         """Get count of jobs with employment type populated."""
-        return (
-            self.db.query(Job)
-            .filter(Job.employment_type.isnot(None), Job.is_active == True, Job.is_deleted == False)
-            .count()
-        )
+        query = self.db.query(Job).filter(Job.employment_type.isnot(None))
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def get_jobs_with_posted_date_count(self) -> int:
         """Get count of jobs with posted date populated."""
-        return (
-            self.db.query(Job)
-            .filter(Job.posted_date.isnot(None), Job.is_active == True, Job.is_deleted == False)
-            .count()
-        )
+        query = self.db.query(Job).filter(Job.posted_date.isnot(None))
+        query = self._apply_active_filter(query)
+        return query.count()
 
     def get_distinct_source_sites(self) -> list[str]:
         """Get distinct source sites in the database."""
-        results = (
-            self.db.query(Job.source_site)
-            .filter(Job.is_active == True, Job.is_deleted == False)
-            .distinct()
-            .all()
-        )
+        query = self.db.query(Job.source_site).distinct()
+        query = self._apply_active_filter(query)
+        results = query.all()
         return [row[0] for row in results]
 
     def get_skill_relationship_count(self) -> int:
         """Get total number of skill-job relationships."""
-        from app.models.job_skill import JobSkill
-
         return self.db.query(JobSkill).count()
 
     def get_jobs_by_source_site(self, source_site: str) -> list[Job]:
         """Get all jobs from a specific source site."""
-        return (
-            self.db.query(Job)
-            .filter(Job.source_site == source_site, Job.is_active == True, Job.is_deleted == False)
-            .all()
-        )
+        query = self.db.query(Job).filter(Job.source_site == source_site)
+        query = self._apply_active_filter(query)
+        return query.all()
 
-    # ============ NEW: Dataset Summary ============
+    # ============ Dataset Summary ============
 
     def get_dataset_summary(self) -> dict[str, Any]:
         """
@@ -470,14 +485,14 @@ class AnalyticsRepository:
         total_jobs = self.get_total_jobs()
         unique_companies = (
             self.db.query(Job.company_name)
-            .filter(Job.company_name.isnot(None), Job.is_active == True, Job.is_deleted == False)
+            .filter(Job.company_name.isnot(None))
             .distinct()
             .count()
         )
 
         unique_locations = (
             self.db.query(Job.location)
-            .filter(Job.location.isnot(None), Job.is_active == True, Job.is_deleted == False)
+            .filter(Job.location.isnot(None))
             .distinct()
             .count()
         )
@@ -489,7 +504,6 @@ class AnalyticsRepository:
                 func.min(Job.posted_date).label("earliest"),
                 func.max(Job.posted_date).label("latest"),
             )
-            .filter(Job.is_active == True, Job.is_deleted == False)
             .first()
         )
 
@@ -505,4 +519,144 @@ class AnalyticsRepository:
                 "latest": str(date_range.latest) if date_range and date_range.latest else None,
             },
             "last_updated": datetime.now(),
+        }
+
+    # ============================================================
+    # Sprint 6.6: New Enrichment Repository Methods
+    # ============================================================
+
+    def get_enriched_top_skills(
+        self,
+        limit: int = 20,
+        country_code: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get the most frequently occurring skills with optional country filter.
+
+        Args:
+            limit: Number of skills to return
+            country_code: Optional country filter
+
+        Returns:
+            List of dicts with skill name and count
+        """
+        query = (
+            self.db.query(
+                Skill.name.label("skill"),
+                func.count(JobSkill.job_id).label("count"),
+            )
+            .join(JobSkill, Skill.id == JobSkill.skill_id)
+            .join(Job, Job.id == JobSkill.job_id)
+        )
+        query = self._apply_active_filter(query)
+        query = self._apply_country_filter(query, country_code)
+
+        results = (
+            query.group_by(Skill.name)
+            .order_by(desc("count"))
+            .limit(limit)
+            .all()
+        )
+        return [{"skill": r.skill, "count": r.count} for r in results]
+
+    def get_country_distribution(self) -> list[dict[str, Any]]:
+        """
+        Get job distribution by country.
+
+        Returns:
+            List of dicts with country and job count
+        """
+        query = self.db.query(
+            Job.country_code.label("country"),
+            func.count(Job.id).label("count"),
+        ).filter(Job.country_code.isnot(None))
+        query = self._apply_active_filter(query)
+
+        results = (
+            query.group_by(Job.country_code)
+            .order_by(desc("count"))
+            .all()
+        )
+        return [{"country": r.country or "Unknown", "count": r.count} for r in results]
+
+    def get_technology_distribution(self) -> list[dict[str, Any]]:
+        """
+        Get distribution of technology categories.
+
+        Returns:
+            List of dicts with category and job count
+        """
+        query = self.db.query(
+            Job.technology_category.label("category"),
+            func.count(Job.id).label("count"),
+        ).filter(Job.technology_category.isnot(None))
+        query = self._apply_active_filter(query)
+
+        results = (
+            query.group_by(Job.technology_category)
+            .order_by(desc("count"))
+            .all()
+        )
+        return [{"category": r.category, "count": r.count} for r in results]
+
+    def get_enriched_salary_statistics(
+        self,
+        country_code: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Get salary statistics with optional country filter.
+
+        Args:
+            country_code: Optional country filter
+
+        Returns:
+            Dict with salary statistics
+        """
+        query = self.db.query(
+            func.avg(Job.salary_min).label("average_min"),
+            func.avg(Job.salary_max).label("average_max"),
+            func.min(Job.salary_min).label("minimum"),
+            func.max(Job.salary_max).label("maximum"),
+        ).filter(Job.salary_min.isnot(None))
+        query = self._apply_active_filter(query)
+        query = self._apply_country_filter(query, country_code)
+
+        result = query.first()
+
+        # Calculate median
+        median_query = self.db.query(Job.salary_min).filter(
+            Job.salary_min.isnot(None)
+        )
+        median_query = self._apply_active_filter(median_query)
+        median_query = self._apply_country_filter(median_query, country_code)
+
+        salaries = median_query.order_by(Job.salary_min).all()
+
+        median = None
+        if salaries:
+            mid = len(salaries) // 2
+            median = (
+                salaries[mid][0]
+                if len(salaries) % 2 == 1
+                else (salaries[mid - 1][0] + salaries[mid][0]) / 2
+            )
+
+        # Handle case where result is None
+        if result is None:
+            return {
+                "average_min": None,
+                "average_max": None,
+                "minimum": None,
+                "maximum": None,
+                "median": median,
+                "currency": "USD",
+            }
+
+        return {
+            "average_min": float(result.average_min) if result.average_min else None,
+            "average_max": float(result.average_max) if result.average_max else None,
+            "minimum": float(result.minimum) if result.minimum else None,
+            "maximum": float(result.maximum) if result.maximum else None,
+            "median": median,
+            "currency": "USD",
         }

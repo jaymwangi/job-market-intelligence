@@ -3,6 +3,11 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+# ============================================================
+# Existing Schemas (unchanged)
+# ============================================================
+
+
 class TopSkillResponse(BaseModel):
     """Response schema for top skills."""
 
@@ -131,3 +136,40 @@ class DashboardSummaryResponse(BaseModel):
 
     # Time series
     posting_trend: list[PostingTrendResponse] = Field(default_factory=list)
+
+
+# ============================================================
+# Sprint 6.6: New Enrichment Schemas (RESTful Resources)
+# ============================================================
+
+
+class SkillCount(BaseModel):
+    """Response schema for skill with frequency count."""
+
+    skill: str = Field(description="Skill name")
+    count: int = Field(description="Number of jobs mentioning this skill")
+
+
+class CountryDistribution(BaseModel):
+    """Response schema for country with job count."""
+
+    country: str = Field(description="Country name or code")
+    count: int = Field(description="Number of jobs in this country")
+
+
+class TechnologyDistribution(BaseModel):
+    """Response schema for technology category with job count."""
+
+    category: str = Field(description="Technology category name (backend, frontend, data, etc.)")
+    count: int = Field(description="Number of jobs in this category")
+
+
+class SalaryStatistics(BaseModel):
+    """Response schema for enriched salary statistics."""
+
+    average_min: float | None = Field(None, description="Average minimum salary")
+    average_max: float | None = Field(None, description="Average maximum salary")
+    minimum: float | None = Field(None, description="Minimum salary")
+    maximum: float | None = Field(None, description="Maximum salary")
+    median: float | None = Field(None, description="Median salary")
+    currency: str = Field("USD", description="Currency code")
