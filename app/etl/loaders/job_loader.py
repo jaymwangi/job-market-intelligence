@@ -6,7 +6,7 @@ from uuid import UUID
 from typing import Set
 
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, PendingRollbackError
 
 from app.etl.schemas.validated import JobValidated
 from app.etl.schemas.metrics import PipelineMetrics
@@ -61,7 +61,6 @@ class JobLoader:
 
     def __init__(self, db_session: Session):
         self.db_session = db_session
-        self.job_repo = JobRepository(db_session)
 
     def upsert(self, jobs: list[JobValidated]) -> LoadResult:
         """
@@ -87,34 +86,43 @@ class JobLoader:
         if not jobs:
             return result
 
-        # Phase 1: Upsert jobs
-        upsert_result = self._upsert_jobs(jobs)
-        result.inserted = upsert_result.inserted
-        result.updated = upsert_result.updated
+        try:
+            # Phase 1: Upsert jobs
+            upsert_result = self._upsert_jobs(jobs)
+            result.inserted = upsert_result.inserted
+            result.updated = upsert_result.updated
 
-        # Phase 2: Process skills and relationships
-        skill_result = self._process_skills(jobs)
-        result.skills_added = skill_result.skills_added
-        result.relationships_added = skill_result.relationships_added
+            # Phase 2: Process skills and relationships
+            skill_result = self._process_skills(jobs)
+            result.skills_added = skill_result.skills_added
+            result.relationships_added = skill_result.relationships_added
 
-        # Phase 3: Apply retention policy (if configured)
-        if settings.pipeline_retention_days > 0:
-            result.purged = self._purge_old_jobs()
+            # Phase 3: Apply retention policy (if configured)
+            if settings.pipeline_retention_days > 0:
+                result.purged = self._purge_old_jobs()
 
-        # Final flush - caller handles commit
-        self.db_session.flush()
+            # Final flush - caller handles commit
+            self.db_session.flush()
 
-        logger.info(
-            "Load complete: inserted=%d, updated=%d, "
-            "skills=%d, relationships=%d, purged=%d",
-            result.inserted,
-            result.updated,
-            result.skills_added,
-            result.relationships_added,
-            result.purged,
-        )
+            logger.info(
+                "Load complete: inserted=%d, updated=%d, "
+                "skills=%d, relationships=%d, purged=%d",
+                result.inserted,
+                result.updated,
+                result.skills_added,
+                result.relationships_added,
+                result.purged,
+            )
 
-        return result
+            return result
+
+        except (IntegrityError, PendingRollbackError) as e:
+            # CRITICAL FIX: Rollback the session to clear the error state
+            logger.warning(f"Database error occurred, rolling back session: {e}")
+            self.db_session.rollback()
+            
+            # Re-raise with context
+            raise Exception(f"Load failed due to database error: {str(e)}") from e
 
     def _upsert_jobs(self, jobs: list[JobValidated]) -> UpsertResult:
         """
@@ -135,11 +143,14 @@ class JobLoader:
         ).all()
         existing_source_ids = {j.source_id for j in existing_jobs}
 
+        # Create job repo here to ensure fresh session state
+        job_repo = JobRepository(self.db_session)
+
         for job in jobs:
             is_existing = job.source_id in existing_source_ids
 
             # Let exceptions propagate - all-or-nothing
-            self.job_repo.upsert_from_validated(job)
+            job_repo.upsert_from_validated(job)
 
             if is_existing:
                 updated += 1
@@ -236,26 +247,76 @@ class JobLoader:
         if relationships:
             # Split into smaller batches to avoid query size limits
             batch_size = 100
+            
+            # CRITICAL FIX: Track any duplicates found
+            duplicate_count = 0
+            
             for i in range(0, len(relationships), batch_size):
                 batch = relationships[i:i + batch_size]
+                
+                # First try: Batch insert with savepoint
                 try:
                     with self.db_session.begin_nested():
                         self.db_session.add_all(batch)
+                        # Flush inside savepoint to catch errors early
+                        self.db_session.flush()
                         relationships_added += len(batch)
-                except IntegrityError:
-                    # Some duplicates exist - fall back to individual inserts
-                    # Each insert is isolated by the savepoint
+                        
+                except IntegrityError as e:
+                    # Duplicate exists in batch - rollback savepoint automatically
+                    logger.debug(f"Batch duplicate detected, falling back to individual: {e}")
+                    
+                    # Second try: Individual inserts with isolated savepoints
                     with self.db_session.begin_nested():
-                        added = 0
                         for rel in batch:
                             try:
-                                self.db_session.add(rel)
-                                self.db_session.flush()
-                                added += 1
+                                # Check if relationship already exists
+                                existing = self.db_session.query(JobSkill).filter(
+                                    JobSkill.job_id == rel.job_id,
+                                    JobSkill.skill_id == rel.skill_id
+                                ).first()
+                                
+                                if existing:
+                                    # Skip duplicate
+                                    duplicate_count += 1
+                                    continue
+                                
+                                # Try to insert with isolated savepoint
+                                # Using a new savepoint for each insert
+                                with self.db_session.begin_nested():
+                                    self.db_session.add(rel)
+                                    self.db_session.flush()
+                                    relationships_added += 1
+                                    
                             except IntegrityError:
                                 # Duplicate - skip (ON CONFLICT DO NOTHING equivalent)
+                                duplicate_count += 1
+                                # Savepoint automatically rolls back
                                 pass
-                        relationships_added += added
+                            except PendingRollbackError:
+                                # Session is in bad state - rollback and continue
+                                logger.warning("Pending rollback detected, rolling back")
+                                self.db_session.rollback()
+                                # Try to re-enter the nested transaction
+                                with self.db_session.begin_nested():
+                                    # Check again and try insert
+                                    existing = self.db_session.query(JobSkill).filter(
+                                        JobSkill.job_id == rel.job_id,
+                                        JobSkill.skill_id == rel.skill_id
+                                    ).first()
+                                    if not existing:
+                                        self.db_session.add(rel)
+                                        self.db_session.flush()
+                                        relationships_added += 1
+                                    else:
+                                        duplicate_count += 1
+
+        logger.info(
+            "Skills processed: skills_added=%d, relationships_added=%d, duplicates_skipped=%d",
+            skills_added,
+            relationships_added,
+            len(job_skills) - relationships_added
+        )
 
         return SkillResult(
             skills_added=skills_added,
@@ -272,7 +333,9 @@ class JobLoader:
             days=settings.pipeline_retention_days
         )
 
-        purged_count = self.job_repo.delete_jobs_older_than(cutoff_date)
+        # Create repo here to ensure fresh session state
+        job_repo = JobRepository(self.db_session)
+        purged_count = job_repo.delete_jobs_older_than(cutoff_date)
 
         logger.info(
             "Purged %d jobs older than %d days",
