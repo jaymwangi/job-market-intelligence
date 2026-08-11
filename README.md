@@ -1,3 +1,4 @@
+```markdown
 # Job Market Intelligence
 
 A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive analytics dashboard.
@@ -267,7 +268,8 @@ job-market-intelligence/
 │
 ├── migrations/
 ├── scripts/
-│   └── run_pipeline.py         # ETL entry point
+│   ├── run_pipeline.py         # ETL entry point
+│   └── sample_jobs.py          # Stratified sampling for labeling
 ├── tests/
 │   └── smoke/
 │       └── test_production.py  # Production smoke tests
@@ -520,6 +522,120 @@ job-market-intelligence/
 - **Batch Processing** - Efficient skill persistence with duplicate handling
 - **Idempotent Pipeline** - Safe to run multiple times without duplication
 
+### ✅ Sprint 6.6.1 — Classifier Refactor & UI Improvements
+
+After completing Sprint 6.6, we identified and fixed several critical issues affecting classifier accuracy and user experience.
+
+#### 📋 Issues & Action Plan
+
+| # | Issue | Severity | Affected File | Status |
+|---|-------|----------|---------------|--------|
+| 1 | German job labeled as English | 🔴 High | `language_detector.py` | ✅ Fixed |
+| 2 | No Translate button in UI | 🔴 High | `job_detail.py` | ✅ Fixed |
+| 3 | Non-tech jobs labeled as tech | 🔴 High | `tech_scorer.py` / `enricher.py` | ✅ Fixed |
+| 4 | Ugly filters in job page | 🟡 Medium | `filters.py` / `jobs.py` | ✅ Fixed |
+| 5 | Double tech role filters | 🟡 Medium | `filters.py` / `jobs.py` | ✅ Fixed |
+| 6 | ETL last run stuck at 2 hours | 🟡 Medium | `overview.py` / `pipeline_run_repository.py` | ✅ Fixed |
+| 7 | Emojis instead of SVG icons | 🟢 Low | `analytics.py` | ✅ Fixed |
+
+#### 6.6.1.1 — Classification Improvements ✅
+
+- **Fixed German Job Labeling** - Jobs with German descriptions are now correctly labeled
+- **Added Translate Button** - Users can translate non-English job descriptions in the UI
+- **Stricter Tech/Non-Tech Classification** - Reduced false positives with:
+  - Higher thresholds (`tech_minimum: 8`, `min_confidence: 0.15`)
+  - Margin-based classification (best vs second-best category)
+  - Category-specific threshold overrides
+  - Comprehensive non-tech keyword indicators
+- **Fixed Title Pattern Regex** - Invalid regex patterns causing warnings
+- **Negative Keyword Refinement** - Focused on occupations only (no tech-vs-tech penalties)
+
+#### 6.6.1.2 — Policy System ✅
+
+- **Created `policy.py`** - Single source of truth for all classification thresholds
+- **Immutable Policy Objects** - Thread-safe, predictable behavior
+- **Category Overrides** - Different thresholds per category
+- **Margin Configuration** - Configurable minimum margin between categories
+- **Policy Variants** - Default, conservative, permissive policies
+
+#### 6.6.1.3 — Single Source of Truth (Classifier) ✅
+
+- **Created `classifier.py`** - Single source of truth for classification logic
+- **`classify_result()` Function** - Used by both production and validation
+- **`ClassificationDecision`** - Immutable result object with:
+  - Tech/non-tech classification
+  - Primary category
+  - Margin over second-best
+  - Ambiguity score (0.0 = clear, 1.0 = ambiguous)
+  - Human-readable explanations
+  - Reason codes for failure analysis
+- **Fixed Circular Imports** - Using `TYPE_CHECKING` forward references
+
+#### 6.6.1.4 — Sampling Framework ✅
+
+- **Created `sample_jobs.py`** - Stratified sampling for manual labeling
+- **5 Sampling Strategies**:
+  - `random` - Simple random sampling
+  - `country` - Geographic diversity
+  - `classifier` - Tech vs non-tech balanced
+  - `ambiguity` - Edge cases (active learning)
+  - `hybrid` - Combined strategy (30% random + 30% ambiguous + 20% tech + 20% non-tech)
+- **Single Scoring Pass** - All jobs scored once, reused across strategies
+- **Reproducible** - `--seed` flag for consistent results
+- **Deduplication** - Removes duplicate jobs
+- **CSV Export** - Includes classifier metadata (prediction, confidence, ambiguity, category, score)
+
+#### 6.6.1.5 — UI Improvements ✅
+
+- **SVG Icon System** - Professional icons replacing emojis
+- **Redesigned Filters** - Clean, modern UI with expandable sections
+- **Unified Tech Filters** - Removed duplicate filters
+- **Translate Button** - Language translation in job detail view
+
+#### 🚨 Critical Discovery: Acquisition Layer
+
+- **Audited Adzuna Extraction** - Discovered that acquisition uses **general searches without tech filters**
+- **Real Dataset Analysis** - Found only **0.4% tech jobs** in 5,000 job sample
+- **Reinterpreted `NO_CATEGORIES`** - 69% `NO_CATEGORIES` is actually correct for general job data
+- **Documented Finding** - Future work required to improve tech job acquisition
+
+---
+
+### 🚧 Sprint 6.7 — E2E & Integration Tests (Planned)
+
+After completing Sprint 6.6.1, the next step is to ensure the entire system works together correctly through comprehensive end-to-end and integration testing.
+
+```
+SPRINT 6.7
+│
+├── 6.7.1 E2E Test Framework
+│   ├── API end-to-end tests
+│   ├── ETL pipeline end-to-end tests
+│   ├── Dashboard end-to-end tests
+│   └── Cross-service integration tests
+│
+├── 6.7.2 Integration Tests
+│   ├── Database integration tests
+│   ├── API integration tests
+│   ├── ETL integration tests
+│   └── Dashboard API client tests
+│
+├── 6.7.3 Performance Tests
+│   ├── API load testing
+│   ├── ETL performance testing
+│   └── Database query optimization
+│
+├── 6.7.4 Test Coverage & Reporting
+│   ├── Coverage report generation
+│   ├── Test result reporting
+│   └── CI/CD integration
+│
+└── 6.7.5 Deployment Preparation
+    ├── Production readiness review
+    ├── Documentation updates
+    └── Final deployment
+```
+
 ---
 
 ## Current Status
@@ -561,6 +677,20 @@ job-market-intelligence/
   - Currency Normalization
   - Typed ETL Pipeline
   - Enrichment API Endpoints
+  - Dashboard Integration
+- **Classifier Refactor & UI Improvements (Sprint 6.6.1)**
+  - Policy System (`policy.py`)
+  - Single Source of Truth (`classifier.py`)
+  - Sampling Framework (`sample_jobs.py`)
+  - Professional SVG Icon System
+  - Language Detection Fixes
+  - UI Improvements (Translate button, filter redesign)
+  - 7 Critical Issues Fixed
+
+### 📋 Pending
+
+- **E2E & Integration Tests** - Planned for Sprint 6.7
+- **Tech-focused Acquisition Strategy** - Future enhancement
 
 ---
 
@@ -780,7 +910,8 @@ Record Pipeline Run
 | ✅ Sprint 6.4 | Complete | ETL Pipeline Enhancement |
 | ✅ Sprint 6.5 | Complete | Pipeline Automation |
 | ✅ Sprint 6.6 | Complete | Enrichment Layer (Skill Extraction & Intelligence) |
-| 🚧 Sprint 6.7 | Planned | Cloud Deployment & Monitoring |
+| ✅ Sprint 6.6.1 | Complete | Classifier Refactor & UI Improvements |
+| 🚧 Sprint 6.7 | Planned | E2E & Integration Tests |
 
 ---
 
@@ -804,6 +935,8 @@ Record Pipeline Run
 - Recommendation engine for skills and careers
 - Email notifications for failed pipelines
 - SLA monitoring and alerting
+- Tech-focused acquisition strategy for balanced dataset
+- Active learning pipeline for continuous classifier improvement
 
 ---
 
@@ -821,13 +954,3 @@ This project is licensed under the MIT License.
 
 **Project:** [job-market-intelligence](https://github.com/jaymwangi/job-market-intelligence)
 ```
-
-## Summary of Updates
-
-| Section | Changes |
-|---------|---------|
-| **Architecture Diagram** | Added "Enrichment Layer ← Sprint 6.6" |
-| **Project Structure** | Added `app/etl/enrichment/` and `app/etl/schemas/` directories |
-| **Sprint 6.6** | Added complete Sprint 6.6 section with all features |
-| **Current Status** | Added Enrichment Layer to completed items |
-| **Roadmap** | Marked Sprint 6.6 as Complete, Sprint 6.7 as Planned |
