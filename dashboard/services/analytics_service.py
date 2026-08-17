@@ -1,11 +1,12 @@
-# dashboard/services/analytics_service.py
 """Analytics service with full transformation pipeline."""
 
 import logging
+from typing import Any, Optional
+from datetime import datetime
 
-from api.client import APIClient
-from mappers.analytics_mapper import AnalyticsMapper
-from schemas.analytics import (
+from dashboard.api.client import APIClient
+from dashboard.mappers.analytics_mapper import AnalyticsMapper
+from dashboard.schemas.analytics import (
     DashboardSummary,
     EmploymentType,
     LocationAnalytics,
@@ -15,7 +16,7 @@ from schemas.analytics import (
     TopCompany,
     TopSkill,
 )
-from schemas.chart_data import (
+from dashboard.schemas.chart_data import (
     BarChartData,
     DonutChartData,
     HistogramData,
@@ -24,8 +25,8 @@ from schemas.chart_data import (
     MetricCardData,
     PieChartData,
 )
-from services.base import BaseService
-from utils.cache import CacheManager, cached
+from dashboard.services.base import BaseService
+from dashboard.utils.cache import CacheManager, cached
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,11 @@ class AnalyticsService(BaseService):
     2. Validate and normalize to domain models
     3. Transform to chart models via mapper
     4. Return presentation-ready data
+
+    Sprint 6.6 adds:
+    - Language analytics methods
+    - Technology analytics methods
+    - Enriched combined analytics methods
     """
 
     def __init__(self, api_client: APIClient, cache_manager: CacheManager | None = None):
@@ -263,6 +269,409 @@ class AnalyticsService(BaseService):
             logger.error(f"Failed to get daily posting trend: {e}")
             return LineChartData(title="Daily Job Postings", x_values=[], y_values=[])
 
+    # ============================================================
+    # Sprint 6.6: Language Analytics
+    # ============================================================
+
+    @cached(ttl=600)
+    def get_language_distribution(self) -> list[dict[str, Any]]:
+        """
+        Get job distribution by language.
+
+        Returns:
+            List of dicts with language and count
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/language/distribution")
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get language distribution: {e}")
+            return []
+
+    @cached(ttl=600)
+    def get_language_by_country(self) -> list[dict[str, Any]]:
+        """
+        Get language distribution by country.
+
+        Returns:
+            List of dicts with country, language, and count
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/language/by-country")
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get language by country: {e}")
+            return []
+
+    @cached(ttl=300)
+    def get_english_vs_non_english(self) -> dict[str, Any]:
+        """
+        Get English vs non-English job distribution.
+
+        Returns:
+            Dict with english_count, non_english_count, total_count, english_percentage
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/language/english-vs-non-english")
+            if isinstance(response, dict):
+                return response
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to get English vs non-English: {e}")
+            return {}
+
+    @cached(ttl=900)
+    def get_language_salary_stats(self) -> list[dict[str, Any]]:
+        """
+        Get salary statistics by language.
+
+        Returns:
+            List of dicts with language, average_salary, count, min, max
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/language/salary")
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get language salary stats: {e}")
+            return []
+
+    # ============================================================
+    # Sprint 6.6: Technology Analytics
+    # ============================================================
+
+    @cached(ttl=300)
+    def get_tech_vs_non_tech(self) -> dict[str, Any]:
+        """
+        Get tech vs non-tech job distribution.
+
+        Returns:
+            Dict with tech_count, non_tech_count, total_count, tech_percentage
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/tech/vs-non-tech")
+            if isinstance(response, dict):
+                return response
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to get tech vs non-tech: {e}")
+            return {}
+
+    @cached(ttl=600)
+    def get_tech_category_distribution(self) -> list[dict[str, Any]]:
+        """
+        Get distribution of technology categories.
+
+        Returns:
+            List of dicts with category and count
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/tech/category-distribution")
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get tech category distribution: {e}")
+            return []
+
+    @cached(ttl=600)
+    def get_tech_by_country(self) -> list[dict[str, Any]]:
+        """
+        Get technology role distribution by country.
+
+        Returns:
+            List of dicts with country, total_count, tech_count, tech_percentage
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/tech/by-country")
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get tech by country: {e}")
+            return []
+
+    @cached(ttl=600)
+    def get_tech_skills(self, limit: int = 20) -> list[dict[str, Any]]:
+        """
+        Get most common skills in technology roles.
+
+        Args:
+            limit: Number of skills to return
+
+        Returns:
+            List of dicts with skill and count
+        """
+        try:
+            response = self.api_client.get(
+                "/api/v1/analytics/tech/skills",
+                params={"limit": limit}
+            )
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get tech skills: {e}")
+            return []
+
+    @cached(ttl=900)
+    def get_tech_salary_stats(self) -> dict[str, Any]:
+        """
+        Get salary statistics for technology roles.
+
+        Returns:
+            Dict with average, min, max, median, sample_size
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/tech/salary")
+            if isinstance(response, dict):
+                return response
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to get tech salary stats: {e}")
+            return {}
+        
+    # ============================================================
+    # Sprint 6.6: Enriched Combined Analytics (RESTful Resources)
+    # ============================================================
+
+    @cached(ttl=600)
+    def get_enriched_top_skills(
+        self,
+        limit: int = 20,
+        country_code: Optional[str] = None,
+        tech_only: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Get top skills with frequency counts from enriched data."""
+        try:
+            params: dict[str, str] = {"limit": str(limit)}
+            if country_code:
+                params["country_code"] = country_code
+            if tech_only:
+                params["tech_only"] = "true"
+            response = self.api_client.get("/api/v1/analytics/enriched/skills", params=params)
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get enriched top skills: {e}")
+            return []
+
+    @cached(ttl=600)
+    def get_country_distribution(self) -> list[dict[str, Any]]:
+        """Get job distribution by country from enriched data."""
+        try:
+            response = self.api_client.get("/api/v1/analytics/enriched/countries")
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get country distribution: {e}")
+            return []
+
+    @cached(ttl=600)
+    def get_technology_distribution(self) -> list[dict[str, Any]]:
+        """Get technology category distribution from enriched data."""
+        try:
+            response = self.api_client.get("/api/v1/analytics/enriched/technology")
+            if isinstance(response, list):
+                return response
+            if isinstance(response, dict) and "data" in response:
+                return response.get("data", [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to get technology distribution: {e}")
+            return []
+
+    @cached(ttl=900)
+    def get_enriched_salary(
+        self,
+        country_code: Optional[str] = None,
+        tech_only: bool = False,
+    ) -> dict[str, Any]:
+        """Get enriched salary statistics with optional filters."""
+        try:
+            params: dict[str, str] = {}
+            if country_code:
+                params["country_code"] = country_code
+            if tech_only:
+                params["tech_only"] = "true"
+            response = self.api_client.get("/api/v1/analytics/enriched/salary", params=params)
+            if isinstance(response, dict):
+                return response
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to get enriched salary: {e}")
+            return {}
+
+    # ============================================================
+    # ETL Status Methods - For Dashboard Overview
+    # ============================================================
+
+    @cached(ttl=60)  # Cache for 60 seconds
+    def get_last_etl_run(self) -> str:
+        """
+        Get formatted last ETL run time.
+        Returns string like "2 hours ago" or "No runs yet".
+        """
+        # First try the API endpoint
+        try:
+            response = self.api_client.get("/api/v1/analytics/etl/last-run")
+            if response and 'last_run' in response:
+                return response['last_run']
+        except Exception as e:
+            logger.debug(f"API endpoint /analytics/etl/last-run not available: {e}")
+
+        # Fallback: Direct database access via app modules
+        try:
+            import sys
+            import os
+            # Add project root to path if needed
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+            from app.database.session import get_db
+            
+            db = next(get_db())
+            repo = PipelineRunRepository(db)
+            return repo.format_last_run_time()
+        except ImportError as e:
+            logger.error(f"Failed to import app modules: {e}")
+            return "N/A"
+        except Exception as e:
+            logger.error(f"Failed to get last ETL run: {e}")
+            return "N/A"
+
+    @cached(ttl=60)
+    def get_last_etl_run_time(self) -> Optional[datetime]:
+        """
+        Get the actual datetime of the last ETL run.
+        Returns datetime or None.
+        """
+        # First try the API endpoint
+        try:
+            response = self.api_client.get("/api/v1/analytics/etl/last-run-time")
+            if response and 'last_run_time' in response and response['last_run_time']:
+                return datetime.fromisoformat(response['last_run_time'])
+        except Exception as e:
+            logger.debug(f"API endpoint not available: {e}")
+
+        # Fallback: Direct database access
+        try:
+            import sys
+            import os
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+            from app.database.session import get_db
+            
+            db = next(get_db())
+            repo = PipelineRunRepository(db)
+            return repo.get_last_run_time()
+        except Exception as e:
+            logger.error(f"Failed to get last ETL run time: {e}")
+            return None
+
+    @cached(ttl=60)
+    def get_pipeline_status(self) -> str:
+        """
+        Get current pipeline status.
+        Returns "Running", "Idle", or "Unknown".
+        """
+        # First try the API endpoint
+        try:
+            response = self.api_client.get("/api/v1/analytics/etl/status")
+            if response and 'status' in response:
+                return response['status']
+        except Exception as e:
+            logger.debug(f"API endpoint not available: {e}")
+
+        # Fallback: Direct database access
+        try:
+            import sys
+            import os
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+            from app.database.session import get_db
+            
+            db = next(get_db())
+            repo = PipelineRunRepository(db)
+            running = repo.get_running_run()
+            return "Running" if running else "Idle"
+        except Exception as e:
+            logger.error(f"Failed to get pipeline status: {e}")
+            return "Unknown"
+        
+    @cached(ttl=60)
+    def get_db_status(self) -> str:
+        """
+        Get database status from backend API.
+        Returns "Operational", "Degraded", or "Unknown".
+        """
+        try:
+            # If base_url doesn't include /api/v1, use full path
+            response = self.api_client.get("/api/v1/health/db")
+            
+            if response:
+                status = response.get('status', '')
+                if status.lower() in ['healthy', 'ok']:
+                    return "Operational"
+                elif status.lower() == 'unhealthy':
+                    return "Degraded"
+            return "Unknown"
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch DB status from API: {e}")
+            return "Unknown"
+
+    @cached(ttl=600)
+    def get_companies_hiring_count(self) -> int:
+        """
+        Get count of companies currently hiring.
+        """
+        try:
+            response = self.api_client.get("/api/v1/analytics/companies/count")
+            if response and 'count' in response:
+                return response.get('count', 0)
+        except Exception as e:
+            logger.debug(f"API endpoint not available: {e}")
+
+        # Fallback: Use top companies
+        try:
+            companies = self._fetch_top_companies(limit=1000)
+            return len(companies)
+        except Exception as e:
+            logger.error(f"Failed to get companies hiring count: {e}")
+            return 0
+
     # ========== Private Domain Methods (Anti-Corruption Layer) ==========
 
     def _fetch_dashboard_summary(self) -> DashboardSummary:
@@ -298,9 +707,7 @@ class AnalyticsService(BaseService):
     def _fetch_salary_by_location(self, limit: int) -> list:
         """Fetch and normalize salary by location."""
         data = self.api_client.get("/api/v1/analytics/salary-by-location", params={"limit": limit})
-        # Import here to avoid circular imports
-        from schemas.analytics import SalaryByLocation
-
+        from dashboard.schemas.analytics import SalaryByLocation
         return self._normalize_list(data, SalaryByLocation)
 
     def _fetch_employment_types(self) -> list[EmploymentType]:
@@ -322,13 +729,10 @@ class AnalyticsService(BaseService):
         Handles None values gracefully for salary statistics.
         """
         try:
-            # If data is None, return a default instance
             if data is None:
                 return model_class()
 
-            # Special handling for DashboardSummary
             if model_class.__name__ == "DashboardSummary":
-                # Ensure salary_statistics exists
                 if "salary_statistics" not in data or data["salary_statistics"] is None:
                     data["salary_statistics"] = {
                         "average": 0,
@@ -339,7 +743,6 @@ class AnalyticsService(BaseService):
                         "currency": "USD",
                     }
                 else:
-                    # Clean up salary_statistics fields
                     stats = data["salary_statistics"]
                     for key in ["average", "minimum", "maximum", "median"]:
                         if stats.get(key) is None:
@@ -349,7 +752,6 @@ class AnalyticsService(BaseService):
                     if stats.get("sample_size") is None:
                         stats["sample_size"] = 0
 
-            # Special handling for SalaryStatistics
             if model_class.__name__ == "SalaryStatistics":
                 for key in ["average", "minimum", "maximum", "median"]:
                     if data.get(key) is None:
@@ -362,7 +764,6 @@ class AnalyticsService(BaseService):
             return model_class(**data)
         except Exception as e:
             logger.error(f"Failed to normalize response to {model_class.__name__}: {e}")
-            # Return a default instance instead of raising
             try:
                 return model_class()
             except Exception:

@@ -5,6 +5,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+import streamlit as st
+
 from api import JOB_DETAIL, JOBS
 from api.client import APIClient
 from schemas.jobs import Job, JobFilters, JobListResponse
@@ -26,27 +28,46 @@ class JobsService(BaseService):
         super().__init__(api_client, cache_manager)
 
     def fetch_jobs(self, filters: JobFilters, page: int, page_size: int) -> JobListResponse:
-        """Fetch jobs with filters and pagination."""
-        # Ensure page is valid
+        """
+        Fetch jobs with filters and pagination.
+        Uses cached raw data to avoid pickle serialization issues with Pydantic models.
+        """
         page = max(1, page)
         page_size = max(1, page_size)
 
-        # Build API-compatible params with proper translation
+        # Build params
         params = self._build_params(filters, page, page_size)
 
-        # Debug: Log to console only (not UI)
-        logger.debug(f"Fetching jobs with params: {params}")
+        # Get the API base URL from the client
+        api_base_url = self.api_client.base_url if hasattr(self.api_client, 'base_url') else None
 
-        # Call the API - using self.api_client (from BaseService)
-        raw_response = self.api_client.get(JOBS, params=params)
+        # Fetch cached raw data
+        raw_response = self._fetch_jobs_cached(api_base_url, params)
 
-        # Debug: Log response summary to console only
         logger.debug(
             f"Received {len(raw_response.get('data', []))} jobs, total: {raw_response.get('total', 0)}"
         )
 
-        # Normalize API response → Frontend domain model
+        # Normalize to domain model after caching
         return self._normalize_job_list_response(raw_response)
+
+    @staticmethod
+    @st.cache_data(ttl=300)
+    def _fetch_jobs_cached(api_base_url: str, params: dict[str, Any]) -> dict[str, Any]:
+        """
+        Static cached method that returns raw dict data.
+        This avoids the 'self' hashing issue.
+        """
+        try:
+            # Create a new API client for the cached call
+            from api.client import APIClient
+            client = APIClient(base_url=api_base_url)
+            
+            logger.debug(f"Fetching jobs with params (cached): {params}")
+            return client.get(JOBS, params=params)
+        except Exception as e:
+            logger.error(f"Failed to fetch jobs: {e}")
+            return {"data": [], "total": 0, "limit": 20, "page": 1}
 
     def fetch_job(self, job_id: str) -> Job | None:
         """Fetch a single job by ID."""
@@ -59,24 +80,12 @@ class JobsService(BaseService):
             return None
 
     def _build_params(self, filters: JobFilters, page: int, page_size: int) -> dict[str, Any]:
-        """
-        Build API-compatible query parameters.
-
-        CRITICAL: Map frontend field names → API parameter names:
-        - search → q (API uses 'q' for search)
-        - company → company_name (API uses 'company_name')
-        - min_salary → min_salary (API uses 'min_salary')
-        - max_salary → max_salary (API uses 'max_salary')
-        - page_size → limit (API uses 'limit')
-
-        Only include parameters that have valid, non-empty values.
-        """
+        """Build API-compatible query parameters."""
         params: dict[str, Any] = {
             "page": page,
             "limit": page_size,
         }
 
-        # Add filters only if they have valid values
         if filters.search and filters.search.strip():
             params["q"] = filters.search.strip()
         if filters.company and filters.company.strip():
@@ -89,14 +98,13 @@ class JobsService(BaseService):
             params["min_salary"] = filters.min_salary
         if filters.max_salary is not None and filters.max_salary > 0:
             params["max_salary"] = filters.max_salary
+        if filters.language:
+            params["language"] = filters.language
 
         return params
 
     def _parse_datetime(self, value: Any) -> datetime:
-        """
-        Parse a datetime from various formats.
-        Returns current datetime if parsing fails.
-        """
+        """Parse a datetime from various formats."""
         if value is None:
             return datetime.now()
 
@@ -105,66 +113,49 @@ class JobsService(BaseService):
 
         if isinstance(value, str):
             try:
-                # Try ISO format first
                 return datetime.fromisoformat(value.replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 try:
-                    # Try dateutil parser as fallback
                     from dateutil import parser
-
                     return parser.parse(value)
                 except (ValueError, TypeError, ImportError):
                     pass
 
-        # Fallback to current datetime
         logger.warning(f"Could not parse datetime from: {value}, using current time")
         return datetime.now()
 
     def _normalize_job(self, raw: dict[str, Any]) -> Job:
         """
         Normalize a single job from API format to frontend domain model.
-
-        Handles None values for required fields by providing defaults.
         """
-        # Handle location - if None, use empty string
-        location = raw.get("location")
-        if location is None:
-            location = ""
-
-        # Handle posted_date - parse to datetime
+        location = raw.get("location") or ""
         posted_date = self._parse_datetime(raw.get("posted_date"))
+        salary_currency = raw.get("salary_currency") or "USD"
 
-        # Handle salary_currency - if None, use "USD"
-        salary_currency = raw.get("salary_currency")
-        if salary_currency is None:
-            salary_currency = "USD"
-
-        # Build the job with proper type handling
         return Job(
             id=str(raw.get("id", "")),
             title=str(raw.get("title", "")),
             company_name=str(raw.get("company_name", "")),
-            location=location,  # Ensure it's a string, not None
+            location=location,
             description=raw.get("description"),
             salary_min=raw.get("salary_min"),
             salary_max=raw.get("salary_max"),
-            salary_currency=salary_currency,  # Ensure it's a string, not None
-            posted_date=posted_date,  # Now it's a datetime object
+            salary_currency=salary_currency,
+            posted_date=posted_date,
             source_site=raw.get("source_site"),
             source_url=raw.get("source_url"),
             is_active=bool(raw.get("is_active", True)),
+            language=raw.get("language", "en"),
+            skills=raw.get("skills", []),
+            technology_category=raw.get("technology_category"),
+            is_tech_role=raw.get("is_tech_role", False),
+            country_code=raw.get("country_code"),
+            currency=raw.get("currency"),
+            employment_type=raw.get("employment_type"),
         )
 
     def _normalize_job_list_response(self, raw: dict[str, Any]) -> JobListResponse:
-        """
-        Normalize API response to frontend domain model.
-
-        API Response:                    Frontend Domain:
-        - page                          - page
-        - limit                         - page_size
-        - total                         - total
-        - data: [...]                   - items: [...]
-        """
+        """Normalize API response to frontend domain model."""
         items: list[Job] = [self._normalize_job(item) for item in raw.get("data", [])]
 
         total: int = raw.get("total", len(items))
@@ -189,4 +180,5 @@ class JobsService(BaseService):
     def refresh(self) -> None:
         """Refresh job service cache."""
         super().refresh()
+        st.cache_data.clear()
         logger.info("JobsService cache cleared")

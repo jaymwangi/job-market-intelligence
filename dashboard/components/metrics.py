@@ -1,94 +1,127 @@
-# dashboard/components/metrics.py
 """Professional metric card components with modern design."""
 
-from typing import Any
+from typing import Optional
+from dataclasses import dataclass
 
 import streamlit as st
 
 from components.icons import get_icon
-from schemas.chart_data import MetricCardData
+from core.theme import COLORS
 
 
-def create_metric_card(data: MetricCardData) -> dict[str, Any]:
-    """
-    Create a professional metric card.
+@dataclass
+class MetricCardData:
+    """Data for a metric card."""
 
-    Args:
-        data: MetricCardData with title, value, icon, color, etc.
-
-    Returns:
-        Dictionary with HTML content for rendering
-    """
-    colors = {
-        "primary": "#1a1a2e",
-        "secondary": "#16213e",
-        "accent": "#0f3460",
-        "highlight": "#e94560",
-        "success": "#00b894",
-        "warning": "#fdcb6e",
-        "info": "#0984e3",
-        "background": "#f8f9fa",
-        "card_bg": "#ffffff",
-        "text": "#2d3436",
-        "text_light": "#636e72",
-        "border": "#e9ecef",
-    }
-
-    color = data.color or colors.get("accent", "#0f3460")
-
-    # Map emoji to icon name
-    icon_map = {
-        "📊": "jobs_metric",
-        "🏢": "companies_metric",
-        "🎯": "skills_metric",
-        "💰": "salary_metric",
-        "📍": "location",
-    }
-
-    icon_name = icon_map.get(data.icon, "jobs_metric") if data.icon else "jobs_metric"
-    icon_svg = get_icon(icon_name, size=22, color=color)
-
-    change_html = ""
-    if data.change is not None:
-        change_color = (
-            "#00b894"
-            if data.change_direction == "up"
-            else "#e94560" if data.change_direction == "down" else colors["text_light"]
-        )
-        change_icon = (
-            "↑" if data.change_direction == "up" else "↓" if data.change_direction == "down" else ""
-        )
-        change_html = f'<div style="margin-top:6px;color:{change_color};font-size:0.75rem;font-weight:500;display:flex;align-items:center;gap:2px;">{change_icon} {data.change:+.1f}%</div>'
-
-    subtitle_html = (
-        f'<div style="color:{colors["text_light"]};font-size:0.65rem;margin-top:6px;font-weight:400;letter-spacing:0.02em;">{data.subtitle}</div>'
-        if data.subtitle
-        else ""
-    )
-
-    html = (
-        f'<div style="background:{colors["card_bg"]};border-radius:12px;padding:1.25rem 1.5rem;border:1px solid {colors["border"]};box-shadow:0 1px 3px rgba(0,0,0,0.04);height:100%;min-height:110px;display:flex;flex-direction:column;justify-content:space-between;transition:all 0.2s ease;">'
-        f'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
-        f'<div style="flex:1;">'
-        f'<div style="color:{colors["text_light"]};font-size:0.65rem;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">{data.title}</div>'
-        f'<div style="font-size:1.75rem;font-weight:700;color:{colors["primary"]};line-height:1.2;letter-spacing:-0.02em;">{data.value}</div>'
-        f"{change_html}"
-        f"</div>"
-        f'<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:{color}08;border-radius:10px;margin-left:12px;flex-shrink:0;">'
-        f"{icon_svg}"
-        f"</div>"
-        f"</div>"
-        f"{subtitle_html}"
-        f"</div>"
-    )
-
-    return {"html": html}
+    title: str
+    value: str | int | float
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    subtitle: Optional[str] = None
+    trend: Optional[float] = None
+    trend_label: Optional[str] = None
 
 
 def render_metric_card(data: MetricCardData) -> None:
-    """Render a professional metric card directly in Streamlit."""
-    card = create_metric_card(data)
-    st.markdown(card["html"], unsafe_allow_html=True)
+    """
+    Render a professional metric card using Streamlit components.
+    
+    Args:
+        data: MetricCardData with title, value, icon, color, etc.
+    """
+    color = data.color or COLORS["accent"]
+    
+    # Use Streamlit columns and metrics for clean rendering
+    with st.container():
+        # Card container with styling
+        st.markdown(
+            f"""
+        <style>
+            .metric-card-container {{
+                background: {COLORS['card_bg']};
+                border-radius: 16px;
+                padding: 1.25rem 1.5rem;
+                border: 1px solid {COLORS['border']};
+                box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+                transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                height: 100%;
+                min-height: 120px;
+            }}
+            .metric-card-container:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 8px 40px rgba(0,0,0,0.06);
+                border-color: {color}40;
+            }}
+            .metric-card-icon {{
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 12px;
+                background: {color}12;
+                margin-bottom: 0.5rem;
+            }}
+            .metric-card-value {{
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: {COLORS['primary']};
+                letter-spacing: -0.02em;
+                line-height: 1.2;
+            }}
+            .metric-card-title {{
+                font-size: 0.7rem;
+                font-weight: 500;
+                color: {COLORS['text_light']};
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                margin-top: 0.15rem;
+            }}
+            .metric-card-subtitle {{
+                font-size: 0.65rem;
+                color: {COLORS['text_lighter']};
+                margin-top: 0.25rem;
+            }}
+            .metric-card-trend {{
+                font-size: 0.7rem;
+                font-weight: 600;
+                margin-top: 0.25rem;
+            }}
+        </style>
+        """,
+            unsafe_allow_html=True,
+        )
+        
+        # Get icon
+        icon_name = data.icon or "jobs_metric"
+        icon_svg = get_icon(icon_name, size=20, color=color)
+        
+        # Build card HTML
+        trend_html = ""
+        if data.trend is not None:
+            trend_color = COLORS["success"] if data.trend > 0 else COLORS["highlight"]
+            trend_icon = "↑" if data.trend > 0 else "↓"
+            trend_html = f"""
+            <div class="metric-card-trend" style="color:{trend_color};">
+                {trend_icon} {abs(data.trend):.1f}%
+                {f'<span style="color:{COLORS["text_light"]};font-weight:400;">{data.trend_label}</span>' if data.trend_label else ''}
+            </div>
+            """
+        
+        subtitle_html = f'<div class="metric-card-subtitle">{data.subtitle}</div>' if data.subtitle else ""
+        
+        st.markdown(
+            f"""
+        <div class="metric-card-container">
+            <div class="metric-card-icon">{icon_svg}</div>
+            <div class="metric-card-value">{data.value}</div>
+            <div class="metric-card-title">{data.title}</div>
+            {trend_html}
+            {subtitle_html}
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_metric_row(metrics: list[MetricCardData], columns: int = 4) -> None:

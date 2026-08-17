@@ -1,3 +1,12 @@
-from .config import settings
+"""Core module exports."""
 
-__all__ = ["settings"]
+from .config import settings
+from .theme import COLORS, COUNTRY_FLAGS, TECH_COLORS, GLOBAL_STYLES
+
+__all__ = [
+    "settings",
+    "COLORS",
+    "COUNTRY_FLAGS",
+    "TECH_COLORS",
+    "GLOBAL_STYLES",
+]

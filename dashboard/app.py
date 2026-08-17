@@ -1,4 +1,3 @@
-# dashboard/app.py
 """Professional Streamlit dashboard application."""
 
 import logging
@@ -16,26 +15,11 @@ dashboard_dir = os.path.dirname(os.path.abspath(__file__))
 if dashboard_dir not in sys.path:
     sys.path.insert(0, dashboard_dir)
 
-# Imports after sys.path modification - suppress E402
-from components.sidebar import render_sidebar  # noqa: E402
-from core.config import settings  # noqa: E402
-from utils.state import StateManager  # noqa: E402
-
-# Professional color palette
-COLORS = {
-    "primary": "#1a1a2e",
-    "secondary": "#16213e",
-    "accent": "#0f3460",
-    "highlight": "#e94560",
-    "success": "#00b894",
-    "warning": "#fdcb6e",
-    "info": "#0984e3",
-    "background": "#f8f9fa",
-    "card_bg": "#ffffff",
-    "text": "#2d3436",
-    "text_light": "#636e72",
-    "border": "#e9ecef",
-}
+# Imports after sys.path modification
+from components.sidebar import render_sidebar
+from core import settings
+from core.theme import COLORS, GLOBAL_STYLES
+from utils.state import StateManager
 
 # Page configuration
 st.set_page_config(
@@ -44,6 +28,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Apply global styles
+st.markdown(GLOBAL_STYLES, unsafe_allow_html=True)
 
 # Professional custom CSS
 st.markdown(
@@ -56,7 +43,7 @@ st.markdown(
 
     /* Typography */
     h1, h2, h3, h4, h5, h6 {{
-        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         color: {COLORS['primary']};
         font-weight: 600;
         letter-spacing: -0.01em;
@@ -121,7 +108,7 @@ st.markdown(
         transform: translateY(0);
     }}
 
-    /* Professional Metric Cards - Enhanced */
+    /* Professional Metric Cards */
     .stMetric {{
         background: {COLORS['card_bg']};
         padding: 1.25rem;
@@ -234,7 +221,7 @@ st.markdown(
 
     .stTextInput input:focus {{
         border-color: {COLORS['accent']};
-        box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+        box-shadow: 0 0 0 3px rgba(108,92,231,0.1);
     }}
 
     .stNumberInput input {{
@@ -246,7 +233,7 @@ st.markdown(
 
     .stNumberInput input:focus {{
         border-color: {COLORS['accent']};
-        box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+        box-shadow: 0 0 0 3px rgba(108,92,231,0.1);
     }}
 
     /* Footer */

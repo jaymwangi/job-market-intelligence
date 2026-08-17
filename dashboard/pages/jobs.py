@@ -1,4 +1,3 @@
-# dashboard/pages/jobs.py
 """Professional Job Explorer page with modern UI."""
 
 import streamlit as st
@@ -7,6 +6,8 @@ from components.alerts import show_error
 from components.empty_state import render_empty_state
 from components.filters import render_filters
 from components.icons import get_icon
+from components.job_card import render_job_card
+from components.job_detail import render_job_detail  # ✅ ADD THIS IMPORT
 from components.pagination import render_pagination
 from components.tables import render_jobs_table
 from core.config import settings
@@ -40,6 +41,7 @@ def fetch_jobs_cached(
     source_site,
     min_salary,
     max_salary,
+    is_tech_role,
     page,
     page_size,
 ):
@@ -56,12 +58,28 @@ def fetch_jobs_cached(
         source_site=source_site,
         min_salary=min_salary,
         max_salary=max_salary,
+        is_tech_role=is_tech_role,  # Sprint 6.6.1: Tech Jobs Only filter
     )
     return _service.fetch_jobs(filters, page, page_size)
 
 
 def render():
     """Render the professional Job Explorer page."""
+    
+    # Initialize ALL session state variables at the very beginning
+    if "jobs_page" not in st.session_state:
+        st.session_state.jobs_page = 1
+    if "jobs_page_size" not in st.session_state:
+        st.session_state.jobs_page_size = 20
+    if "jobs_filters" not in st.session_state:
+        st.session_state.jobs_filters = {}
+    if "filters_changed" not in st.session_state:
+        st.session_state.filters_changed = False
+    if "is_tech_role" not in st.session_state:
+        st.session_state.is_tech_role = True  # Default: Tech Jobs Only
+    if "selected_job_id" not in st.session_state:
+        st.session_state.selected_job_id = None  # ✅ Add this
+    
     # Custom CSS for professional styling
     st.markdown(
         f"""
@@ -150,12 +168,43 @@ def render():
             justify-content: center;
             margin-right: 0.75rem;
         }}
+        .tech-filter-container {{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: {COLORS['background']};
+            border-radius: 8px;
+            border: 1px solid {COLORS['border']};
+            margin-bottom: 1rem;
+        }}
+        .tech-filter-label {{
+            font-weight: 500;
+            color: {COLORS['text']};
+        }}
+        .tech-filter-badge {{
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .tech-filter-badge-on {{
+            background: #00b894;
+            color: white;
+        }}
+        .tech-filter-badge-off {{
+            background: #dfe6e9;
+            color: #636e72;
+        }}
     </style>
     """,
         unsafe_allow_html=True,
     )
 
-    # Header with SVG icon - fixed spacing
+    # Header with SVG icon
     header_icon = get_icon("jobs", size=32, color="#1a1a2e")
     st.markdown(
         f"""
@@ -172,18 +221,57 @@ def render():
         unsafe_allow_html=True,
     )
 
-    # Get service singleton
-    service = get_jobs_service()
+    # ============================================================
+    # Sprint 6.6.1: Tech Jobs Only Filter
+    # ============================================================
+    st.markdown(
+        f"""
+    <div class="tech-filter-container">
+        <span>💻</span>
+        <span class="tech-filter-label">Show only technology roles</span>
+        <span class="tech-filter-badge {'tech-filter-badge-on' if st.session_state.is_tech_role else 'tech-filter-badge-off'}">
+            {'ON' if st.session_state.is_tech_role else 'OFF'}
+        </span>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+    
+    # Use columns for the toggle and filters
+    filter_col1, filter_col2 = st.columns([3, 1])
+    
+    with filter_col2:
+        # Tech Jobs Only toggle
+        tech_only = st.toggle(
+            "💻 Tech Jobs Only",
+            value=st.session_state.is_tech_role,
+            key="tech_only_toggle",
+            help="When enabled, only shows technology-related roles (engineers, developers, etc.)",
+        )
+        
+        # Update session state if toggle changed
+        if tech_only != st.session_state.is_tech_role:
+            st.session_state.is_tech_role = tech_only
+            st.session_state.jobs_page = 1  # Reset to page 1
+            # Clear cache to refresh data
+            st.cache_data.clear()
+            st.rerun()
+    
+    with filter_col1:
+        # Get service singleton
+        service = get_jobs_service()
 
-    # 1. Get filters from state
-    raw_filters = render_filters()
-    current_filters = StateManager.get_jobs_filters()
+        # Get filters - don't call st.rerun() here
+        raw_filters = render_filters()
+        
+        # Only update if filters actually changed
+        current_filters = st.session_state.jobs_filters
+        if raw_filters != current_filters:
+            st.session_state.jobs_filters = raw_filters
+            st.session_state.jobs_page = 1  # Reset to page 1 when filters change
 
-    if raw_filters != current_filters:
-        StateManager.set_jobs_filters(raw_filters)
-        StateManager.reset_jobs_context()
-
-    ui_filters = StateManager.get_jobs_filters()
+        # Use filters from session state
+        ui_filters = st.session_state.jobs_filters
 
     def to_float_or_none(value):
         if value is None:
@@ -200,10 +288,11 @@ def render():
     source_site = ui_filters.get("source_site")
     min_salary = to_float_or_none(ui_filters.get("min_salary"))
     max_salary = to_float_or_none(ui_filters.get("max_salary"))
+    is_tech_role = st.session_state.is_tech_role
 
     # Get pagination state
-    page = StateManager.get_jobs_page()
-    page_size = StateManager.get_jobs_page_size()
+    page = st.session_state.jobs_page
+    page_size = st.session_state.jobs_page_size
 
     # Fetch data with caching
     try:
@@ -215,6 +304,7 @@ def render():
             source_site,
             min_salary,
             max_salary,
+            is_tech_role,
             page,
             page_size,
         )
@@ -247,6 +337,11 @@ def render():
             <div class="jobs-stat-item">
                 <span class="jobs-stat-number">{response.total_pages}</span>
                 <span class="jobs-stat-label">pages</span>
+            </div>
+            <span class="jobs-stat-divider">•</span>
+            <div class="jobs-stat-item">
+                <span class="jobs-stat-number">{page}</span>
+                <span class="jobs-stat-label">current page</span>
             </div>
         </div>
         """,
@@ -284,19 +379,26 @@ def render():
 
     # Render jobs in a professional container
     st.markdown('<div class="jobs-container">', unsafe_allow_html=True)
-
-    # IMPORTANT: Use render_jobs_table for proper job display with expansion
-    # This preserves the individual job view functionality
-    render_jobs_table(jobs)
-
+        
+    # ============================================================
+    # Sprint 6.6.1: Render each job with detail support
+    # ============================================================
+    for job in jobs:
+        # Check if this job is selected for detail view
+        job_id_str = str(job.id)
+        if st.session_state.get("selected_job_id") == job_id_str:
+            # Render full detail with translation support
+            render_job_detail(job)  # ✅ Now imported at top
+        else:
+            # Render job card
+            render_job_card(job)
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Render pagination with professional styling
     if response.total_pages > 1:
-        st.markdown("---")
         render_pagination(page, response.total_pages)
 
     # Safety guard - prevents invalid pagination states
     if page > response.total_pages and response.total_pages > 0:
-        StateManager.set_jobs_page(response.total_pages)
-        st.rerun()
+        st.session_state.jobs_page = response.total_pages

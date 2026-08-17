@@ -1,6 +1,7 @@
 from .alerts import show_error, show_info, show_success, show_warning
 from .empty_state import render_empty_state
 from .filters import render_filters
+from .job_card import render_job_card  # Add this
 from .job_detail import render_job_detail
 from .pagination import render_pagination
 from .sidebar import render_sidebar
@@ -17,4 +18,5 @@ __all__ = [
     "render_pagination",
     "render_empty_state",
     "render_job_detail",
+    "render_job_card",  # Add this
 ]

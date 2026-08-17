@@ -1,5 +1,4 @@
-# dashboard/pages/about.py
-"""About page - Professional modern design."""
+"""About page - Professional modern design with SVG icons."""
 
 from datetime import datetime
 
@@ -261,6 +260,19 @@ def render():
             flex-shrink: 0;
         }
 
+        /* Sprint 6.6 enrichment badge */
+        .enrichment-badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: #6c5ce7;
+            color: white;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .about-grid-2, .about-grid-3 {
@@ -286,13 +298,13 @@ def render():
 
     # Hero Section with SVG icons
     st.markdown(
-        f"""
+        """
     <div class="about-container">
         <div class="about-hero">
             <div class="about-hero-content">
                 <div class="about-hero-badge">
                     <span class="about-hero-badge-dot"></span>
-                    Production Ready
+                    Production Ready <span style="margin:0 0.5rem;">•</span> <span class="enrichment-badge">Sprint 6.6</span>
                 </div>
                 <div class="about-hero-title">About Job Market Intelligence</div>
                 <div class="about-hero-subtitle">
@@ -309,7 +321,7 @@ def render():
                     </div>
                     <div class="about-hero-meta-item">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                        <strong>Released</strong> {datetime.now().strftime("%B %Y")}
+                        <strong>Released</strong> """ + f'{datetime.now().strftime("%B %Y")}' + """
                     </div>
                     <div class="about-hero-meta-item">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
@@ -369,8 +381,86 @@ def render():
                 <span class="muted">│</span>       <span class="arrow">↓</span>                                          <span class="muted">│</span><br>
                 <span class="muted">│</span>  <span class="layer">FastAPI</span>       ← Backend REST API                  <span class="muted">│</span><br>
                 <span class="muted">│</span>       <span class="arrow">↓</span>                                          <span class="muted">│</span><br>
+                <span class="muted">│</span>  <span class="highlight">Enrichment</span>   ← Sprint 6.6 Intelligence           <span class="muted">│</span><br>
+                <span class="muted">│</span>       <span class="arrow">↓</span>                                          <span class="muted">│</span><br>
                 <span class="muted">│</span>  <span class="layer">PostgreSQL</span>    ← Database                         <span class="muted">│</span><br>
                 <span class="muted">└─────────────────────────────────────────────────────┘</span>
+            </div>
+        </div>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    # Sprint 6.6: Enrichment Intelligence Section
+    st.markdown(
+        """
+    <div class="about-card" style="border: 2px solid #6c5ce7; background: #f8f6ff;">
+        <div class="about-card-title">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            Sprint 6.6: Enrichment Intelligence
+            <span style="margin-left:0.5rem;font-size:0.7rem;background:#6c5ce7;color:white;padding:0.15rem 0.6rem;border-radius:12px;font-weight:600;">NEW</span>
+        </div>
+        <div class="about-card-content">
+            <p style="color: #2d3436; font-size: 0.95rem; margin-bottom: 1rem;">
+                The latest sprint added <strong>intelligence capabilities</strong> to the ETL pipeline:
+            </p>
+            <div class="about-grid-2" style="margin-bottom: 0;">
+                <div style="padding: 0.75rem; background: #ffffff; border-radius: 10px; border: 1px solid #e9ecef;">
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        Skill Extraction
+                    </strong>
+                    <ul style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem; padding-left: 1.2rem;">
+                        <li>Extracts technical skills from job titles and descriptions</li>
+                        <li>Supports <strong>150+ technology keywords</strong></li>
+                        <li>Detects skills like Python, Go, React, AWS, Docker, etc.</li>
+                    </ul>
+                </div>
+                <div style="padding: 0.75rem; background: #ffffff; border-radius: 10px; border: 1px solid #e9ecef;">
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        Technology Classification
+                    </strong>
+                    <ul style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem; padding-left: 1.2rem;">
+                        <li>Classifies jobs into <strong>11 technology categories</strong></li>
+                        <li>Backend, Frontend, Full Stack, Data, ML/AI</li>
+                        <li>DevOps, Mobile, Security, Game Dev, QA, Blockchain</li>
+                    </ul>
+                </div>
+                <div style="padding: 0.75rem; background: #ffffff; border-radius: 10px; border: 1px solid #e9ecef;">
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        Country Normalization
+                    </strong>
+                    <ul style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem; padding-left: 1.2rem;">
+                        <li>Normalizes country codes to ISO format</li>
+                        <li>Maps location strings to standardized country codes</li>
+                        <li>Supports <strong>6 countries</strong> (GB, US, DE, FR, CA, AU)</li>
+                    </ul>
+                </div>
+                <div style="padding: 0.75rem; background: #ffffff; border-radius: 10px; border: 1px solid #e9ecef;">
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        Currency Normalization
+                    </strong>
+                    <ul style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem; padding-left: 1.2rem;">
+                        <li>Normalizes currencies to ISO format</li>
+                        <li>Converts to USD using reference rates</li>
+                        <li>Infers currency from country code when missing</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 0.75rem; padding: 0.75rem; background: #f0f0f0; border-radius: 8px;">
+                <strong style="color: #1a1a2e;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    Results:
+                </strong>
+                <span style="color: #636e72; font-size: 0.9rem;">2,133 jobs enriched with technology categories, country codes, and extracted skills.</span>
+                <span style="color: #00b894; font-weight: 500;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#00b894" style="display:inline;vertical-align:middle;margin-right:0.2rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    100% success rate
+                </span>
             </div>
         </div>
     </div>
@@ -495,19 +585,31 @@ def render():
         <div class="about-card-content">
             <div class="about-grid-2" style="margin-bottom: 0;">
                 <div style="padding: 0.5rem;">
-                    <strong style="color: #1a1a2e;">🔹 Separation of Concerns</strong>
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        Separation of Concerns
+                    </strong>
                     <p style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem;">Each layer has a single, well-defined responsibility</p>
                 </div>
                 <div style="padding: 0.5rem;">
-                    <strong style="color: #1a1a2e;">🔹 API-First Communication</strong>
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        API-First Communication
+                    </strong>
                     <p style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem;">Frontend communicates exclusively through REST APIs</p>
                 </div>
                 <div style="padding: 0.5rem;">
-                    <strong style="color: #1a1a2e;">🔹 Reusable Components</strong>
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        Reusable Components
+                    </strong>
                     <p style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem;">DRY, composable UI elements and services</p>
                 </div>
                 <div style="padding: 0.5rem;">
-                    <strong style="color: #1a1a2e;">🔹 Production Ready</strong>
+                    <strong style="color: #1a1a2e;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7" style="display:inline;vertical-align:middle;margin-right:0.3rem;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        Production Ready
+                    </strong>
                     <p style="color: #636e72; font-size: 0.9rem; margin-top: 0.25rem;">Built with deployment, testing, and monitoring in mind</p>
                 </div>
             </div>
@@ -519,7 +621,7 @@ def render():
 
     # Footer with SVG
     st.markdown(
-        """
+        f"""
     <div style="text-align: center; padding: 1rem 0 0.5rem 0; color: #636e72; font-size: 0.85rem; border-top: 1px solid #e9ecef; margin-top: 1rem;">
         <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
             <span style="display: flex; align-items: center; gap: 0.3rem;">
@@ -532,9 +634,17 @@ def render():
                 Built with ❤️ using Streamlit
             </span>
             <span>•</span>
-            <span>📅 {}</span>
+            <span style="display: flex; align-items: center; gap: 0.3rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#636e72"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+                {datetime.now().strftime("%Y")}
+            </span>
+            <span>•</span>
+            <span style="display: flex; align-items: center; gap: 0.3rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#6c5ce7"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <strong style="color: #6c5ce7;">Sprint 6.6</strong>
+            </span>
         </div>
     </div>
-    """.format(datetime.now().strftime("%Y")),
+    """,
         unsafe_allow_html=True,
     )

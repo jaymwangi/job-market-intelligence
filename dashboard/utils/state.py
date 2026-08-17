@@ -2,7 +2,8 @@
 """Session state management - unified StateManager for Sprint 5.1+ infrastructure."""
 
 import logging
-from typing import Any
+from typing import Any, Dict, Optional
+from datetime import datetime
 
 import streamlit as st
 
@@ -24,6 +25,8 @@ class StateManager:
     _services: dict[str, Any] = {}
     _api_client: APIClient | None = None
     _cache_manager: CacheManager | None = None
+    _etl_status_cache: Optional[Dict] = None
+    _etl_cache_timestamp: Optional[datetime] = None
 
     @classmethod
     def init(cls):
@@ -123,6 +126,10 @@ class StateManager:
         # Clear session state services
         if "services" in st.session_state:
             st.session_state.services = {}
+        
+        # Clear ETL status cache
+        cls._etl_status_cache = None
+        cls._etl_cache_timestamp = None
 
     # ========== Page Navigation Methods ==========
 
@@ -211,12 +218,73 @@ class StateManager:
         """Set selected job ID."""
         st.session_state.selected_job_id = job_id
 
+    # ========== ETL Status Methods ==========
+
+    @classmethod
+    @st.cache_data(ttl=60)  # Cache for 60 seconds
+    def get_etl_status(cls) -> Dict[str, Any]:
+        """
+        Get ETL pipeline status with caching.
+        Returns dict with status, last_run, etc.
+        """
+        try:
+            # Try to get from API first
+            api_client = cls.get_api_client()
+            response = api_client.get("/analytics/etl/status")
+            if response:
+                return response
+        except Exception as e:
+            logger.warning(f"API unavailable for ETL status, using fallback: {e}")
+
+        # Fallback: use analytics service directly
+        try:
+            analytics_service = cls.get_analytics_service()
+            return {
+                'status': analytics_service.get_pipeline_status(),
+                'last_run': analytics_service.get_last_etl_run(),
+                'last_run_time': analytics_service.get_last_etl_run_time(),
+                'db_status': analytics_service.get_db_status(),
+            }
+        except Exception as e:
+            logger.error(f"Failed to get ETL status: {e}")
+            return {
+                'status': 'unknown',
+                'last_run': 'N/A',
+                'error': str(e)
+            }
+
+    @classmethod
+    def get_last_etl_run(cls) -> str:
+        """Get formatted last ETL run time."""
+        status = cls.get_etl_status()
+        return status.get('last_run', 'No runs yet')
+
+    @classmethod
+    def get_pipeline_status(cls) -> str:
+        """Get current pipeline status (Running/Idle)."""
+        status = cls.get_etl_status()
+        return status.get('status', 'Unknown')
+
+    @classmethod
+    def get_db_status(cls) -> str:
+        """Get database status."""
+        status = cls.get_etl_status()
+        return status.get('db_status', 'Unknown')
+
+    @classmethod
+    def refresh_etl_status(cls):
+        """Force refresh ETL status cache."""
+        cls._etl_status_cache = None
+        cls._etl_cache_timestamp = None
+        st.cache_data.clear()
+
     # ========== Dashboard Methods ==========
 
     @classmethod
     def refresh_dashboard(cls):
         """Refresh all dashboard data."""
         cls.clear_cache()
+        cls.refresh_etl_status()
         # Reset pagination
         cls.set_jobs_page(1)
         cls.set_selected_job_id(None)
@@ -246,6 +314,21 @@ def get_health_service():
     return StateManager.get_health_service()
 
 
+def get_etl_status():
+    """Get ETL status - convenience function."""
+    return StateManager.get_etl_status()
+
+
+def get_last_etl_run():
+    """Get formatted last ETL run - convenience function."""
+    return StateManager.get_last_etl_run()
+
+
+def get_pipeline_status():
+    """Get pipeline status - convenience function."""
+    return StateManager.get_pipeline_status()
+
+
 def refresh_dashboard() -> None:
     """Refresh all dashboard data."""
     StateManager.refresh_dashboard()
@@ -273,3 +356,15 @@ class ServiceFactory:
 
     def refresh_all(self) -> None:
         StateManager.clear_cache()
+    
+    def get_etl_status(self):
+        """Get ETL status."""
+        return StateManager.get_etl_status()
+    
+    def get_last_etl_run(self):
+        """Get formatted last ETL run."""
+        return StateManager.get_last_etl_run()
+    
+    def get_pipeline_status(self):
+        """Get pipeline status."""
+        return StateManager.get_pipeline_status()

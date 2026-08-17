@@ -1,3 +1,5 @@
+# dashboard/schemas/jobs.py
+
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -18,6 +20,17 @@ class Job(BaseModel):
     source_site: str | None = None
     source_url: str | None = None
     is_active: bool = True
+
+    # Sprint 6.6: Enrichment fields
+    skills: list[str] = []
+    technology_category: str | None = None
+    is_tech_role: bool = True
+    country_code: str | None = None
+    currency: str | None = None
+    employment_type: str | None = None
+    
+    # ✅ ADD THIS - Sprint 6.6: Language field
+    language: str = "en"  # Default to English
 
 
 class JobListResponse(BaseModel):
@@ -43,3 +56,14 @@ class JobFilters(BaseModel):
     source_site: str | None = None
     min_salary: float | None = None
     max_salary: float | None = None
+
+    # Sprint 6.6: Enrichment filters
+    country_code: str | None = None
+    technology_category: str | None = None
+    employment_type: str | None = None
+
+    # Sprint 6.6.1: Tech role filter
+    is_tech_role: bool | None = None
+    
+    # ✅ ADD THIS - Sprint 6.6: Language filter
+    language: str | None = None
