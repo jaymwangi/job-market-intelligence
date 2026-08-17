@@ -1,6 +1,8 @@
+# app/etl/schemas/transformed.py
+
 """Transformed job schema - intermediate representation."""
 
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -32,6 +34,28 @@ class JobTransformed(BaseModel):
     source_country: Optional[str] = Field(
         default=None,
         description="Country used for extraction (for normalization)",
+    )
+
+    # Acquisition metadata
+    acquisition_tech_intent: Optional[bool] = Field(
+        default=None,
+        description="Whether this job was acquired with tech intent"
+    )
+    acquisition_query: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="The query that acquired this job"
+    )
+    acquisition_country: Optional[str] = Field(
+        default=None,
+        description="Country code for acquisition"
+    )
+    acquisition_mode: Optional[str] = Field(
+        default=None,
+        description="Acquisition mode when acquired"
+    )
+    acquisition_batch: Optional[int] = Field(
+        default=None,
+        description="Batch number when acquired"
     )
 
     class Config:

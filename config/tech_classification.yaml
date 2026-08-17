@@ -1,0 +1,2887 @@
+version: 3.7.0
+last_updated: 2026-08-14
+
+# ============================================================
+# CLASSIFICATION POLICY - PHASE 1: Improved Title Taxonomy
+# ============================================================
+classification:
+  tech_minimum: 3.0
+  minimum_margin: 1.0
+  min_confidence_for_reporting: 0.10
+  
+  category_overrides:
+    backend:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    ml_ai:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    data_science:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    security:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    devops:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    full_stack:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    general_software:
+      tech_minimum: 2.0
+      minimum_margin: 1.0
+    frontend:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    data_engineering:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    mobile:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    blockchain:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    game_dev:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    embedded:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    qa:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    sre:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    platform:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    cloud:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    network:
+      tech_minimum: 5.0
+      minimum_margin: 2.0
+    systems:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    solutions:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    support:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+    management:
+      tech_minimum: 3.0
+      minimum_margin: 1.0
+
+  name: v3.7.0_expanded_taxonomy
+  description: 'Expanded title taxonomy (30+ strong patterns), enhanced skill vocabulary (200+ terms), recalibrated thresholds'
+  
+  strength_thresholds:
+    strong:
+      min_score: 7.0
+      requires_description: false
+    potential:
+      min_score: 5.0
+      requires_description: false
+    adjacent:
+      min_score: 4.0
+      requires_description: false
+    ambiguous:
+      min_score: 6.0
+      requires_description: true
+
+# ============================================================
+# WEIGHT CONFIGURATION
+# ============================================================
+weights:
+  title: 0.50          # Increased from 0.45 to give more weight to clear titles
+  description: 0.25    # Reduced from 0.30
+  skills: 0.20
+  company_industry: 0.03
+  required_experience: 0.02
+
+# ============================================================
+# MATCHING CONFIGURATION
+# ============================================================
+matching:
+  exact_weight: 1.0
+  stemmed_weight: 0.8
+  fuzzy_weight: 0.6
+  regex_weight: 0.9
+  deduplicate_keywords: true
+  min_skill_length: 2    # NEW: Ignore single-character skills
+
+# ============================================================
+# THRESHOLDS - PHASE 1: Lowered for better recall
+# ============================================================
+thresholds:
+  tech_minimum: 3
+  high_confidence: 15      # Reduced from 20
+  medium_confidence: 8     # Reduced from 12
+  low_confidence: 3        # Reduced from 5
+  min_confidence_to_classify: 0.01  # Reduced from 0.03
+  tech_generic_score: 8    # Reduced from 10
+  tie_breaker_threshold: 2 # Reduced from 3
+
+category_thresholds:
+  backend:
+    high: 15
+    medium: 8
+    tech_minimum: 3
+  ml_ai:
+    high: 15
+    medium: 8
+    tech_minimum: 3
+  data_science:
+    high: 15
+    medium: 8
+    tech_minimum: 3
+  security:
+    high: 15
+    medium: 8
+    tech_minimum: 3
+  devops:
+    high: 15
+    medium: 8
+    tech_minimum: 3
+  full_stack:
+    high: 15
+    medium: 8
+    tech_minimum: 3
+  general_software:
+    high: 12
+    medium: 6
+    tech_minimum: 2
+  network:
+    high: 12
+    medium: 6
+    tech_minimum: 3
+  systems:
+    high: 12
+    medium: 6
+    tech_minimum: 3
+  solutions:
+    high: 12
+    medium: 6
+    tech_minimum: 3
+  support:
+    high: 12
+    medium: 6
+    tech_minimum: 3
+  management:
+    high: 12
+    medium: 6
+    tech_minimum: 3
+
+# ============================================================
+# BOOSTS
+# ============================================================
+boosts:
+  title_exact_match: 20
+  title_regex_match: 15
+  description_keyword: 5
+  skill_keyword: 8
+  multiple_category_bonus: 8    # Reduced from 10
+  negative_match_penalty: -25
+  industry_tech_boost: 3        # Increased from 2
+  title_prefix_boost: 5         # NEW: Boost for titles starting with tech terms
+  title_suffix_boost: 3         # NEW: Boost for titles ending with tech terms
+
+# ============================================================
+# CATEGORY PRIORITY
+# ============================================================
+category_priority:
+- backend
+- frontend
+- full_stack
+- ml_ai
+- data_science
+- data_engineering
+- devops
+- security
+- mobile
+- blockchain
+- game_dev
+- qa
+- embedded
+- sre
+- platform
+- cloud
+- network
+- systems
+- solutions
+- support
+- management
+- general_software
+- other
+
+# ============================================================
+# ALIASES
+# ============================================================
+aliases:
+  js: javascript
+  ts: typescript
+  py: python
+  rb: ruby
+  php: php
+  r: r
+  julia: julia
+  csharp: c#
+  cpp: c++
+  golang: go
+  reactjs: react
+  nextjs: next.js
+  nodejs: node.js
+  expressjs: express
+  asp.net: asp.net
+  dotnet: .net core
+  k8s: kubernetes
+  postgres: postgresql
+  elastic: elasticsearch
+  amazon web services: aws
+  machine learning: ml
+  artificial intelligence: ai
+  postgre: postgresql
+  psql: postgresql
+  node: node.js
+  c#: csharp
+  rustlang: rust
+  azure: azure
+  gcp: google cloud platform
+  google cloud: google cloud platform
+  spark: apache spark
+  hadoop: apache hadoop
+  kafka: apache kafka
+  airflow: apache airflow
+  tf: tensorflow
+  torch: pytorch
+  sklearn: scikit-learn
+  scikit: scikit-learn
+  docker: docker
+  kubernetes: kubernetes
+  terraform: terraform
+  ansible: ansible
+  ms sql: sql server
+  sql server: sql server
+  mongodb: mongodb
+
+# ============================================================
+# STOPWORDS
+# ============================================================
+stopwords:
+- team
+- project
+- role
+- opportunity
+- position
+- job
+- work
+- career
+- years
+- join
+- build
+- create
+- develop
+- manage
+- lead
+- drive
+- deliver
+- support
+- maintain
+- improve
+- optimize
+- implement
+- deploy
+- collaborate
+- communicate
+- document
+- report
+- analyze
+- review
+- test
+- debug
+- troubleshoot
+- mentor
+- coach
+- train
+- guide
+- direct
+- oversee
+- coordinate
+- plan
+- execute
+- monitor
+- measure
+- evaluate
+- recommend
+- suggest
+- propose
+- advise
+- consult
+- assist
+- help
+
+# ============================================================
+# GENERIC TECH KEYWORDS
+# ============================================================
+generic_tech_keywords:
+  python: 2
+  java: 2
+  javascript: 2
+  typescript: 2
+  c++: 2
+  c#: 2
+  go: 2
+  rust: 2
+  ruby: 2
+  php: 2
+  sql: 2
+  docker: 2
+  git: 1
+  linux: 1
+  unix: 1
+  bash: 1
+  shell: 1
+  github: 1
+  gitlab: 1
+  software: 2
+  developer: 2
+  engineer: 1
+  programmer: 2
+  coder: 2
+  architect: 2
+# ============================================================
+# EXPANDED TITLE PATTERNS - PHASE 1 COMPLETE
+# ============================================================
+tech_title_patterns:
+  # === STRONG MATCHES ===
+  - pattern: (?i)\bsoftware engineer\b|\bsoftware developer\b
+    categories: [general_software]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bbackend engineer\b|\bbackend developer\b
+    categories: [backend]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bfrontend engineer\b|\bfrontend developer\b
+    categories: [frontend]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bfull[- ]?stack engineer\b|\bfull[- ]?stack developer\b
+    categories: [full_stack]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bdata engineer\b
+    categories: [data_engineering]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bdata scientist\b
+    categories: [data_science]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bmachine learning engineer\b|\bml engineer\b
+    categories: [ml_ai]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bdevops engineer\b
+    categories: [devops]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bcloud engineer\b|\bcloud architect\b
+    categories: [cloud]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bsecurity engineer\b|\bcybersecurity engineer\b|\bcyber security engineer\b
+    categories: [security]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  # NEW: Cybersecurity Analyst
+  - pattern: (?i)\bcyber security analyst\b|\bcybersecurity analyst\b
+    categories: [security]
+    weight: 11.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bmobile developer\b|\bios developer\b|\bandroid developer\b
+    categories: [mobile]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bqa engineer\b|\bquality assurance engineer\b
+    categories: [qa]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bautomation engineer\b
+    categories: [qa, devops]
+    weight: 11.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bembedded engineer\b|\bfirmware engineer\b
+    categories: [embedded]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bgame developer\b|\bgame engineer\b
+    categories: [game_dev]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bsite reliability engineer\b|\bsre engineer\b
+    categories: [sre]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bplatform engineer\b
+    categories: [platform]
+    weight: 12.0
+    strength: strong
+    specificity: high
+
+  # NEW: Database Administrator
+  - pattern: (?i)\bdatabase administrator\b|\bdba\b
+    categories: [data_engineering]
+    weight: 11.0
+    strength: strong
+    specificity: high
+
+  # NEW: Systems Administrator
+  - pattern: (?i)\bsystems administrator\b|\bsystem administrator\b|\bsysadmin\b
+    categories: [systems]
+    weight: 11.0
+    strength: strong
+    specificity: high
+
+  # NEW: Solutions Architect
+  - pattern: (?i)\bsolutions architect\b
+    categories: [solutions]
+    weight: 11.0
+    strength: strong
+    specificity: high
+
+  # NEW: Network Engineer (promoted from adjacent)
+  - pattern: (?i)\bnetwork engineer\b
+    categories: [network]
+    weight: 11.0
+    strength: strong
+    specificity: high
+
+  # NEW: IT Support Specialist
+  - pattern: (?i)\bit support specialist\b|\bhelpdesk\b|\bhelp desk\b
+    categories: [support]
+    weight: 9.0
+    strength: potential
+    specificity: high
+
+  # ============================================================
+  # NEW: Leadership Roles
+  # ============================================================
+  - pattern: (?i)\bsoftware team leader\b|\bsoftware team lead\b|\blead software engineer\b
+    categories: [general_software]
+    weight: 10.0
+    strength: strong
+    specificity: high
+
+  - pattern: (?i)\bsoftware engineering manager\b|\bsoftware development manager\b
+    categories: [general_software]
+    weight: 10.0
+    strength: strong
+    specificity: high
+
+  # ============================================================
+  # NEW: Hardware
+  # ============================================================
+  - pattern: (?i)\bhardware engineer\b
+    categories: [embedded]
+    weight: 10.0
+    strength: strong
+    specificity: high
+
+  # ============================================================
+  # NEW: Software Architect
+  # ============================================================
+  - pattern: (?i)\bsoftware architect\b
+    categories: [general_software]
+    weight: 10.0
+    strength: strong
+    specificity: high
+
+  # ============================================================
+  # NEW: Manufacturing/Industrial
+  # ============================================================
+  - pattern: (?i)\bmanufacturing execution system\b|\bmes\b
+    categories: [systems]
+    weight: 8.0
+    strength: strong
+    specificity: medium
+
+  # ============================================================
+  # NEW: Manufacturing/Industrial
+  # ============================================================
+  - pattern: (?i)\bmanufacturing execution system\b|\bmes\b
+    categories: [systems]
+    weight: 8.0
+    strength: strong
+    specificity: medium
+
+  # ============================================================
+  # PHASE 2: PLM / Windchill / Citrix / IT Verfahrensspezialist
+  # ============================================================
+  
+  # PLM / Windchill roles
+  - pattern: (?i)\bplm\b|\bptc windchill\b|\bwindchill\b
+    categories: [systems]
+    weight: 10.0
+    strength: strong
+    specificity: high
+
+  # Citrix Engineer
+  - pattern: (?i)\bcitrix\b.*\bengineer\b|\bcitrix engineer\b
+    categories: [systems]
+    weight: 10.0
+    strength: strong
+    specificity: high
+
+  # IT Verfahrensspezialist (German role)
+  - pattern: (?i)\bit\s+verfahrensspezialist\b
+    categories: [systems]
+    weight: 10.0
+    strength: strong
+    specificity: high
+
+
+  # === POTENTIAL MATCHES ===
+  - pattern: (?i)\bweb developer\b
+    categories: [frontend, general_software]
+    weight: 8.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\bapplication developer\b
+    categories: [general_software, backend]
+    weight: 8.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\bprogrammer\b|\bcoder\b
+    categories: [general_software]
+    weight: 7.0
+    strength: potential
+    specificity: medium
+
+  - pattern: (?i)\btechnical lead\b|\btech lead\b
+    categories: [general_software, backend]
+    weight: 7.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\bqa analyst\b
+    categories: [qa]
+    weight: 7.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\bdata analyst\b
+    categories: [data_engineering, data_science]
+    weight: 7.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\bsoftware analyst\b
+    categories: [general_software]
+    weight: 6.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\bsystems engineer\b
+    categories: [systems]
+    weight: 6.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\bsolutions engineer\b
+    categories: [solutions]
+    weight: 6.0
+    strength: potential
+    specificity: high
+
+  - pattern: (?i)\btechnical support engineer\b
+    categories: [support]
+    weight: 6.0
+    strength: potential
+    specificity: high
+
+  # === ADJACENT MATCHES ===
+  - pattern: (?i)\bengineering manager\b
+    categories: [management]
+    weight: 5.0
+    strength: adjacent
+    specificity: high
+
+  # === AMBIGUOUS MATCHES ===
+  - pattern: (?i)\bdeveloper\b
+    categories: []
+    weight: 3.0
+    strength: ambiguous
+    specificity: low
+
+  - pattern: (?i)\bengineer\b
+    categories: []
+    weight: 2.0
+    strength: ambiguous
+    specificity: low
+
+# ============================================================
+# EXPANDED INDUSTRIES - PHASE 1
+# ============================================================
+industries:
+  tech_positive:
+  - google
+  - microsoft
+  - amazon
+  - apple
+  - meta
+  - netflix
+  - uber
+  - lyft
+  - airbnb
+  - stripe
+  - square
+  - datadog
+  - snowflake
+  - databricks
+  - palantir
+  - salesforce
+  - oracle
+  - ibm
+  - cisco
+  - vmware
+  - intel
+  - amd
+  - nvidia
+  - qualcomm
+  - broadcom
+  - texas_instruments
+  - analog_devices
+  - microchip
+  - arm
+  - robotics
+  - semiconductor
+  - electronics
+  - telecommunications
+  - telecom
+  - gaming
+  - game
+  - digital
+  - ecommerce
+  - e-commerce
+  - saas
+  - paas
+  - iaas
+  - software
+  - technology
+  - it
+  - information_technology
+  - computer
+  - internet
+  - cloud
+  - cybersecurity
+  - fintech
+  - healthtech
+  - biotech
+  - medtech
+  - edtech
+  - ai
+  - machine_learning
+  - data
+  # NEW: Expanded industries
+  - defense
+  - aerospace
+  - automotive
+  - manufacturing
+  - industrial
+  - medical_devices
+  - healthcare
+  - finance
+  - banking
+  - insurance
+  - retail
+  - logistics
+  - transportation
+  - energy
+  - utilities
+  - government
+  - education
+
+# ============================================================
+# EXPANDED SKILL EXTRACTION VOCABULARY - PHASE 2
+# ============================================================
+skill_extraction:
+  min_score: 2
+  
+  tech_keywords:
+    # === Programming Languages ===
+    python: 4
+    java: 4
+    javascript: 4
+    typescript: 4
+    c++: 4
+    c#: 4
+    go: 4
+    golang: 4
+    rust: 4
+    ruby: 4
+    php: 4
+    swift: 4
+    kotlin: 4
+    scala: 4
+    perl: 3
+    lua: 3
+    r: 3
+    julia: 3
+    sql: 4
+    pl/sql: 3
+    t-sql: 3
+
+    # === Frameworks & Libraries ===
+    react: 4
+    angular: 4
+    vue: 4
+    vue.js: 4
+    svelte: 3
+    next.js: 3
+    django: 4
+    flask: 3
+    fastapi: 3
+    spring: 4
+    spring_boot: 4
+    rails: 3
+    laravel: 3
+    asp.net: 3
+    dotnet_core: 3
+
+    # === Infrastructure & Systems - NEW ===
+    active_directory: 5
+    windows_server: 4
+    linux: 4
+    linux_administration: 5
+    unix: 4
+    network_administration: 5
+    firewall: 4
+    siem: 5
+    incident_response: 5
+    identity_management: 4
+    iam: 4
+    ldap: 3
+    kerberos: 3
+    system_administration: 4
+    sysadmin: 4
+    itil: 3
+    service_now: 3
+
+    # === DevOps & Cloud ===
+    docker: 4
+    kubernetes: 5
+    k8s: 5
+    terraform: 5
+    ansible: 4
+    puppet: 3
+    chef: 3
+    jenkins: 4
+    gitlab_ci: 4
+    github_actions: 4
+    circleci: 3
+    aws: 4
+    azure: 4
+    gcp: 4
+    google_cloud: 4
+
+    # === Database & Data Engineering ===
+    postgresql: 4
+    postgres: 4
+    mysql: 4
+    mongodb: 4
+    redis: 4
+    elasticsearch: 4
+    kafka: 5
+    spark: 5
+    hadoop: 4
+    flink: 4
+    airflow: 5
+    dbt: 5
+    snowflake: 5
+    databricks: 5
+    bigquery: 4
+    oracle_database: 4
+    sql_server: 4
+
+    # === Engineering & Hardware - NEW ===
+    embedded_systems: 5
+    firmware: 5
+    fpga: 5
+    pcb: 4
+    hardware_design: 5
+    cad: 4
+    cae: 3
+    plm: 4
+    windchill: 4
+    verilog: 4
+    vhdl: 4
+    system_verilog: 3
+    microcontroller: 5
+    microprocessor: 4
+    rtos: 5
+    arm: 4
+    risc-v: 3
+    esp32: 4
+    arduino: 4
+    raspberry_pi: 4
+    stm32: 4
+    nrf: 3
+    nxp: 3
+
+    # === Industrial & Manufacturing - NEW ===
+    scada: 5
+    plc: 5
+    hmi: 4
+    mes: 4
+    erp: 4
+    sap: 4
+    industrial_automation: 5
+    control_systems: 5
+
+    # === Security - NEW ===
+    penetration_testing: 5
+    ethical_hacking: 5
+    vulnerability_assessment: 5
+    appsec: 5
+    application_security: 5
+    zero_trust: 4
+    nist: 4
+    hipaa: 4
+    gdpr: 4
+    pci_dss: 4
+    soc_2: 4
+    crowdstrike: 4
+    palo_alto: 4
+    fortinet: 4
+    splunk: 4
+    qradar: 3
+    waf: 3
+    ids: 3
+    ips: 3
+    sase: 3
+
+    # === General Tech ===
+    git: 3
+    github: 3
+    gitlab: 3
+    jira: 3
+    confluence: 3
+    agile: 3
+    scrum: 3
+    kanban: 3
+
+    # === ML/AI ===
+    tensorflow: 5
+    pytorch: 5
+    keras: 4
+    scikit_learn: 4
+    hugging_face: 4
+    langchain: 5
+    llm: 5
+    rag: 5
+    transformers: 5
+    nlp: 4
+    computer_vision: 4
+    deep_learning: 4
+    neural_networks: 4
+
+    # === Blockchain ===
+    solidity: 5
+    web3: 5
+    blockchain: 5
+    smart_contract: 5
+    ethereum: 5
+    solana: 4
+    hardhat: 4
+    truffle: 4
+    foundry: 4
+
+    # === Network ===
+    cisco: 4
+    router: 4
+    switch: 4
+    bgp: 4
+    ospf: 4
+    vlan: 4
+    tcp/ip: 4
+    dns: 3
+    dhcp: 3
+    vpn: 3
+    wireshark: 3
+
+  # === PHASE 3: Problematic Keywords Audit ===
+  # Short/generic keywords requiring whole-word matching or context
+  problematic_keywords:
+    - ar
+    - ai
+    - go
+    - r
+    - qa
+    - api
+    - iso
+    - git
+    - it
+
+# ============================================================
+# PHASE 3: COMPLETE PROBLEMATIC KEYWORD CONFIGURATION
+# ============================================================
+problematic_keyword_config:
+  enabled: true
+  min_context_radius: 10  # Words before/after to check for context
+  require_full_word_matching: true
+  
+  # High-risk single-character keywords
+  ar:
+    enabled: true
+    risk_level: high
+    requires_context: true
+    match_type: full_word_only
+    context_required:
+      - augmented_reality
+      - architecture
+      - arm_architecture
+      - ar_development
+    min_context_score: 3
+    weight_penalty: -5
+    alias_to: augmented_reality
+    
+  ai:
+    enabled: true
+    risk_level: high
+    requires_context: true
+    match_type: full_word_only
+    context_required:
+      - artificial_intelligence
+      - machine_learning
+      - deep_learning
+      - ai_engineer
+      - ai_ml
+      - neural_networks
+    min_context_score: 3
+    weight_penalty: -3
+    
+  go:
+    enabled: true
+    risk_level: high
+    requires_context: true
+    match_type: word_boundary
+    context_required:
+      - golang
+      - go_language
+      - go_programming
+      - go_development
+    min_context_score: 2
+    weight_penalty: -5
+    alias_to: golang
+    
+  r:
+    enabled: true
+    risk_level: high
+    requires_context: true
+    match_type: full_word_only
+    context_required:
+      - r_language
+      - r_programming
+      - r_statistics
+      - data_science
+      - r_analysis
+    min_context_score: 3
+    weight_penalty: -5
+    
+  # Medium-risk keywords
+  qa:
+    enabled: true
+    risk_level: medium
+    requires_context: true
+    match_type: phrase_boundary
+    context_required:
+      - quality_assurance
+      - qa_engineer
+      - qa_analyst
+      - qa_testing
+      - qa_automation
+    min_context_score: 2
+    weight_penalty: -2
+    
+  api:
+    enabled: true
+    risk_level: medium
+    requires_context: true
+    match_type: phrase_boundary
+    context_required:
+      - rest_api
+      - api_development
+      - api_management
+      - graphql_api
+      - api_gateway
+      - api_integration
+    min_context_score: 2
+    weight_penalty: -2
+    
+  iso:
+    enabled: true
+    risk_level: medium
+    requires_context: true
+    match_type: context_required
+    context_required:
+      - iso_standards
+      - iso_compliance
+      - iso_27001
+      - iso_9001
+      - iso_certification
+    min_context_score: 2
+    weight_penalty: -2
+    
+  git:
+    enabled: true
+    risk_level: low
+    requires_context: true
+    match_type: phrase_boundary
+    context_required:
+      - git_version_control
+      - github
+      - gitlab
+      - git_commands
+      - git_repository
+    min_context_score: 1
+    weight_penalty: -1
+    
+  it:
+    enabled: true
+    risk_level: high
+    requires_context: true
+    match_type: full_word_only
+    context_required:
+      - information_technology
+      - it_infrastructure
+      - it_support
+      - it_systems
+      - it_operations
+    min_context_score: 3
+    weight_penalty: -5
+    
+  # Additional UI/UX keywords
+  ui:
+    enabled: true
+    risk_level: medium
+    requires_context: true
+    match_type: phrase_boundary
+    context_required:
+      - user_interface
+      - ui_design
+      - ui_development
+      - ui_engineering
+      - ui_ux
+    min_context_score: 2
+    weight_penalty: -2
+    
+  ux:
+    enabled: true
+    risk_level: medium
+    requires_context: true
+    match_type: phrase_boundary
+    context_required:
+      - user_experience
+      - ux_design
+      - ux_research
+      - ux_engineering
+      - ui_ux
+    min_context_score: 2
+    weight_penalty: -2
+
+# ============================================================
+# PHRASE MAPPINGS FOR PROBLEMATIC KEYWORDS
+# ============================================================
+phrase_mappings:
+  'artificial intelligence': ai
+  'augmented reality': ar
+  'quality assurance': qa
+  'information technology': it
+  'user interface': ui
+  'user experience': ux
+  'go programming': golang
+  'r language': r
+  'git version control': git
+
+# ============================================================
+# CONTEXTUAL SCORING RULES
+# ============================================================
+contextual_scoring:
+  enabled: true
+  min_total_context_score: 2
+  
+  scoring_rules:
+    ai:
+      min_context_score: 3
+      context_words:
+        - machine_learning
+        - deep_learning
+        - neural_networks
+        - llm
+        - ml
+        - artificial
+        - transformer
+        - nlp
+        
+    ar:
+      min_context_score: 3
+      context_words:
+        - augmented
+        - reality
+        - vr
+        - mixed_reality
+        - visualization
+        - 3d
+        - spatial
+        
+    go:
+      min_context_score: 2
+      context_words:
+        - golang
+        - programming
+        - language
+        - backend
+        - server
+        - api
+        
+    r:
+      min_context_score: 3
+      context_words:
+        - statistics
+        - data_science
+        - analysis
+        - visualization
+        - statistical
+        - modeling
+        - data_analysis
+        
+    qa:
+      min_context_score: 2
+      context_words:
+        - quality
+        - testing
+        - assurance
+        - automation
+        - test
+        - verification
+        - validation
+        
+    api:
+      min_context_score: 2
+      context_words:
+        - rest
+        - graphql
+        - microservices
+        - endpoint
+        - integration
+        - gateway
+        - service
+        
+    it:
+      min_context_score: 3
+      context_words:
+        - infrastructure
+        - information_technology
+        - systems
+        - network
+        - support
+        - operations
+        - enterprise
+        
+    ui:
+      min_context_score: 2
+      context_words:
+        - user_interface
+        - design
+        - frontend
+        - interface
+        - interaction
+        - visual
+        - component
+        
+    ux:
+      min_context_score: 2
+      context_words:
+        - user_experience
+        - design
+        - research
+        - usability
+        - accessibility
+        - user_research
+        - experience
+
+# ============================================================
+# CONFIDENCE CALIBRATION - PHASE 1: Recalibrated
+# ============================================================
+confidence_calibration:
+  calibration_points:
+    - score: 0
+      confidence: 0.01
+    - score: 2
+      confidence: 0.08
+    - score: 3
+      confidence: 0.15
+    - score: 5
+      confidence: 0.30
+    - score: 8
+      confidence: 0.50
+    - score: 10
+      confidence: 0.65
+    - score: 12
+      confidence: 0.78
+    - score: 15
+      confidence: 0.88
+    - score: 18
+      confidence: 0.95
+    - score: 20
+      confidence: 0.98
+  interpolation: linear
+
+  # ============================================================
+# VALIDATION - PHASE 3 COMPLETE
+# ============================================================
+validation:
+  dataset_size: 500
+  metrics:
+    - precision
+    - recall
+    - f1
+    - per_category_accuracy
+    - confusion_matrix
+    - false_positive_rate
+  action: Validate v3.7.0 with expanded taxonomy, skill vocabulary, and context-aware matching
+  expected_improvement:
+    score_too_low_reduction: 60-70%
+    false_positive_reduction: 40-50%
+  problematic_keyword_monitoring:
+    enabled: true
+    report_ambiguous_matches: true
+    track_false_positives: true
+    keywords_to_monitor:
+      - ar
+      - ai
+      - go
+      - r
+      - qa
+      - api
+      - iso
+      - git
+      - it
+      - ui
+      - ux
+# ============================================================
+# SUMMARY
+# ============================================================
+summary:
+  evidence_weights: 'Title: 50% | Description: 25% | Skills: 20% | Company: 3% | Experience: 2%'
+  category_weights: All categories now weight 1.0 - evidence alone determines winner
+  title_taxonomy: Expanded from 2 strong patterns to 30+ strong patterns + 15 potential patterns
+  skill_vocabulary: Expanded to 200+ terms across all domains
+  negative_keywords: Reserved for occupations only (no tech-vs-tech penalties)
+  deduplication: Enabled - each keyword counted once per evidence source
+  confidence_calibration: Recalibrated with lower thresholds for better tech role detection
+  classification_policy: Updated with expanded category support (network, systems, solutions, support, management)
+  status: Ready for validation with expanded evidence extraction
+  
+  phases_completed:
+    - phase: Phase 1 - Title Taxonomy Expansion
+      details: 30+ strong patterns added
+    - phase: Phase 2 - Skill Vocabulary Expansion
+      details: 200+ terms added
+    - phase: Phase 3 - Problematic Keyword Audit & Context-Aware Configuration
+      details:
+        problematic_keywords_configured: 11
+        context_radius: 10
+        risk_levels:
+          high: ['ar', 'ai', 'go', 'r', 'it']
+          medium: ['qa', 'api', 'iso', 'ui', 'ux']
+          low: ['git']
+        features:
+          - Context-aware matching with 10-word radius
+          - Context scoring with min_context_score thresholds
+          - Phrase mappings for common tech terms
+          - Weight penalties for ambiguous matches
+          - Full word boundary matching for short keywords
+  
+  next_steps:
+    - Run validation on 500-sample dataset
+    - Monitor false positives (especially from problematic keywords)
+    - Fine-tune context thresholds based on validation results
+    - Deploy to production when validation shows improvement
+
+# ============================================================
+# CATEGORY DEFINITIONS (with NEW categories)
+# ============================================================
+categories:
+  general_software:
+    id: general_software
+    display_name: General Software Engineering
+    icon: 💻
+    color: '#6B7280'
+    description: General software engineering and development.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    role: parent
+    keywords:
+      software_engineer: 8
+      software_developer: 8
+      application_developer: 8
+      programmer: 6
+      coder: 6
+      software_development: 6
+      software_engineering: 6
+      developer: 5
+      engineer: 4
+      software: 4
+    negative_keywords:
+    - sales
+    - marketing
+    - hr
+    - recruitment
+    - design
+    - ux
+    - ui
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - professor
+    - instructor
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - cleaner
+    - receptionist
+    - cashier
+    - clerk
+    - secretary
+    regex:
+    - \b(software[ ]engineer|software[ ]developer|software[ ]architect)\b
+    - \b(technical[ ]lead|engineering[ ]manager)\b
+
+  other:
+    id: other
+    display_name: Other Technology
+    icon: 🌐
+    color: '#9CA3AF'
+    description: Technology-related roles that don't fit a specific category
+    family: other
+    is_tech: true
+    weight: 1.0
+    role: standalone
+    keywords:
+      tech: 2
+      technical: 2
+      technology: 2
+      it: 2
+      information_technology: 2
+      system: 1
+      systems: 1
+      infrastructure: 2
+      computer: 1
+      software: 1
+      solution: 1
+
+  backend:
+    id: backend
+    display_name: Backend Development
+    icon: 🖥️
+    color: '#2563EB'
+    description: Builds APIs, backend systems and distributed services.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      django: 5
+      flask: 4
+      fastapi: 5
+      spring: 5
+      spring_boot: 5
+      rails: 4
+      laravel: 4
+      nodejs: 4
+      express: 4
+      aspnet: 4
+      dotnet_core: 4
+      gin: 4
+      echo: 4
+      backend: 3
+      api: 3
+      microservices: 4
+      serverless: 3
+      rest_api: 4
+      graphql: 4
+      grpc: 4
+      web_services: 3
+      service_layer: 3
+      business_logic: 3
+      nginx: 3
+      apache: 2
+      gunicorn: 3
+      celery: 3
+      rabbitmq: 3
+      kafka: 3
+      postgresql: 3
+      mysql: 3
+      mongodb: 3
+      redis: 3
+      python: 5
+    negative_keywords:
+    - sales
+    - marketing
+    - recruitment
+    - accounting
+    - legal
+    - hr
+    - mechanic
+    - vehicle
+    - roadside
+    - rescue
+    - tow_truck
+    - child_protection
+    - pastoral_care
+    - security_guard
+    - safeguarding
+    - tax
+    - steuer
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - professor
+    - instructor
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - cleaner
+    - receptionist
+    - cashier
+    - clerk
+    - secretary
+    - assistant
+    - graphic designer
+    - ux designer
+    - ui designer
+    - fashion designer
+    - interior designer
+    - graphic design
+    - visual design
+    - product design
+    - cad design
+    regex:
+    - \b(c\+\+|c#|rust|golang)\b
+    - \b(spring_boot|spring_framework)\b
+    - \b(api_gateway|api_management)\b
+    - \b(restful_api|rest_api)\b
+
+  frontend:
+    id: frontend
+    display_name: Frontend Development
+    icon: 🎨
+    color: '#F59E0B'
+    description: Builds user interfaces and client-side applications.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      react: 5
+      angular: 5
+      vue: 5
+      svelte: 4
+      nextjs: 4
+      gatsby: 4
+      remix: 4
+      solidjs: 4
+      qwik: 4
+      typescript: 3
+      html: 3
+      css: 3
+      sass: 3
+      scss: 3
+      less: 3
+      tailwind: 4
+      bootstrap: 3
+      material_ui: 4
+      chakra_ui: 3
+      styled_components: 4
+      webpack: 3
+      vite: 3
+      babel: 3
+      eslint: 3
+      prettier: 3
+      frontend: 4
+      front_end: 4
+      ui: 3
+      user_interface: 3
+      responsive: 3
+      accessible: 3
+      storybook: 3
+      client_side: 3
+      spa: 3
+      single_page_application: 3
+      pwa: 3
+      progressive_web_app: 3
+      web_components: 3
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - graphic designer
+    - ux designer
+    - ui designer
+    - fashion designer
+    - interior designer
+    - graphic design
+    - visual design
+    - product design
+    - cad design
+    regex:
+    - \b(react|vue|angular)(?=\s+js|\s+framework)?
+    - \b(css-in-js|styled-components)\b
+
+  full_stack:
+    id: full_stack
+    display_name: Full Stack Development
+    icon: 🔄
+    color: '#8B5CF6'
+    description: Builds both frontend and backend systems.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      full_stack: 5
+      fullstack: 5
+      full_stack_developer: 5
+      fullstack_engineer: 5
+      mean: 4
+      mern: 4
+      lamp: 4
+      jamstack: 4
+    negative_keywords:
+    - design
+    - ux
+    - ui
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    regex:
+    - \b(full[- ]stack|fullstack)\b
+
+  mobile:
+    id: mobile
+    display_name: Mobile Development
+    icon: 📱
+    color: '#EC4899'
+    description: Builds mobile applications for iOS and Android.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      ios: 4
+      android: 4
+      react_native: 5
+      flutter: 5
+      swift: 4
+      kotlin: 4
+      objective_c: 4
+      ionic: 4
+      xamarin: 4
+      dotnet_maui: 3
+      native_script: 3
+      capacitor: 3
+      cordova: 3
+      phonegap: 3
+      mobile: 4
+      mobile_app: 4
+      mobile_application: 4
+      cross_platform: 4
+      multi_platform: 4
+      hybrid_app: 3
+      native_app: 3
+      app_store: 3
+      google_play: 3
+      mobile_developer: 4
+      app_developer: 3
+      xcode: 3
+      android_studio: 3
+      fastlane: 3
+      appium: 3
+      swiftui: 4
+      jetpack_compose: 4
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    regex:
+    - \b(react_native|flutter|swiftui|jetpack_compose)\b
+
+  game_dev:
+    id: game_dev
+    display_name: Game Development
+    icon: 🎮
+    color: '#8B5CF6'
+    description: Builds video games and game engines.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      unity: 5
+      unreal: 5
+      unreal_engine: 5
+      godot: 4
+      cryengine: 4
+      lumberyard: 3
+      source_engine: 3
+      game_maker: 4
+      construct: 3
+      defold: 3
+      game: 3
+      gaming: 3
+      game_development: 5
+      game_design: 4
+      gameplay: 3
+      game_logic: 3
+      game_mechanics: 3
+      game_developer: 5
+      game_designer: 4
+      game_programmer: 5
+      technical_artist: 4
+      game_producer: 3
+      3d: 3
+      2d: 3
+      animation: 3
+      rendering: 4
+      shader: 4
+      physics: 3
+      collision_detection: 3
+      ai_in_games: 3
+      opengl: 3
+      directx: 3
+      vulkan: 3
+      webgl: 3
+      lua: 3
+      blueprints: 3
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - professor
+    - instructor
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - cleaner
+    - receptionist
+    - cashier
+    - clerk
+    - secretary
+    regex:
+    - \b(game[ ]developer|game[ ]engine|unity|unreal)\b
+
+  embedded:
+    id: embedded
+    display_name: Embedded Systems
+    icon: 🔌
+    color: '#6B7280'
+    description: Builds embedded systems and IoT devices.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      embedded: 5
+      embedded_systems: 5
+      firmware: 5
+      iot: 5
+      internet_of_things: 5
+      device_driver: 4
+      hardware: 4
+      microcontroller: 5
+      microprocessor: 4
+      rtos: 4
+      real_time: 4
+      control_systems: 4
+      automation: 3
+      industrial: 3
+      automotive: 3
+      medical_devices: 3
+      consumer_electronics: 3
+      robotics: 4
+      c: 3
+      assembly: 4
+      rust: 3
+      ada: 3
+      verilog: 3
+      vhdl: 3
+      system_verilog: 3
+      arm: 4
+      risc_v: 3
+      x86: 3
+      avr: 3
+      pic: 3
+      esp32: 4
+      esp8266: 4
+      arduino: 4
+      raspberry_pi: 4
+      stm32: 4
+      nrf: 3
+      nxp: 3
+      embedded_engineer: 5
+      firmware_engineer: 5
+      iot_engineer: 5
+      hardware_engineer: 4
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - professor
+    - instructor
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - cleaner
+    - receptionist
+    - cashier
+    - clerk
+    - secretary
+    regex:
+    - \b(embedded[ ]engineer|firmware|iot|rtos|microcontroller)\b
+
+  qa:
+    id: qa
+    display_name: Quality Assurance
+    icon: ✅
+    color: '#10B981'
+    description: Ensures software quality through testing.
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      qa: 5
+      quality_assurance: 5
+      testing: 4
+      test_automation: 5
+      quality_engineering: 4
+      quality_analyst: 3
+      manual_testing: 4
+      automation_testing: 5
+      unit_testing: 4
+      integration_testing: 4
+      e2e_testing: 4
+      performance_testing: 4
+      load_testing: 4
+      stress_testing: 3
+      regression_testing: 4
+      smoke_testing: 3
+      sanity_testing: 3
+      usability_testing: 3
+      accessibility_testing: 3
+      security_testing: 3
+      api_testing: 4
+      ui_testing: 3
+      selenium: 5
+      cypress: 5
+      playwright: 5
+      puppeteer: 4
+      jest: 4
+      pytest: 4
+      junit: 4
+      testng: 3
+      testrail: 3
+      qtest: 3
+      xray: 3
+      zephyr: 3
+      postman: 3
+      newman: 3
+      soapui: 3
+      qa_engineer: 5
+      qa_analyst: 4
+      qa_lead: 4
+      test_engineer: 5
+      automation_engineer: 5
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    regex:
+    - \b(qa[ ]engineer|test[ ]automation|selenium|cypress|playwright)\b
+
+  data_engineering:
+    id: data_engineering
+    display_name: Data Engineering
+    icon: 📊
+    color: '#10B981'
+    description: Builds data pipelines and infrastructure.
+    family: data
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      postgresql: 3
+      mysql: 3
+      mongodb: 3
+      redis: 3
+      elasticsearch: 3
+      kafka: 4
+      spark: 5
+      hadoop: 4
+      flink: 4
+      beam: 3
+      druid: 3
+      clickhouse: 3
+      airflow: 5
+      dagster: 4
+      prefect: 4
+      dbt: 5
+      dataform: 4
+      databricks: 5
+      snowflake: 5
+      bigquery: 5
+      redshift: 4
+      synapse: 4
+      data: 3
+      etl: 5
+      elt: 4
+      pipeline: 4
+      warehouse: 4
+      data_lake: 4
+      data_lakehouse: 4
+      data_mesh: 4
+      data_fabric: 4
+      big_data: 4
+      data_engineering: 5
+      data_infrastructure: 4
+      data_platform: 4
+      streaming: 4
+      batch_processing: 4
+      real_time: 4
+      python: 4
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    regex:
+    - \b(data[ ]engineer|etl|data_pipeline|warehouse)\b
+
+  data_science:
+    id: data_science
+    display_name: Data Science
+    icon: 📈
+    color: '#059669'
+    description: Analyzes data and builds statistical models.
+    family: data
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      r: 3
+      julia: 3
+      pandas: 4
+      numpy: 4
+      scipy: 4
+      matplotlib: 3
+      seaborn: 3
+      plotly: 3
+      scikit_learn: 5
+      statsmodels: 4
+      tensorflow: 4
+      pytorch: 4
+      data_science: 5
+      statistics: 4
+      probability: 3
+      linear_algebra: 3
+      data_analysis: 4
+      exploratory_analysis: 4
+      eda: 4
+      feature_engineering: 4
+      model_evaluation: 4
+      validation: 3
+      a_b_testing: 4
+      experimentation: 3
+      causal_inference: 4
+      time_series: 4
+      forecasting: 4
+      optimization: 3
+      python: 3
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - graphic designer
+    - ux designer
+    - ui designer
+    - fashion designer
+    - interior designer
+    - graphic design
+    - visual design
+    - product design
+    - cad design
+    regex:
+    - \b(data[ ]scientist|a/b_testing)\b
+
+  ml_ai:
+    id: ml_ai
+    display_name: Machine Learning & AI
+    icon: 🤖
+    color: '#7C3AED'
+    description: Builds intelligent systems and models.
+    family: ai
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      machine_learning: 5
+      ml: 4
+      artificial_intelligence: 5
+      ai: 4
+      deep_learning: 5
+      neural_networks: 5
+      transformer_model: 6
+      transformers: 5
+      nlp: 5
+      natural_language_processing: 5
+      computer_vision: 5
+      llm: 6
+      large_language_model: 6
+      generative_ai: 6
+      genai: 6
+      retrieval_augmented_generation: 6
+      rag: 6
+      langchain: 5
+      reinforcement_learning: 5
+      rl: 4
+      supervised_learning: 4
+      unsupervised_learning: 4
+      semi_supervised_learning: 3
+      autoencoder: 4
+      gan: 4
+      diffusion_model: 5
+      ml_engineer: 5
+      ai_engineer: 5
+      machine_learning_engineer: 5
+      prompt_engineer: 5
+      mlops_engineer: 4
+      keras: 4
+      jax: 3
+      fastai: 3
+      hugging_face: 4
+      transformers_library: 3
+      llama: 4
+      openai: 4
+      anthropic: 3
+      cohere: 3
+      pinecone: 3
+      weaviate: 3
+      mlflow: 3
+      kubeflow: 3
+      sagemaker: 3
+      python: 3
+    negative_keywords:
+    - ux
+    - frontend
+    - chef
+    - cheese
+    - crane
+    - operator
+    - litigation
+    - lawyer
+    - attorney
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - professor
+    - instructor
+    - surgeon
+    - anesthesiologist
+    - radiologist
+    - oncologist
+    - cardiologist
+    - neurologist
+    - pediatrician
+    - gynecologist
+    - dermatologist
+    - psychiatrist
+    - pathologist
+    - epidemiologist
+    - kinésithérapeute
+    - kinetherapeute
+    - masseur
+    - infirmier
+    - radiologie
+    - radiologue
+    - mecanicien
+    - mechanic
+    - kfz
+    - lkw
+    - mechatroniker
+    - elektronik
+    - garde
+    - enfants
+    - logopäde
+    - logopade
+    - menuisier
+    - poseur
+    - approvisionnement
+    - ordonnancement
+    - projeteur
+    - amenagement
+    - electrique
+    - chef_de_projet
+    - responsable
+    - consultant
+    - financial
+    - financier
+    - crane
+    - gantry
+    - ui
+    - mechanic
+    - vehicle
+    - roadside
+    - rescue
+    - security_guard
+    - tax
+    - steuer
+    - accounting
+    - finance
+    - sales
+    - marketing
+    - hr
+    - recruitment
+    - legal
+    - admin
+    - assistant
+    - driver
+    - janitor
+    - cleaner
+    - receptionist
+    - cashier
+    - warehouse
+    - maintenance
+    - teacher
+    - nurse
+    - doctor
+    - therapist
+    - coordinator
+    - manager
+    - supervisor
+    - clerk
+    - secretary
+    - customer_service
+    - help_desk
+    - support
+    - child_protection
+    - pastoral_care
+    - safeguarding
+    - pattern_maker
+    - technician
+    - analyst      - consultant
+    - uber
+    - eats
+    - delivery
+    - deliver
+    - food
+    - retail
+    - merchandiser
+    - surveyor
+    - quantity_surveyor
+    - repair
+    - specialist
+    - peak_season
+    - gig
+    - flexible
+    - sign_up
+    - earning
+    - weekly_pay
+    - part_time
+    - student
+    - courier
+    - logistics
+    - supply_chain
+    - graphic designer
+    - ux designer
+    - ui designer
+    - fashion designer
+    - interior designer
+    - graphic design
+    - visual design
+    - product design
+    - cad design
+    regex:
+    - \b(llm|rag|generative_ai|diffusion_model)\b
+
+  devops:
+    id: devops
+    display_name: DevOps
+    icon: ⚙️
+    color: '#EF4444'
+    description: Builds and manages CI/CD pipelines and infrastructure.
+    family: infrastructure
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      docker: 3
+      kubernetes: 5
+      k8s: 5
+      terraform: 5
+      pulumi: 4
+      ansible: 4
+      chef: 3
+      puppet: 3
+      salt: 3
+      vagrant: 3
+      jenkins: 4
+      gitlab_ci: 4
+      github_actions: 4
+      circleci: 4
+      azure_devops: 4
+      bambo: 3
+      teamcity: 3
+      argo: 4
+      aws: 3
+      azure: 3
+      gcp: 3
+      oracle_cloud: 2
+      ibm_cloud: 2
+      devops: 5
+      infrastructure_as_code: 5
+      iac: 5
+      ci_cd: 5
+      configuration_management: 4
+      automation: 3
+      orchestration: 4
+      containerization: 4
+      container: 3
+      immutable_infrastructure: 4
+      declarative: 3
+      gitops: 4
+      observability: 4
+      monitoring: 3
+      alerting: 3
+      prometheus: 4
+      grafana: 4
+      thanos: 3
+      cortex: 3
+      victoriametrics: 3
+      influxdb: 3
+      telegraf: 3
+      alertmanager: 3
+      pagerduty: 3
+      opsgenie: 3
+      statuspage: 2
+      kibana: 3
+      logstash: 3
+      elk_stack: 4
+      elastic_stack: 4
+    negative_keywords:
+    - frontend
+    - ui
+    - ux
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - graphic designer
+    - ux designer
+    - ui designer
+    - fashion designer
+    - interior designer
+    - graphic design
+    - visual design
+    - product design
+    - cad design
+    regex:
+    - \b(devops|sre|ci/cd|infrastructure_as_code)\b
+
+  cloud:
+    id: cloud
+    display_name: Cloud Engineering
+    icon: ☁️
+    color: '#3B82F6'
+    description: Designs and manages cloud infrastructure.
+    family: infrastructure
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      aws: 4
+      azure: 4
+      gcp: 4
+      google_cloud: 4
+      amazon_web_services: 4
+      oracle_cloud: 3
+      ibm_cloud: 3
+      digital_ocean: 3
+      cloudflare: 3
+      heroku: 3
+      netlify: 3
+      vercel: 3
+      railway: 2
+      ec2: 4
+      s3: 4
+      rds: 3
+      lambda: 4
+      cloudfront: 3
+      vpc: 3
+      iam: 3
+      azure_vm: 3
+      azure_storage: 3
+      azure_functions: 3
+      azure_sql: 3
+      gce: 3
+      gke: 3
+      cloud_storage: 3
+      bigtable: 3
+      cloud_run: 3
+      cloud_migration: 4
+      cloud_architecture: 4
+      cloud_native: 4
+      multi_cloud: 4
+      hybrid_cloud: 4
+      private_cloud: 3
+      serverless: 4
+      faas: 3
+      function_as_a_service: 3
+      cloud_engineer: 4
+      cloud_architect: 4
+    negative_keywords:
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - graphic designer
+    - ux designer
+    - ui designer
+    - fashion designer
+    - interior designer
+    - graphic design
+    - visual design
+    - product design
+    - cad design
+    regex:
+    - \b(cloud[ ]engineer|cloud[ ]architect|multi-cloud)\b
+
+  security:
+    id: security
+    display_name: Cybersecurity
+    icon: 🔒
+    color: '#DC2626'
+    description: Protects systems and data from threats.
+    family: security
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      security: 3
+      cybersecurity: 5
+      application_security: 5
+      appsec: 5
+      information_security: 4
+      infosec: 4
+      network_security: 4
+      cloud_security: 4
+      container_security: 4
+      zero_trust: 4
+      defense_in_depth: 4
+      security_architecture: 4
+      penetration_testing: 5
+      ethical_hacking: 5
+      vulnerability_assessment: 5
+      security_scanning: 4
+      threat_modeling: 4
+      incident_response: 4
+      security_operations: 4
+      soc: 3
+      security_monitoring: 3
+      compliance: 3
+      audit: 3
+      risk_management: 3
+      iso: 3
+      nist: 4
+      cmmc: 3
+      sox: 3
+      hipaa: 4
+      gdpr: 4
+      pci_dss: 4
+      soc_2: 4
+      fedramp: 3
+      fisma: 3
+      security_engineer: 5
+      security_analyst: 4
+      security_architect: 5
+      ciso: 4
+      security_manager: 3
+      security_consultant: 4
+      firewall: 3
+      ids: 3
+      ips: 3
+      waf: 3
+      sase: 3
+      swg: 3
+      casb: 3
+      splunk: 3
+      qradar: 3
+      crowdstrike: 3
+      palo_alto: 3
+      fortinet: 3
+    negative_keywords:
+    - frontend
+    - ui
+    - ux
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    - graphic designer
+    - ux designer
+    - ui designer
+    - fashion designer
+    - interior designer
+    - graphic design
+    - visual design
+    - product design
+    - cad design
+    regex:
+    - \b(security[ ]engineer|appsec|zero_trust|penetration_testing)\b
+
+  blockchain:
+    id: blockchain
+    display_name: Blockchain & Web3
+    icon: ⛓️
+    color: '#F59E0B'
+    description: Builds decentralized applications and smart contracts.
+    family: web3
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      blockchain: 5
+      web3: 5
+      cryptocurrency: 4
+      crypto: 4
+      smart_contract: 5
+      dapp: 4
+      decentralized: 4
+      defi: 4
+      decentralized_finance: 4
+      nft: 3
+      tokenization: 3
+      digital_asset: 3
+      distributed_ledger: 4
+      ethereum: 5
+      solana: 4
+      polygon: 4
+      avalanche: 3
+      binance_smart_chain: 3
+      near: 3
+      polkadot: 3
+      cosmos: 3
+      solidity: 5
+      rust: 3
+      move: 3
+      vyper: 3
+      web3js: 4
+      ethersjs: 4
+      hardhat: 4
+      truffle: 4
+      foundry: 4
+      openzeppelin: 4
+      blockchain_developer: 5
+      web3_developer: 5
+      smart_contract_engineer: 5
+    negative_keywords:
+    - design
+    - frontend
+    - ui
+    - ux
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    regex:
+    - \b(blockchain|web3|smart_contract|solidity)\b
+
+  sre:
+    id: sre
+    display_name: Site Reliability Engineering
+    icon: 🔧
+    color: '#EF4444'
+    description: Ensures system reliability and performance.
+    family: infrastructure
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      sre: 5
+      site_reliability_engineering: 5
+      reliability: 4
+      availability: 4
+      performance: 3
+      scalability: 4
+      latency: 3
+      slo: 5
+      sli: 5
+      error_budget: 5
+      incident_management: 4
+      on_call: 3
+      capacity_planning: 4
+      chaos_engineering: 4
+      prometheus: 4
+      grafana: 4
+      thanos: 3
+      cortex: 3
+      victoriametrics: 3
+      influxdb: 3
+      telegraf: 3
+      alertmanager: 3
+      pagerduty: 3
+      opsgenie: 3
+      statuspage: 2
+      kibana: 3
+      logstash: 3
+      sre_engineer: 5
+      site_reliability_engineer: 5
+      reliability_engineer: 4
+      service_engineer: 3
+    negative_keywords:
+    - design
+    - frontend
+    - ui
+    - ux
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    regex:
+    - \b(sre|site_reliability|error_budget|slo|sli)\b
+
+  platform:
+    id: platform
+    display_name: Platform Engineering
+    icon: 🏗️
+    color: '#6366F1'
+    description: Builds internal developer platforms and tools.
+    family: infrastructure
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      platform: 3
+      platform_engineering: 5
+      developer_platform: 4
+      internal_platform: 4
+      internal_developer_platform: 5
+      idp: 4
+      developer_experience: 4
+      dx: 3
+      developer_productivity: 4
+      service_mesh: 4
+      api_gateway: 3
+      edge: 3
+      backstage: 4
+      humanitec: 3
+      crossplane: 3
+      port: 2
+      cortex: 2
+      opslevel: 2
+      kubernetes: 3
+      helm: 3
+      argocd: 3
+      flux: 3
+      istio: 3
+      linkerd: 3
+      consul: 3
+      envoy: 3
+      traefik: 3
+      nginx: 2
+      ha_proxy: 2
+      platform_engineer: 5
+      platform_architect: 5
+      platform_manager: 4
+      devops_engineer: 3
+    negative_keywords:
+    - design
+    - frontend
+    - ui
+    - ux
+    - nurse
+    - physician
+    - doctor
+    - dentist
+    - pharmacist
+    - therapist
+    - teacher
+    - chef
+    - waiter
+    - driver
+    - janitor
+    regex:
+    - \b(platform[ ]engineer|internal_developer_platform|idp)\b
+
+  network:
+    id: network
+    display_name: Network Engineering
+    icon: 🌐
+    color: '#2563EB'
+    description: Network infrastructure, routing, switching, and protocols
+    family: infrastructure
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      cisco: 4.0
+      router: 4.0
+      switch: 4.0
+      firewall: 3.0
+      load balancer: 3.0
+      proxy: 3.0
+      tcp/ip: 4.0
+      tcp: 3.0
+      ip: 2.0
+      ipv4: 3.0
+      ipv6: 3.0
+      bgp: 4.0
+      ospf: 4.0
+      vlan: 4.0
+      dns: 3.0
+      dhcp: 3.0
+      snmp: 3.0
+      netflow: 3.0
+      ssl/tls: 3.0
+      vpn: 3.0
+      network infrastructure: 4.0
+      networking: 3.0
+      network security: 3.0
+      wireshark: 3.0
+    positive_keywords:
+    - network engineer
+    - network administrator
+    - network architect
+    - network analyst
+    - network specialist
+    - network technician
+    - network manager
+    - network operations
+    - network support
+    - network infrastructure engineer
+    negative_keywords:
+    - social network
+    - network marketing
+    - network sales
+    - network coordinator
+    - network facilitator
+    title_patterns:
+    - "(?i)\\bnetwork engineer\\b"
+    - "(?i)\\bnetwork administrator\\b"
+    - "(?i)\\bnetwork architect\\b"
+    - "(?i)\\bnetwork analyst\\b"
+    - "(?i)\\bnetwork specialist\\b"
+    - "(?i)\\bnetwork technician\\b"
+    - "(?i)\\bnetwork manager\\b"
+    - "(?i)\\bnetwork operations\\b"
+    - "(?i)\\bnetwork support\\b"
+    - "(?i)\\bnetwork infrastructure\\b"
+
+  systems:
+    id: systems
+    display_name: Systems Engineering
+    icon: 🖥️
+    color: '#6B7280'
+    description: Systems engineering roles
+    family: infrastructure
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      system: 3
+      systems: 3
+      system_administration: 4
+      sysadmin: 4
+      windows_server: 4
+      linux_administration: 4
+      active_directory: 4
+      infrastructure: 3
+      # === PHASE 2: New Vocabulary ===
+      plm: 4
+      ptc: 3
+      windchill: 4
+      citrix: 4
+    negative_keywords:
+      - sales
+      - marketing
+      - hr
+      - recruitment
+      - nurse
+      - physician
+      - doctor
+      - teacher
+      - professor
+      - instructor
+    regex:
+      - \b(system administrator|systems administrator|sysadmin)\b
+      - \b(plm|ptc|windchill|citrix)\b
+
+
+  solutions:
+    id: solutions
+    display_name: Solutions Engineering
+    icon: 🔧
+    color: '#8B5CF6'
+    description: Solutions engineering roles
+    family: engineering
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      solutions: 4
+      solution: 3
+      solution_architecture: 4
+      enterprise: 3
+      systems_integration: 3
+    negative_keywords:
+    - sales
+    - marketing
+    - hr
+    - recruitment
+    regex:
+    - \b(solutions architect|solutions engineer)\b
+
+  support:
+    id: support
+    display_name: Technical Support
+    icon: 🛠️
+    color: '#F59E0B'
+    description: Technical support roles
+    family: support
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      support: 3
+      helpdesk: 4
+      help_desk: 4
+      technical_support: 4
+      it_support: 4
+      troubleshooting: 3
+      service_desk: 3
+    negative_keywords:
+    - customer_service
+    - sales
+    - marketing
+    - hr
+    - recruitment
+    regex:
+    - \b(helpdesk|help desk|it support|technical support)\b
+
+  management:
+    id: management
+    display_name: Engineering Management
+    icon: 👥
+    color: '#6B7280'
+    description: Engineering management roles
+    family: management
+    is_tech: true
+    weight: 1.0
+    parent: general_software
+    role: specialization
+    keywords:
+      management: 3
+      manager: 3
+      engineering_manager: 4
+      tech_lead: 4
+      team_lead: 3
+    negative_keywords:
+    - sales_manager
+    - marketing_manager
+    - hr_manager
+    - operations_manager
+    - product_manager
+    regex:
+    - \b(engineering manager|tech lead|technical lead)\b
+
+# ============================================================
+# CATEGORY OVERRIDES
+# ============================================================
+category_overrides:
+  network:
+    tech_minimum: 5.0
+    minimum_margin: 2.0
+  systems:
+    tech_minimum: 3.0
+    minimum_margin: 1.0
+  solutions:
+    tech_minimum: 3.0
+    minimum_margin: 1.0
+  support:
+    tech_minimum: 3.0
+    minimum_margin: 1.0
+  management:
+    tech_minimum: 3.0
+    minimum_margin: 1.0
+
+title_pattern_boost: 3.0

@@ -115,6 +115,58 @@ class JobsExtractor:
         )
         return all_jobs
 
+    def extract_with_params(
+        self,
+        country: str = "gb",
+        search_params: Optional[Dict[str, Any]] = None
+    ) -> RawJobs:
+        """
+        Extract jobs with custom search parameters.
+
+        Args:
+            country: Country code (gb, us, de, etc.)
+            search_params: Additional search parameters (what, category, where, etc.)
+
+        Returns:
+            List of raw job dictionaries with source-country metadata attached.
+        """
+        if not self.app_id or not self.api_key:
+            logger.warning("API credentials not configured")
+            return []
+
+        if search_params is None:
+            search_params = {}
+
+        all_jobs: RawJobs = []
+
+        try:
+            for page in range(1, self.max_pages + 1):
+                jobs, has_more = self._fetch_page_with_params(country, page, search_params)
+
+                # Add source country to each job for later normalization
+                for job in jobs:
+                    job[RAW_SOURCE_COUNTRY_FIELD] = country
+
+                all_jobs.extend(jobs)
+
+                if not has_more or len(jobs) < self.results_per_page:
+                    break
+
+        except Exception:
+            logger.exception(
+                "Unexpected error fetching jobs for %s with params %s",
+                country,
+                search_params
+            )
+
+        logger.info(
+            "Extracted %d jobs from %s with params %s",
+            len(all_jobs),
+            country,
+            search_params.get('what', 'all')
+        )
+        return all_jobs
+
     def _fetch_page(self, country: str, page: int) -> tuple[RawJobs, bool]:
         """
         Fetch a single page of results.
@@ -130,6 +182,59 @@ class JobsExtractor:
             "app_id": self.app_id,
             "app_key": self.api_key,
             "results_per_page": self.results_per_page,
+        }
+
+        url = f"{self.api_url}/jobs/{country}/search/{page}"
+
+        if self.debug:
+            logger.debug("📍 URL: %s", url)
+            logger.debug("📦 Params: %s", mask_params(params))
+
+        response = self.client.get(url, params=params)
+
+        # Validate response shape
+        if not isinstance(response, dict):
+            logger.error(
+                "Unexpected API response type: %s",
+                type(response).__name__,
+            )
+            return [], False
+
+        jobs = response.get("results", [])
+        if not isinstance(jobs, list):
+            logger.error("Unexpected 'results' type: %s", type(jobs).__name__)
+            return [], False
+
+        total_results = response.get("count", 0)
+        if not isinstance(total_results, int):
+            total_results = 0
+
+        has_more = total_results > page * self.results_per_page
+
+        return jobs, has_more
+
+    def _fetch_page_with_params(
+        self,
+        country: str,
+        page: int,
+        search_params: Dict[str, Any]
+    ) -> tuple[RawJobs, bool]:
+        """
+        Fetch a single page with custom search parameters.
+
+        Args:
+            country: Country code
+            page: Page number
+            search_params: Additional search parameters
+
+        Returns:
+            Tuple of (jobs_list, has_more_pages)
+        """
+        params = {
+            "app_id": self.app_id,
+            "app_key": self.api_key,
+            "results_per_page": self.results_per_page,
+            **search_params  # Merge search params
         }
 
         url = f"{self.api_url}/jobs/{country}/search/{page}"

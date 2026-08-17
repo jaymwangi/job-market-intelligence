@@ -9,6 +9,7 @@ from app.database.session import get_db
 from app.repositories.job_repository import JobRepository
 from app.schemas.job import JobFilters, JobListResponse, JobResponse
 from app.services.job_service import JobService
+from app.services.translation.service import get_translation_service
 from config import get_logger
 
 # Get logger for this module
@@ -72,6 +73,18 @@ def get_jobs(
         max_length=50,
         description="Filter by employment type (e.g., FULL_TIME, CONTRACT)",
     ),
+    # Sprint 6.6.1: Tech role filter
+    is_tech_role: bool | None = Query(
+        None,
+        description="Filter to technology roles only",
+    ),
+    # Sprint 6.6: Language filter
+    language: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="Filter by ISO language code (e.g., en, fr, de)",
+    ),
     service: JobService = Depends(get_service),
 ):
     """
@@ -85,6 +98,8 @@ def get_jobs(
     - Country code (Sprint 6.6)
     - Technology category (Sprint 6.6)
     - Employment type (Sprint 6.6)
+    - Technology role (Sprint 6.6.1)
+    - Language (Sprint 6.6)
     """
     # Log the request (debug level - only shown in debug mode)
     logger.debug(f"Fetching jobs: page={page}, limit={limit}, q={q}")
@@ -107,15 +122,24 @@ def get_jobs(
         country_code=country_code,
         technology_category=technology_category,
         employment_type=employment_type,
+        is_tech_role=is_tech_role,
+        language=language,
     )
 
     jobs, total = service.get_jobs(page, limit, filters, q)
+
+    # Calculate total pages
+    total_pages = (total + limit - 1) // limit if total > 0 else 0
 
     # Log result (info level - shown in production)
     logger.info(f"Retrieved {len(jobs)} jobs (total: {total})")
 
     return JobListResponse(
-        page=page, limit=limit, total=total, data=[JobResponse.model_validate(j) for j in jobs]
+        page=page,
+        limit=limit,
+        total=total,
+        total_pages=total_pages,
+        data=[JobResponse.from_model(job) for job in jobs],
     )
 
 
@@ -247,4 +271,101 @@ def get_job(
         )
 
     logger.info(f"Retrieved job: {job_id}")
-    return JobResponse.model_validate(job)
+    return JobResponse.from_model(job)
+
+
+# ============================================================
+# Sprint 6.6: Translation Endpoint
+# ============================================================
+
+
+@router.post(
+    "/{job_id}/translate",
+    status_code=status.HTTP_200_OK,
+    summary="Translate job description",
+    description="Translate a job posting to English on demand.",
+)
+async def translate_job(
+    job_id: UUID = Path(..., description="Job UUID"),
+    target_language: str = Query(
+        "en",
+        min_length=2,
+        max_length=2,
+        description="Target language code (default: en)",
+    ),
+    db: Session = Depends(get_db),
+    service: JobService = Depends(get_service),
+):
+    """
+    Translate a job posting to the target language.
+    
+    This endpoint translates the job title and description on demand.
+    Translation is not stored - it's performed and returned to the client.
+    
+    Args:
+        job_id: UUID of the job to translate
+        target_language: Target language code (default: 'en')
+        
+    Returns:
+        Translation result with original and translated text
+    """
+    logger.debug(f"Translating job: {job_id} to {target_language}")
+
+    # Get the job
+    job = service.get_job(job_id)
+    if not job:
+        logger.warning(f"Job not found for translation: {job_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {job_id} not found",
+        )
+
+    # Check if translation is needed
+    if job.language == target_language:
+        logger.debug(f"Job {job_id} already in target language: {target_language}")
+        return {
+            "job_id": str(job.id),
+            "source_language": job.language,
+            "target_language": target_language,
+            "needs_translation": False,
+            "message": f"Job is already in {target_language}",
+            "original_title": job.title,
+            "original_description": job.description,
+            "translated_title": job.title,
+            "translated_description": job.description,
+        }
+
+    # Get translation service
+    translation_service = await get_translation_service()
+
+    try:
+        # Translate the job
+        translated = await translation_service.translate(
+            text=job.description or "",
+            source_language=job.language or "en",
+            target_language=target_language,
+        )
+
+        logger.info(f"Translated job {job_id} from {job.language} to {target_language}")
+
+        return {
+            "job_id": str(job.id),
+            "source_language": job.language,
+            "target_language": target_language,
+            "needs_translation": True,
+            "original_title": job.title,
+            "original_description": job.description,
+            "translated_title": translated.text if translated.success else job.title,
+            "translated_description": translated.text if translated.success else job.description,
+            "success": translated.success,
+            "duration_ms": translated.duration_ms,
+            "character_count": translated.character_count,
+            "error": str(translated.error) if translated.error else None,
+        }
+
+    except Exception as e:
+        logger.error(f"Translation failed for job {job_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Translation failed: {str(e)}",
+        )

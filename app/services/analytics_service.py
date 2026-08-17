@@ -1,6 +1,7 @@
 """Analytics service layer for business logic and orchestration."""
 
-from typing import List
+from typing import List, Optional
+from datetime import datetime
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.schemas.analytics import (
     DashboardSummaryResponse,
@@ -233,30 +234,86 @@ class AnalyticsService:
         )
 
     # ============================================================
-    # Sprint 6.6: New Enrichment Methods (RESTful Resources)
+    # Sprint 6.6: Language Analytics
+    # ============================================================
+
+    def get_language_distribution(self) -> list[dict[str, str | int]]:
+        """Get job distribution by language."""
+        logger.debug("Fetching language distribution")
+        return self.repo.get_language_distribution()
+
+    def get_language_by_country(self) -> list[dict[str, str | int]]:
+        """Get language distribution by country."""
+        logger.debug("Fetching language by country")
+        return self.repo.get_language_by_country()
+
+    def get_english_vs_non_english(self) -> dict[str, int | float]:
+        """Get English vs non-English job distribution."""
+        logger.debug("Fetching English vs non-English distribution")
+        return self.repo.get_english_vs_non_english()
+
+    def get_language_salary_stats(self) -> list[dict[str, str | float | int | None]]:
+        """Get salary statistics by language."""
+        logger.debug("Fetching salary by language")
+        return self.repo.get_language_salary_stats()
+
+    # ============================================================
+    # Sprint 6.6: Technology Analytics
+    # ============================================================
+
+    def get_tech_vs_non_tech(self) -> dict[str, int | float]:
+        """Get tech vs non-tech job distribution."""
+        logger.debug("Fetching tech vs non-tech distribution")
+        return self.repo.get_tech_vs_non_tech()
+
+    def get_technology_category_distribution(self) -> list[dict[str, str | int]]:
+        """Get distribution of technology categories."""
+        logger.debug("Fetching technology category distribution")
+        return self.repo.get_technology_category_distribution()
+
+    def get_tech_by_country(self) -> list[dict[str, str | int | float]]:
+        """Get technology role distribution by country."""
+        logger.debug("Fetching tech by country")
+        return self.repo.get_tech_by_country()
+
+    def get_tech_skills(self, limit: int = 20) -> list[dict[str, str | int]]:
+        """Get most common skills in technology roles."""
+        logger.debug("Fetching tech skills (limit=%d)", limit)
+        return self.repo.get_tech_skills(limit)
+
+    def get_tech_salary_stats(self) -> dict[str, float | int | None]:
+        """Get salary statistics for technology roles."""
+        logger.debug("Fetching tech salary statistics")
+        return self.repo.get_tech_salary_stats()
+
+    # ============================================================
+    # Sprint 6.6: Enriched Combined Analytics (RESTful Resources)
     # ============================================================
 
     def get_enriched_top_skills(
         self,
         limit: int = 20,
         country_code: str | None = None,
+        tech_only: bool = False,
     ) -> list[SkillCount]:
         """
-        Get skills with frequency counts and optional country filter.
+        Get skills with frequency counts and optional filters.
 
         Args:
             limit: Number of skills to return
             country_code: Optional country filter
+            tech_only: Whether to filter to tech roles only
 
         Returns:
             List of SkillCount objects
         """
         logger.debug(
-            "Fetching enriched skills (limit=%d%s)",
+            "Fetching enriched skills (limit=%d%s%s)",
             limit,
             f", country={country_code}" if country_code else "",
+            ", tech_only=True" if tech_only else "",
         )
-        results = self.repo.get_enriched_top_skills(limit, country_code)
+        results = self.repo.get_enriched_top_skills(limit, country_code, tech_only)
         return [SkillCount(skill=r["skill"], count=r["count"]) for r in results]
 
     def get_country_distribution(self) -> list[CountryDistribution]:
@@ -284,21 +341,24 @@ class AnalyticsService:
     def get_enriched_salary_statistics(
         self,
         country_code: str | None = None,
+        tech_only: bool = False,
     ) -> SalaryStatistics:
         """
-        Get salary statistics with optional country filter.
+        Get salary statistics with optional filters.
 
         Args:
             country_code: Optional country filter
+            tech_only: Whether to filter to tech roles only
 
         Returns:
             SalaryStatistics object
         """
         logger.debug(
-            "Fetching enriched salary statistics%s",
+            "Fetching enriched salary statistics%s%s",
             f" for country {country_code}" if country_code else "",
+            " (tech only)" if tech_only else "",
         )
-        stats = self.repo.get_enriched_salary_statistics(country_code)
+        stats = self.repo.get_enriched_salary_statistics(country_code, tech_only)
         return SalaryStatistics(
             average_min=stats.get("average_min"),
             average_max=stats.get("average_max"),
@@ -307,3 +367,84 @@ class AnalyticsService:
             median=stats.get("median"),
             currency=stats.get("currency", "USD"),
         )
+
+    # ============================================================
+    # ETL Status Methods for Dashboard Overview
+    # ============================================================
+
+    def get_last_etl_run(self) -> str:
+        """
+        Get formatted last ETL run time.
+        Returns string like "2 hours ago" or "No runs yet".
+        """
+        try:
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+            from app.database.session import get_db
+            
+            db = next(get_db())
+            repo = PipelineRunRepository(db)
+            return repo.format_last_run_time()
+        except Exception as e:
+            logger.error(f"Failed to get last ETL run: {e}")
+            return "N/A"
+
+    def get_last_etl_run_time(self) -> Optional[datetime]:
+        """
+        Get the actual datetime of the last ETL run.
+        Returns datetime or None.
+        """
+        try:
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+            from app.database.session import get_db
+            
+            db = next(get_db())
+            repo = PipelineRunRepository(db)
+            return repo.get_last_run_time()
+        except Exception as e:
+            logger.error(f"Failed to get last ETL run time: {e}")
+            return None
+
+    def get_pipeline_status(self) -> str:
+        """
+        Get current pipeline status.
+        Returns "Running", "Idle", or "Unknown".
+        """
+        try:
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+            from app.database.session import get_db
+            
+            db = next(get_db())
+            repo = PipelineRunRepository(db)
+            running = repo.get_running_run()
+            return "Running" if running else "Idle"
+        except Exception as e:
+            logger.error(f"Failed to get pipeline status: {e}")
+            return "Unknown"
+
+    def get_db_status(self) -> str:
+        """
+        Get database status.
+        Returns "Operational", "Degraded", or "Unknown".
+        """
+        try:
+            from app.database.health import check_database_health
+            from app.database.session import get_db
+            
+            db = next(get_db())
+            result = check_database_health(db)
+            return "Operational" if result.get("healthy") else "Degraded"
+        except Exception as e:
+            logger.error(f"Failed to get database status: {e}")
+            return "Unknown"
+
+    def get_companies_hiring_count(self) -> int:
+        """
+        Get count of companies currently hiring.
+        """
+        try:
+            # Use the existing repo method
+            companies = self.repo.get_top_companies(limit=1000)
+            return len(companies) if companies else 0
+        except Exception as e:
+            logger.error(f"Failed to get companies hiring count: {e}")
+            return 0

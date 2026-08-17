@@ -1,25 +1,58 @@
-fastapi
-uvicorn
+# ============================================
+# Web Framework & Server
+# ============================================
+fastapi~=0.115.11
+uvicorn[standard]~=0.34.0
+python-multipart~=0.0.20
 
-sqlalchemy
-psycopg[binary]
+# ============================================
+# Database & ORM
+# ============================================
+sqlalchemy~=2.0.40
+psycopg[binary]~=3.2.4
+alembic~=1.15.0
 
-pydantic
-pydantic-settings
+# ============================================
+# Validation & Configuration
+# ============================================
+pydantic~=2.11.0
+pydantic-settings~=2.10.0
+python-dotenv~=1.0.1
 
-pandas
+# ============================================
+# Data Processing
+# ============================================
+pandas~=2.3.0
 
-python-dotenv
+# ============================================
+# HTTP Clients
+# ============================================
+requests~=2.32.3
+aiohttp~=3.11.10
 
-pytest
+# ============================================
+# Utilities
+# ============================================
+loguru~=0.7.3
+tenacity~=9.0.0
+pyyaml~=6.0.2
+python-dateutil~=2.9.0
 
-black
-ruff
+# ============================================
+# Language Detection
+# ============================================
+lingua-language-detector~=2.0.2
 
-alembic
+# ============================================
+# Translation (Development/Demo Only)
+# ============================================
+# ⚠️  Development/demo only.
+# ⚠️  Uses Google's unofficial endpoints and may break without notice.
+# ⚠️  Replace with DeepL, Azure Translator, or Google Cloud Translation in production.
+googletrans==4.0.0-rc1
 
-python-multipart
-
-loguru>=0.7.0
-
-requests
+# ============================================
+# Dashboard
+# ============================================
+streamlit~=1.42.0
+plotly~=5.24.0

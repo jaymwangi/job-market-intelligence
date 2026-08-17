@@ -1,7 +1,7 @@
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Dict
 
 from app.database.session import SessionLocal
 from config.logging_config import get_logger
@@ -9,7 +9,7 @@ from config.logging_config import get_logger
 logger = get_logger("database.health")
 
 
-def check_database_connection(db: Optional[Session] = None, log = None) -> bool:
+def check_database_connection(db: Optional[Session] = None, log=None) -> bool:
     """
     Check if the database connection is working.
 
@@ -69,6 +69,28 @@ def check_database_connection(db: Optional[Session] = None, log = None) -> bool:
                 error=str(e),
             )
         return False
+
+
+def check_database_health(db: Optional[Session] = None) -> Dict[str, bool | str]:
+    """
+    Check database health and return detailed status.
+
+    Args:
+        db: Database session (optional)
+
+    Returns:
+        Dict with health status
+    """
+    try:
+        if db is None:
+            with SessionLocal() as session:
+                session.execute(text("SELECT 1"))
+        else:
+            db.execute(text("SELECT 1"))
+        return {"healthy": True, "status": "ok"}
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return {"healthy": False, "status": "error", "message": str(e)}
 
 
 def get_database_status() -> dict:

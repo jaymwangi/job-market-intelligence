@@ -58,11 +58,11 @@ def validate_configuration() -> None:
         errors.append("api_version is not set")
 
     # Validate allowed origins (if not in debug mode)
-    if settings.is_production() and "*" in settings.allowed_origins:
+    if settings.is_production and "*" in settings.allowed_origins:  # FIXED
         errors.append("Wildcard origins not allowed in production")
 
     # Run production-specific validation
-    if settings.is_production():
+    if settings.is_production:  # FIXED
         production_errors = settings.validate_production()
         errors.extend(production_errors)
 
@@ -77,7 +77,7 @@ def validate_configuration() -> None:
         environment=settings.environment,
         api_prefix=settings.api_prefix,
         pool_size=settings.db_pool_size,
-        is_production=settings.is_production(),
+        is_production=settings.is_production,  # FIXED
     )
 
 
@@ -146,7 +146,7 @@ def create_app() -> FastAPI:
         Configured FastAPI application instance.
     """
     # Determine if docs should be enabled
-    is_production = settings.is_production()
+    is_production = settings.is_production  # FIXED
     docs_enabled = not is_production
 
     # Build servers list (only for development)
@@ -218,7 +218,7 @@ async def root() -> dict:
     Returns:
         API metadata including name, version, and documentation links.
     """
-    is_production = settings.is_production()
+    is_production = settings.is_production  # FIXED
     docs_enabled = not is_production
 
     response: dict = {
@@ -232,7 +232,6 @@ async def root() -> dict:
 
     # Only include docs URLs if they're enabled and not None
     if docs_enabled:
-        # Use getattr with default to ensure we have string values
         docs_url = getattr(app, "docs_url", None)
         redoc_url = getattr(app, "redoc_url", None)
         openapi_url = getattr(app, "openapi_url", None)
@@ -290,24 +289,20 @@ if settings.debug:
         """
         routes = []
         for route in app.routes:
-            # Build route info based on route type
             route_info: dict = {
                 "type": type(route).__name__,
             }
 
-            # Handle HTTP routes (Route)
             if isinstance(route, Route):
                 route_info["path"] = route.path
                 route_info["name"] = route.name
                 route_info["methods"] = sorted(route.methods or [])
 
-            # Handle WebSocket routes
             elif isinstance(route, WebSocketRoute):
                 route_info["path"] = route.path
                 route_info["name"] = route.name
                 route_info["methods"] = ["WEBSOCKET"]
 
-            # Handle other route types (APIRoute, etc.)
             else:
                 route_info["path"] = getattr(route, "path", None)
                 route_info["name"] = getattr(route, "name", None)

@@ -271,3 +271,49 @@ async def get_metrics(request: Request) -> Dict[str, Any]:
     log.info("Metrics requested")
     
     return metrics_collector.get_metrics()
+
+# ============================================================================
+# Database Health Alias - For Dashboard Compatibility
+# ============================================================================
+
+@router.get(
+    "/health/db",
+    status_code=status.HTTP_200_OK,
+    summary="Database health check",
+    description="Check database connectivity for dashboard compatibility.",
+)
+async def db_health_check(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """
+    Database health check endpoint for dashboard compatibility.
+    """
+    log = request.state.logger
+    
+    try:
+        from app.database.health import check_database_health
+        result = check_database_health(db)
+        
+        if result.get("healthy"):
+            return {
+                "status": "healthy",
+                "database": "PostgreSQL",
+                "message": "Database connection is healthy",
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        else:
+            return {
+                "status": "unhealthy",
+                "database": "PostgreSQL",
+                "message": result.get("message", "Database connection failed"),
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+    except Exception as exc:
+        log.exception(f"Database health check failed: {type(exc).__name__}")
+        return {
+            "status": "unhealthy",
+            "database": "PostgreSQL",
+            "message": str(exc),
+            "timestamp": datetime.now(UTC).isoformat(),
+        }

@@ -1,3 +1,5 @@
+# app/etl/transformers/jobs_transformer.py
+
 """Transform Adzuna API data to normalized internal format."""
 
 from typing import Any, Dict, List, Optional
@@ -83,22 +85,37 @@ class JobsTransformer:
             else:
                 category_label = str(category or "")
 
+            # ✅ Preserve acquisition metadata
             return JobTransformed(
+                # Core fields
                 source_id=str(job.get("id", "")),
                 source=self.SOURCE,
                 title=job.get("title", ""),
                 company=self._company(job) or "Unknown",
                 location=self._location(job) or "",
                 description=job.get("description", ""),
+                
+                # Salary
                 salary_min=self._salary(job, "min"),
                 salary_max=self._salary(job, "max"),
                 salary_currency=self._currency(job),
+                
+                # Other fields
                 employment_type=self._parse_employment_type(job),
                 category=category_label,
                 posted_date=posted_date,
                 scraped_date=scraped_date,
                 url=job.get("redirect_url", ""),
+                
+                # Extraction context
                 source_country=source_country,
+                
+                # ✅ Acquisition metadata (preserved from raw job)
+                acquisition_tech_intent=job.get('_acquisition_tech_intent'),
+                acquisition_query=job.get('_acquisition_query'),
+                acquisition_country=job.get('_acquisition_country'),
+                acquisition_mode=job.get('_acquisition_mode'),
+                acquisition_batch=job.get('_acquisition_batch'),
             )
 
         except Exception:

@@ -244,7 +244,237 @@ def get_dashboard_summary(
 
 
 # ============================================================
-# Sprint 6.6: New Enrichment Analytics Endpoints (RESTful Resources)
+# Sprint 6.6: Language Analytics
+# ============================================================
+
+
+@router.get(
+    "/language/distribution",
+    response_model=list[dict[str, str | int]],
+    status_code=status.HTTP_200_OK,
+    summary="Get language distribution",
+    description="Get job distribution by language.",
+)
+def get_language_distribution(
+    service: AnalyticsService = Depends(get_service),
+) -> list[dict[str, str | int]]:
+    """
+    Get job distribution by language.
+
+    Returns:
+        List of dicts with language and count
+    """
+    logger.debug("Fetching language distribution")
+
+    distribution = service.get_language_distribution()
+
+    logger.info("Retrieved %d languages", len(distribution))
+    return distribution
+
+
+@router.get(
+    "/language/by-country",
+    response_model=list[dict[str, str | int]],
+    status_code=status.HTTP_200_OK,
+    summary="Get language by country",
+    description="Get language distribution by country.",
+)
+def get_language_by_country(
+    service: AnalyticsService = Depends(get_service),
+) -> list[dict[str, str | int]]:
+    """
+    Get language distribution by country.
+
+    Returns:
+        List of dicts with country, language, and count
+    """
+    logger.debug("Fetching language by country")
+
+    distribution = service.get_language_by_country()
+
+    logger.info("Retrieved language distribution by country")
+    return distribution
+
+
+@router.get(
+    "/language/english-vs-non-english",
+    response_model=dict[str, int | float],
+    status_code=status.HTTP_200_OK,
+    summary="Get English vs non-English distribution",
+    description="Get English vs non-English job distribution.",
+)
+def get_english_vs_non_english(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, int | float]:
+    """
+    Get English vs non-English job distribution.
+
+    Returns:
+        Dict with english_count, non_english_count, total_count, english_percentage
+    """
+    logger.debug("Fetching English vs non-English distribution")
+
+    stats = service.get_english_vs_non_english()
+
+    logger.info("Retrieved English vs non-English statistics")
+    return stats
+
+
+@router.get(
+    "/language/salary",
+    response_model=list[dict[str, str | float | int | None]],
+    status_code=status.HTTP_200_OK,
+    summary="Get salary by language",
+    description="Get salary statistics by language.",
+)
+def get_language_salary_stats(
+    service: AnalyticsService = Depends(get_service),
+) -> list[dict[str, str | float | int | None]]:
+    """
+    Get salary statistics by language.
+
+    Returns:
+        List of dicts with language, average_salary, count, min, max
+    """
+    logger.debug("Fetching salary by language")
+
+    stats = service.get_language_salary_stats()
+
+    logger.info("Retrieved salary statistics by language")
+    return stats
+
+
+# ============================================================
+# Sprint 6.6: Technology Analytics
+# ============================================================
+
+
+@router.get(
+    "/tech/vs-non-tech",
+    response_model=dict[str, int | float],
+    status_code=status.HTTP_200_OK,
+    summary="Get tech vs non-tech distribution",
+    description="Get tech vs non-tech job distribution.",
+)
+def get_tech_vs_non_tech(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, int | float]:
+    """
+    Get tech vs non-tech job distribution.
+
+    Returns:
+        Dict with tech_count, non_tech_count, total_count, tech_percentage
+    """
+    logger.debug("Fetching tech vs non-tech distribution")
+
+    stats = service.get_tech_vs_non_tech()
+
+    logger.info("Retrieved tech vs non-tech statistics")
+    return stats
+
+
+@router.get(
+    "/tech/category-distribution",
+    response_model=list[dict[str, str | int]],
+    status_code=status.HTTP_200_OK,
+    summary="Get technology category distribution",
+    description="Get distribution of technology categories.",
+)
+def get_tech_category_distribution(
+    service: AnalyticsService = Depends(get_service),
+) -> list[dict[str, str | int]]:
+    """
+    Get distribution of technology categories.
+
+    Returns:
+        List of dicts with category and count
+    """
+    logger.debug("Fetching technology category distribution")
+
+    distribution = service.get_technology_category_distribution()
+
+    logger.info("Retrieved %d technology categories", len(distribution))
+    return distribution
+
+
+@router.get(
+    "/tech/by-country",
+    response_model=list[dict[str, str | int | float]],
+    status_code=status.HTTP_200_OK,
+    summary="Get tech roles by country",
+    description="Get technology role distribution by country.",
+)
+def get_tech_by_country(
+    service: AnalyticsService = Depends(get_service),
+) -> list[dict[str, str | int | float]]:
+    """
+    Get technology role distribution by country.
+
+    Returns:
+        List of dicts with country, total_count, tech_count, tech_percentage
+    """
+    logger.debug("Fetching tech roles by country")
+
+    distribution = service.get_tech_by_country()
+
+    logger.info("Retrieved tech roles by country")
+    return distribution
+
+
+@router.get(
+    "/tech/skills",
+    response_model=list[dict[str, str | int]],
+    status_code=status.HTTP_200_OK,
+    summary="Get tech skills",
+    description="Get most common skills in technology roles.",
+)
+def get_tech_skills(
+    limit: int = Query(20, ge=1, le=100, description="Number of skills to return"),
+    service: AnalyticsService = Depends(get_service),
+) -> list[dict[str, str | int]]:
+    """
+    Get most common skills in technology roles.
+
+    Args:
+        limit: Number of skills to return
+
+    Returns:
+        List of dicts with skill and count
+    """
+    logger.debug("Fetching top %d tech skills", limit)
+
+    skills = service.get_tech_skills(limit)
+
+    logger.info("Retrieved %d tech skills", len(skills))
+    return skills
+
+
+@router.get(
+    "/tech/salary",
+    response_model=dict[str, float | int | None],
+    status_code=status.HTTP_200_OK,
+    summary="Get tech salary statistics",
+    description="Get salary statistics for technology roles.",
+)
+def get_tech_salary_stats(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, float | int | None]:
+    """
+    Get salary statistics for technology roles.
+
+    Returns:
+        Dict with average, min, max, median, sample_size
+    """
+    logger.debug("Fetching tech salary statistics")
+
+    stats = service.get_tech_salary_stats()
+
+    logger.info("Retrieved tech salary statistics")
+    return stats
+
+
+# ============================================================
+# Sprint 6.6: Enriched Combined Analytics (RESTful Resources)
 # ============================================================
 
 
@@ -253,7 +483,7 @@ def get_dashboard_summary(
     response_model=list[SkillCount],
     status_code=status.HTTP_200_OK,
     summary="Get enriched skills",
-    description="Get skills with frequency counts and optional country filter.",
+    description="Get skills with frequency counts and optional country/tech filters.",
 )
 def get_enriched_skills(
     limit: int = Query(20, ge=1, le=100, description="Number of skills to return"),
@@ -263,25 +493,31 @@ def get_enriched_skills(
         max_length=2,
         description="Filter by country code (e.g., GB, US, DE)",
     ),
+    tech_only: bool = Query(
+        False,
+        description="Filter to technology roles only",
+    ),
     service: AnalyticsService = Depends(get_service),
 ) -> list[SkillCount]:
     """
-    Get skills with frequency counts and optional country filter.
+    Get skills with frequency counts and optional filters.
 
     Args:
         limit: Number of skills to return (default: 20, max: 100)
         country_code: Optional country filter
+        tech_only: Whether to filter to tech roles only
 
     Returns:
         List of SkillCount objects with skill name and count
     """
     logger.debug(
-        "Fetching enriched skills (limit=%d%s)",
+        "Fetching enriched skills (limit=%d%s%s)",
         limit,
         f", country={country_code}" if country_code else "",
+        ", tech_only=True" if tech_only else "",
     )
 
-    skills = service.get_enriched_top_skills(limit, country_code)
+    skills = service.get_enriched_top_skills(limit, country_code, tech_only)
 
     logger.info("Retrieved %d enriched skills", len(skills))
     return skills
@@ -340,7 +576,7 @@ def get_enriched_technology(
     response_model=SalaryStatistics,
     status_code=status.HTTP_200_OK,
     summary="Get enriched salary statistics",
-    description="Get salary statistics with optional country filter from enrichment data.",
+    description="Get salary statistics with optional country/tech filters.",
 )
 def get_enriched_salary(
     country_code: str | None = Query(
@@ -349,23 +585,130 @@ def get_enriched_salary(
         max_length=2,
         description="Filter by country code",
     ),
+    tech_only: bool = Query(
+        False,
+        description="Filter to technology roles only",
+    ),
     service: AnalyticsService = Depends(get_service),
 ) -> SalaryStatistics:
     """
-    Get salary statistics with optional country filter.
+    Get salary statistics with optional filters.
 
     Args:
         country_code: Optional country filter
+        tech_only: Whether to filter to tech roles only
 
     Returns:
         SalaryStatistics object with salary metrics
     """
     logger.debug(
-        "Fetching enriched salary statistics%s",
+        "Fetching enriched salary statistics%s%s",
         f" for country {country_code}" if country_code else "",
+        " (tech only)" if tech_only else "",
     )
 
-    stats = service.get_enriched_salary_statistics(country_code)
+    stats = service.get_enriched_salary_statistics(country_code, tech_only)
 
     logger.info("Retrieved enriched salary statistics")
     return stats
+
+
+# ============================================================
+# ETL Status Endpoints - For Dashboard Overview
+# ============================================================
+
+
+@router.get(
+    "/etl/last-run",
+    status_code=status.HTTP_200_OK,
+    summary="Get last ETL run time",
+    description="Get formatted last ETL run time (e.g., '2 hours ago').",
+)
+def get_last_etl_run(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, str]:
+    """
+    Get formatted last ETL run time.
+
+    Returns:
+        Dict with 'last_run' key containing formatted string
+    """
+    logger.debug("Fetching last ETL run time")
+    return {"last_run": service.get_last_etl_run()}
+
+
+@router.get(
+    "/etl/last-run-time",
+    status_code=status.HTTP_200_OK,
+    summary="Get last ETL run datetime",
+    description="Get the actual datetime of the last ETL run.",
+)
+def get_last_etl_run_time(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, str | None]:
+    """
+    Get the actual datetime of the last ETL run.
+
+    Returns:
+        Dict with 'last_run_time' key containing ISO format datetime or None
+    """
+    logger.debug("Fetching last ETL run datetime")
+    last_time = service.get_last_etl_run_time()
+    return {"last_run_time": last_time.isoformat() if last_time else None}
+
+
+@router.get(
+    "/etl/status",
+    status_code=status.HTTP_200_OK,
+    summary="Get ETL pipeline status",
+    description="Get current ETL pipeline status (Running, Idle, or Unknown).",
+)
+def get_etl_status(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, str]:
+    """
+    Get current ETL pipeline status.
+
+    Returns:
+        Dict with 'status' key containing Running, Idle, or Unknown
+    """
+    logger.debug("Fetching ETL pipeline status")
+    return {"status": service.get_pipeline_status()}
+
+
+@router.get(
+    "/etl/db-status",
+    status_code=status.HTTP_200_OK,
+    summary="Get database status",
+    description="Get database status (Operational, Degraded, or Unknown).",
+)
+def get_etl_db_status(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, str]:
+    """
+    Get database status.
+
+    Returns:
+        Dict with 'status' key containing Operational, Degraded, or Unknown
+    """
+    logger.debug("Fetching database status")
+    return {"status": service.get_db_status()}
+
+
+@router.get(
+    "/companies/count",
+    status_code=status.HTTP_200_OK,
+    summary="Get companies hiring count",
+    description="Get count of companies currently hiring.",
+)
+def get_companies_count(
+    service: AnalyticsService = Depends(get_service),
+) -> dict[str, int]:
+    """
+    Get count of companies currently hiring.
+
+    Returns:
+        Dict with 'count' key containing number of companies
+    """
+    logger.debug("Fetching companies hiring count")
+    return {"count": service.get_companies_hiring_count()}

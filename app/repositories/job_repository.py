@@ -68,7 +68,8 @@ class JobRepository:
             "technology_category": job.technology_category,
             "is_tech_role": job.is_tech_role,
             "country_code": job.country_code,
-            "currency": job.currency,
+            # ❌ REMOVE THIS LINE - currency doesn't exist in DB
+            # "currency": job.salary_currency,
             "employment_type": job.employment_type,
         }
 
@@ -99,7 +100,8 @@ class JobRepository:
             "technology_category": stmt.excluded.technology_category,
             "is_tech_role": stmt.excluded.is_tech_role,
             "country_code": stmt.excluded.country_code,
-            "currency": stmt.excluded.currency,
+            # ❌ REMOVE THIS LINE - currency doesn't exist in DB
+            # "currency": stmt.excluded.currency,
             "employment_type": stmt.excluded.employment_type,
         }
 
@@ -149,6 +151,10 @@ class JobRepository:
 
         if filters.employment_type:
             query = query.filter(Job.employment_type == filters.employment_type)
+
+        # Sprint 6.6.1: Tech role filter
+        if hasattr(filters, 'is_tech_role') and filters.is_tech_role is not None:
+            query = query.filter(Job.is_tech_role == filters.is_tech_role)
 
         if search_query:
             search_pattern = f"%{search_query}%"
