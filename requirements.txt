@@ -41,7 +41,7 @@ python-dateutil~=2.9.0
 # ============================================
 # Language Detection
 # ============================================
-lingua-language-detector~=2.0.2
+lingua-language-detector>=2.1.0
 
 # ============================================
 # Translation (Development/Demo Only)
