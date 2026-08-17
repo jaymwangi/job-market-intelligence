@@ -90,4 +90,6 @@ docs/_build/
 Thumbs.db
 
 # Temporary
-tempCodeRunnerFile.py
+tempCodeRunnerFile.pydata/
+reports/
+data/
