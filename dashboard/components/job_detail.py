@@ -2,9 +2,9 @@
 
 import streamlit as st
 
-from dashboard.schemas.jobs import Job
-from dashboard.api.client import APIClient
-from dashboard.core.config import get_config
+from schemas.jobs import Job
+from api.client import APIClient
+from core.config import get_config
 import logging
 
 logger = logging.getLogger(__name__)

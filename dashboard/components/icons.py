@@ -240,14 +240,24 @@ def salary_icon(size: int = 20, color: str = "currentColor") -> str:
     """Get salary icon."""
     return get_icon("salary", size, color)
 
-def icon_button(text: str, icon_name: str, key: str = None, 
+
+def icon_button(text: str, icon_name: str, key: Optional[str] = None, 
                 color: str = IconColor.PRIMARY, size: int = 16,
                 use_container_width: bool = False) -> bool:
     """
     Create a button with an SVG icon inside it.
-    """
-    from dashboard.components.icons import get_icon
     
+    Args:
+        text: Button text
+        icon_name: Name of the icon from ICONS dictionary
+        key: Optional unique key for the button
+        color: Color of the icon
+        size: Size of the icon in pixels
+        use_container_width: Whether to use full container width
+        
+    Returns:
+        bool: True if button was clicked
+    """
     icon_svg = get_icon(icon_name, size, color)
     
     # Use a container with flex to position icon and button
@@ -260,6 +270,10 @@ def icon_button(text: str, icon_name: str, key: str = None,
                 unsafe_allow_html=True
             )
         with cols[1]:
-            clicked = st.button(text, key=key, use_container_width=use_container_width)
+            # Only pass key if it's provided
+            if key is not None:
+                clicked = st.button(text, key=key, use_container_width=use_container_width)
+            else:
+                clicked = st.button(text, use_container_width=use_container_width)
     
     return clicked

@@ -1,7 +1,7 @@
 """Filter UI components for the dashboard."""
 
 import streamlit as st
-from dashboard.components.icons import get_icon
+from components.icons import get_icon
 
 
 def render_filters():

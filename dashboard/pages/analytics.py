@@ -9,9 +9,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from dashboard.components.icons import  icon_button
-from dashboard.components.alerts import show_error
-from dashboard.components.charts import (
+from components.icons import  icon_button
+from components.alerts import show_error
+from components.charts import (
     create_bar_chart,
     create_donut_chart,
     create_histogram,
@@ -20,13 +20,13 @@ from dashboard.components.charts import (
     create_pie_chart,
     HorizontalBarChartData,
 )
-from dashboard.components.empty_state import empty_state_analytics
-from dashboard.components.icons import get_icon, IconColor
-from dashboard.components.layout import divider, page_header, section_header, timestamp
-from dashboard.components.loading import loading_spinner
-from dashboard.components.metrics import render_metric_card
-from dashboard.core.theme import COLORS
-from dashboard.utils.state import StateManager
+from components.empty_state import empty_state_analytics
+from components.icons import get_icon, IconColor
+from components.layout import divider, page_header, section_header, timestamp
+from components.loading import loading_spinner
+from components.metrics import render_metric_card
+from core.theme import COLORS
+from utils.state import StateManager
 
 logger = logging.getLogger(__name__)
 

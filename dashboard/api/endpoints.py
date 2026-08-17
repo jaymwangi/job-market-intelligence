@@ -10,7 +10,7 @@ Sprint 6.6 adds:
 - Translation endpoint
 
 Example:
-    from dashboard.api.endpoints import endpoints
+    from api.endpoints import endpoints
     
     # Get URL for top skills
     url = endpoints.TOP_SKILLS
