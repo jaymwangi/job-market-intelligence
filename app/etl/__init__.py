@@ -411,33 +411,33 @@ class ETLPipeline:
         if not jobs:
             return metrics
 
-        session = SessionLocal()
         try:
-            loader = JobLoader(db_session=session)
-            load_result = loader.upsert(jobs)
-            load_metrics = loader.to_metrics(load_result)
+            with SessionLocal() as session:
+                loader = JobLoader(db_session=session)
 
-            metrics.inserted = load_metrics.inserted
-            metrics.updated = load_metrics.updated
-            metrics.purged = load_metrics.purged
-            metrics.skills_added = load_metrics.skills_added
-            metrics.relationships_added = load_metrics.relationships_added
+                load_result = loader.upsert(jobs)
+                load_metrics = loader.to_metrics(load_result)
 
-            session.commit()
+                metrics.inserted = load_metrics.inserted
+                metrics.updated = load_metrics.updated
+                metrics.purged = load_metrics.purged
+                metrics.skills_added = load_metrics.skills_added
+                metrics.relationships_added = load_metrics.relationships_added
 
-            logger.info(
-                "Load complete: inserted=%d, updated=%d, skills=%d, relationships=%d",
-                metrics.inserted,
-                metrics.updated,
-                metrics.skills_added,
-                metrics.relationships_added,
-            )
-        except Exception as e:
-            session.rollback()
-            logger.exception("Load failed: %s", str(e))
+                session.commit()
+
+                logger.info(
+                    "Load complete: inserted=%d, updated=%d, "
+                    "skills=%d, relationships=%d",
+                    metrics.inserted,
+                    metrics.updated,
+                    metrics.skills_added,
+                    metrics.relationships_added,
+                )
+
+        except Exception:
+            logger.exception("Load failed")
             raise
-        finally:
-            session.close()
 
         return metrics
 

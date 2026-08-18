@@ -62,6 +62,7 @@ class JobLoader:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
+
     def upsert(self, jobs: list[JobValidated]) -> LoadResult:
         """
         Upsert validated jobs into the database.
@@ -116,13 +117,9 @@ class JobLoader:
 
             return result
 
-        except (IntegrityError, PendingRollbackError) as e:
-            # CRITICAL FIX: Rollback the session to clear the error state
-            logger.warning(f"Database error occurred, rolling back session: {e}")
-            self.db_session.rollback()
-            
-            # Re-raise with context
-            raise Exception(f"Load failed due to database error: {str(e)}") from e
+        except (IntegrityError, PendingRollbackError):
+            logger.exception("Database error during job load")
+            raise
 
     def _upsert_jobs(self, jobs: list[JobValidated]) -> UpsertResult:
         """
@@ -165,41 +162,56 @@ class JobLoader:
             inserted=inserted,
             updated=updated,
         )
-
     def _process_skills(self, jobs: list[JobValidated]) -> SkillResult:
         """
-        Process skills and create relationships.
+        Process skills and create job-skill relationships.
 
-        Uses PostgreSQL ON CONFLICT DO NOTHING via savepoints
-        to handle duplicates gracefully.
-
-        All-or-nothing for non-duplicate errors.
+        Database reads are completed before relationship inserts.
+        Relationships are inserted in batches using savepoints for 
+        transaction isolation and duplicate handling.
 
         Returns:
-            SkillResult with skills_added and relationships_added counts
+            SkillResult with skills_added and relationships_added counts.
         """
-        # Collect all unique skills and job-skill pairs
         all_skills: Set[str] = set()
         job_skills: list[tuple[str, str]] = []  # (source_id, skill_name)
 
+        # ------------------------------------------------------------
+        # 1. Collect unique skills and job-skill pairs in memory
+        # ------------------------------------------------------------
         for job in jobs:
             if not job.skills:
                 continue
 
             for skill in job.skills:
-                skill_lower = skill.lower()
-                all_skills.add(skill_lower)
-                job_skills.append((job.source_id, skill_lower))
+                skill_name = skill.strip().lower()
+
+                if not skill_name:
+                    continue
+
+                all_skills.add(skill_name)
+                job_skills.append((job.source_id, skill_name))
 
         if not all_skills:
             return SkillResult()
 
-        # Bulk insert new skills using add_all()
-        existing_skills = self.db_session.query(Skill).filter(
-            Skill.name.in_(all_skills)
-        ).all()
-        existing_skill_names = {s.name for s in existing_skills}
+        # ------------------------------------------------------------
+        # 2. Load existing skills
+        # ------------------------------------------------------------
+        existing_skills = (
+            self.db_session.query(Skill)
+            .filter(Skill.name.in_(all_skills))
+            .all()
+        )
 
+        existing_skill_names = {
+            skill.name
+            for skill in existing_skills
+        }
+
+        # ------------------------------------------------------------
+        # 3. Insert missing skills
+        # ------------------------------------------------------------
         new_skills = [
             Skill(name=name)
             for name in all_skills
@@ -207,25 +219,74 @@ class JobLoader:
         ]
 
         skills_added = 0
+
         if new_skills:
             self.db_session.add_all(new_skills)
-            self.db_session.flush()  # Need IDs for relationships
+            self.db_session.flush()
             skills_added = len(new_skills)
 
-        # Build skill name to ID mapping
-        all_skill_objects = self.db_session.query(Skill).filter(
-            Skill.name.in_(all_skills)
-        ).all()
-        skill_map = {s.name: s.id for s in all_skill_objects}
+        # ------------------------------------------------------------
+        # 4. Build skill → ID mapping
+        # ------------------------------------------------------------
+        all_skill_objects = (
+            self.db_session.query(Skill)
+            .filter(Skill.name.in_(all_skills))
+            .all()
+        )
 
-        # Get job IDs by source_id
-        source_ids = [j.source_id for j in jobs]
-        jobs_db = self.db_session.query(Job).filter(
-            Job.source_id.in_(source_ids)
-        ).all()
-        job_map = {j.source_id: j.id for j in jobs_db}
+        skill_map = {
+            skill.name: skill.id
+            for skill in all_skill_objects
+        }
 
-        # Build relationships (deduplicate before insert)
+        # ------------------------------------------------------------
+        # 5. Load all corresponding jobs
+        # ------------------------------------------------------------
+        source_ids = list({
+            source_id
+            for source_id, _ in job_skills
+        })
+
+        jobs_db = (
+            self.db_session.query(Job)
+            .filter(Job.source_id.in_(source_ids))
+            .all()
+        )
+
+        job_map = {
+            job.source_id: job.id
+            for job in jobs_db
+        }
+
+        if not job_map:
+            return SkillResult(
+                skills_added=skills_added,
+                relationships_added=0,
+            )
+
+        # ------------------------------------------------------------
+        # 6. Load existing relationships ONCE
+        # ------------------------------------------------------------
+        job_ids = list(job_map.values())
+        skill_ids = list(skill_map.values())
+
+        existing_relationships = (
+            self.db_session.query(JobSkill)
+            .filter(
+                JobSkill.job_id.in_(job_ids),
+                JobSkill.skill_id.in_(skill_ids),
+            )
+            .all()
+        )
+
+        existing_pairs = {
+            (relationship.job_id, relationship.skill_id)
+            for relationship in existing_relationships
+        }
+
+        # ------------------------------------------------------------
+        # 7. Build new relationships entirely in memory
+        # ------------------------------------------------------------
         relationships: list[JobSkill] = []
         seen: set[tuple[UUID, UUID]] = set()
 
@@ -233,89 +294,74 @@ class JobLoader:
             job_id = job_map.get(source_id)
             skill_id = skill_map.get(skill_name)
 
-            if job_id and skill_id:
-                key = (job_id, skill_id)
-                if key not in seen:
-                    seen.add(key)
-                    relationships.append(
-                        JobSkill(job_id=job_id, skill_id=skill_id)
-                    )
+            if job_id is None or skill_id is None:
+                continue
 
-        # Bulk insert relationships with duplicate handling
-        # using savepoint to isolate duplicate errors
+            key = (job_id, skill_id)
+
+            if key in seen:
+                continue
+
+            if key in existing_pairs:
+                continue
+
+            seen.add(key)
+
+            relationships.append(
+                JobSkill(
+                    job_id=job_id,
+                    skill_id=skill_id,
+                )
+            )
+
+        # ------------------------------------------------------------
+        # 8. Insert relationships in batches with savepoints
+        # ------------------------------------------------------------
         relationships_added = 0
-        if relationships:
-            # Split into smaller batches to avoid query size limits
-            batch_size = 100
-            
-            # CRITICAL FIX: Track any duplicates found
-            duplicate_count = 0
-            
-            for i in range(0, len(relationships), batch_size):
-                batch = relationships[i:i + batch_size]
-                
-                # First try: Batch insert with savepoint
-                try:
-                    with self.db_session.begin_nested():
-                        self.db_session.add_all(batch)
-                        # Flush inside savepoint to catch errors early
-                        self.db_session.flush()
-                        relationships_added += len(batch)
-                        
-                except IntegrityError as e:
-                    # Duplicate exists in batch - rollback savepoint automatically
-                    logger.debug(f"Batch duplicate detected, falling back to individual: {e}")
-                    
-                    # Second try: Individual inserts with isolated savepoints
-                    with self.db_session.begin_nested():
-                        for rel in batch:
-                            try:
-                                # Check if relationship already exists
-                                existing = self.db_session.query(JobSkill).filter(
-                                    JobSkill.job_id == rel.job_id,
-                                    JobSkill.skill_id == rel.skill_id
-                                ).first()
-                                
-                                if existing:
-                                    # Skip duplicate
-                                    duplicate_count += 1
-                                    continue
-                                
-                                # Try to insert with isolated savepoint
-                                # Using a new savepoint for each insert
-                                with self.db_session.begin_nested():
-                                    self.db_session.add(rel)
-                                    self.db_session.flush()
-                                    relationships_added += 1
-                                    
-                            except IntegrityError:
-                                # Duplicate - skip (ON CONFLICT DO NOTHING equivalent)
-                                duplicate_count += 1
-                                # Savepoint automatically rolls back
-                                pass
-                            except PendingRollbackError:
-                                # Session is in bad state - rollback and continue
-                                logger.warning("Pending rollback detected, rolling back")
-                                self.db_session.rollback()
-                                # Try to re-enter the nested transaction
-                                with self.db_session.begin_nested():
-                                    # Check again and try insert
-                                    existing = self.db_session.query(JobSkill).filter(
-                                        JobSkill.job_id == rel.job_id,
-                                        JobSkill.skill_id == rel.skill_id
-                                    ).first()
-                                    if not existing:
-                                        self.db_session.add(rel)
-                                        self.db_session.flush()
-                                        relationships_added += 1
-                                    else:
-                                        duplicate_count += 1
+        batch_size = 100
+
+        for start in range(0, len(relationships), batch_size):
+            batch = relationships[start:start + batch_size]
+
+            try:
+                with self.db_session.begin_nested():
+                    self.db_session.add_all(batch)
+                    self.db_session.flush()
+
+                relationships_added += len(batch)
+
+            except IntegrityError as e:
+                logger.warning(
+                    "Relationship batch contained duplicate/conflicting rows; "
+                    "falling back to individual inserts for %d rows: %s",
+                    len(batch),
+                    e,
+                )
+
+                for relationship in batch:
+                    try:
+                        with self.db_session.begin_nested():
+                            self.db_session.add(relationship)
+                            self.db_session.flush()
+
+                        relationships_added += 1
+
+                    except IntegrityError as duplicate_error:
+                        logger.debug(
+                            "Skipping conflicting job-skill relationship "
+                            "job_id=%s skill_id=%s: %s",
+                            relationship.job_id,
+                            relationship.skill_id,
+                            duplicate_error,
+                        )
+                        continue
 
         logger.info(
-            "Skills processed: skills_added=%d, relationships_added=%d, duplicates_skipped=%d",
+            "Skills processed: skills_added=%d, "
+            "relationships_added=%d, duplicates_skipped=%d",
             skills_added,
             relationships_added,
-            len(job_skills) - relationships_added
+            len(job_skills) - relationships_added,
         )
 
         return SkillResult(
