@@ -7,9 +7,9 @@ from datetime import UTC, datetime
 from typing import Optional, Dict, Any
 from uuid import UUID
 
-from sqlalchemy import text
 from app.etl import ETLPipeline
-from app.database.session import get_db
+from app.database.session import SessionLocal
+from app.models.pipeline_run import PipelineRun
 from app.repositories.pipeline_run_repository import PipelineRunRepository
 from config.settings import settings
 
@@ -102,6 +102,39 @@ def print_summary(
     print("=" * 70)
 
 
+def mark_pipeline_run_failed(pipeline_run_id: UUID | None, error_message: str) -> None:
+    """
+    Record ETL failure using a short-lived database transaction.
+    
+    Args:
+        pipeline_run_id: UUID of the pipeline run to mark as failed
+        error_message: Error message to record
+    """
+    if pipeline_run_id is None:
+        return
+
+    try:
+        with SessionLocal() as session:
+            repo = PipelineRunRepository(session)
+            pipeline_run = session.get(PipelineRun, pipeline_run_id)
+
+            if pipeline_run is None:
+                logger.error("❌ Could not find pipeline run %s", pipeline_run_id)
+                return
+
+            repo.finish(
+                pipeline_run,
+                status="failed",
+                records_processed=0,
+                error_message=error_message,
+            )
+            session.commit()
+            logger.info("✅ Pipeline failure recorded")
+
+    except Exception as e:
+        logger.error("❌ Failed to record pipeline failure: %s", e, exc_info=True)
+
+
 def run_pipeline_with_timeout(timeout_minutes: int = 25) -> int:
     """
     Run the ETL pipeline with timeout protection (Unix only).
@@ -139,8 +172,11 @@ def run_pipeline() -> int:
     """
     Run the full ETL pipeline using settings from configuration.
     
-    Owns the transaction: commit on success, rollback on failure.
-    Pipeline execution tracking is managed here, not in the loader.
+    Database transactions are deliberately kept short:
+    - Transaction 1: create pipeline_run (commit immediately)
+    - ETL execution: no orchestration transaction
+    - Transaction 2: finish pipeline_run (commit immediately)
+    - Failure handling: fresh short transaction
     
     Returns:
         0 for success, 1 for failure
@@ -161,112 +197,91 @@ def run_pipeline() -> int:
         logger.error("❌ Adzuna credentials not configured.")
         return 1
 
-    db_gen = get_db()
-    session = next(db_gen)
-    
+    pipeline_run_id = None
+
     # ============================================================
-    # Set database timeouts to prevent idle-in-transaction timeout
+    # 1. CREATE PIPELINE RUN - Short transaction only
     # ============================================================
     try:
-        logger.info("⏱️ Setting database timeouts...")
-        session.execute(text("SET idle_in_transaction_session_timeout = '15min'"))
-        session.execute(text("SET statement_timeout = '10min'"))
-        session.commit()
-        logger.info("✅ Database timeouts set successfully")
+        with SessionLocal() as session:
+            logger.info("📝 Creating pipeline run...")
+            repo = PipelineRunRepository(session)
+            pipeline_run = repo.create(
+                source_site="adzuna",
+                started_at=datetime.now(UTC),
+            )
+            # ✅ Commit immediately - end the transaction
+            session.commit()
+            pipeline_run_id = pipeline_run.id
+            logger.info(f"✅ Pipeline run created: {pipeline_run_id}")
+
     except Exception as e:
-        logger.warning(f"⚠️ Could not set timeouts: {e}")
-        # Continue anyway - the pipeline will try to run
-    
-    pipeline_run_repo = PipelineRunRepository(session)
-    
-    pipeline_run = None
+        logger.error(f"❌ Failed to create pipeline run: {e}", exc_info=True)
+        return 1
 
+    # ============================================================
+    # 2. RUN ETL - NO database transaction open here
+    # ============================================================
     try:
-        # Create pipeline run record at the orchestration level
-        pipeline_run = pipeline_run_repo.create(
-            source_site="adzuna",
-            started_at=datetime.now(UTC)
-        )
-
-        # ------------------------------------------------------------------
-        # Initialize and run the ETL pipeline
-        # ------------------------------------------------------------------
         logger.info("\n" + "=" * 60)
         logger.info("📡 STEP 1-5: EXTRACT → TRANSFORM → ENRICH → VALIDATE → LOAD")
         logger.info("=" * 60)
 
-        # Create and run pipeline (database already initialized via Alembic)
         pipeline = ETLPipeline()
         metrics = pipeline.run(countries=settings.default_countries)
-
-        # Get acquisition metrics if available
         acquisition_metrics = pipeline.get_acquisition_metrics()
 
-        # ------------------------------------------------------------------
-        # FINISH PIPELINE RUN
-        # ------------------------------------------------------------------
-        pipeline_run_repo.finish(
-            pipeline_run,
-            status="completed",
-            records_processed=metrics.validated,
-        )
-
-        # ------------------------------------------------------------------
-        # COMMIT TRANSACTION
-        # ------------------------------------------------------------------
-        session.commit()
-        logger.info("✅ Transaction committed successfully")
-
-        # ------------------------------------------------------------------
-        # FINAL SUMMARY
-        # ------------------------------------------------------------------
-        # Convert UUID to string if needed
-        run_id_str = str(pipeline_run.id) if pipeline_run and hasattr(pipeline_run, 'id') else None
-        print_summary(metrics, run_id_str, acquisition_metrics)
-
-        logger.info("\n" + "=" * 60)
-        logger.info("🎉 ETL PIPELINE COMPLETED SUCCESSFULLY")
-        logger.info("=" * 60)
-
-        return 0
+    except ETLTimeoutError as e:
+        # ✅ Record timeout failure and re-raise for timeout handler
+        logger.error(f"⏰ {str(e)}")
+        mark_pipeline_run_failed(pipeline_run_id, str(e))
+        raise
 
     except KeyboardInterrupt:
         logger.warning("⚠️ Pipeline interrupted by user")
+        mark_pipeline_run_failed(pipeline_run_id, "Interrupted by user")
         return 130
 
     except Exception as e:
         logger.error(f"❌ Pipeline failed: {e}", exc_info=True)
-        
-        # Rollback the transaction
-        session.rollback()
-        logger.warning("⚠️ Transaction rolled back")
-        
-        # Record failure
-        if pipeline_run is not None:
-            try:
-                pipeline_run_repo.finish(
-                    pipeline_run,
-                    status="failed",
-                    records_processed=0,
-                    error_message=str(e),
-                )
-                session.commit()
-                logger.info("✅ Pipeline failure recorded")
-            except Exception as finish_error:
-                logger.error(f"❌ Failed to record pipeline failure: {finish_error}")
-                try:
-                    session.rollback()
-                except Exception:
-                    pass
-        
+        mark_pipeline_run_failed(pipeline_run_id, str(e))
         return 1
 
-    finally:
-        # Advance the generator so its finally block closes the session
-        try:
-            next(db_gen)
-        except StopIteration:
-            pass
+    # ============================================================
+    # 3. FINISH PIPELINE RUN - Short transaction only
+    # ============================================================
+    try:
+        with SessionLocal() as session:
+            logger.info("📝 Finishing pipeline run...")
+            repo = PipelineRunRepository(session)
+
+            pipeline_run = session.get(PipelineRun, pipeline_run_id)
+            if pipeline_run is None:
+                raise RuntimeError(f"Pipeline run {pipeline_run_id} could not be found")
+
+            repo.finish(
+                pipeline_run,
+                status="completed",
+                records_processed=metrics.validated,
+            )
+            session.commit()
+            logger.info("✅ Pipeline run marked as completed")
+
+    except Exception as e:
+        logger.error(f"❌ Failed to finish pipeline run: {e}", exc_info=True)
+        return 1
+
+    # ============================================================
+    # 4. FINAL SUMMARY
+    # ============================================================
+    run_id_str = str(pipeline_run_id) if pipeline_run_id else None
+    print_summary(metrics, run_id_str, acquisition_metrics)
+
+    logger.info("\n" + "=" * 60)
+    logger.info("🎉 ETL PIPELINE COMPLETED SUCCESSFULLY")
+    logger.info("=" * 60)
+
+    return 0
 
 
 def main() -> int:
