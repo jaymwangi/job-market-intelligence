@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Job Market Intelligence",
+    "slug": "job-market-intelligence",
+    "tagline": "End-to-end ETL + analytics for job postings",
+    "iconDomain": "github.com",
+    "date": "2026-08-18"
+  },
+  "stats": { "agents": 0, "models": 0, "tools": 0, "integrations": 5 },
+  "topModels": [],
+  "topTools": [],
+  "topIntegrations": [
+    { "id": "adzuna", "label": "Adzuna", "domain": "adzuna.com" },
+    { "id": "postgres", "label": "Postgres", "domain": "postgresql.org" },
+    { "id": "render", "label": "Render", "domain": "render.com" },
+    { "id": "github_actions", "label": "GitHub Actions", "domain": "github.com" },
+    { "id": "streamlit", "label": "Streamlit", "domain": "streamlit.io" }
+  ],
+  "graph": {
+    "nodes": [
+      { "id": "github_actions", "label": "GitHub Actions (daily ETL)", "kind": "cron", "sub": ".github/workflows/etl-pipeline.yml" },
+      { "id": "run_pipeline", "label": "run_pipeline.py", "kind": "entry", "sub": "scripts/run_pipeline.py", "sourceRef": "scripts/run_pipeline.py:1" },
+      { "id": "extractor", "label": "Extractor", "kind": "service", "sub": "app/etl/extractors", "sourceRef": "app/etl/extractors:1", "detail": "Fetches raw job postings and emits transformed records" },
+      { "id": "http_client", "label": "HTTP client layer", "kind": "service", "sub": "app/etl/clients", "sourceRef": "app/etl/clients:1", "detail": "API client wrappers (Adzuna, retry & rate-limit handling)" },
+      { "id": "adzuna", "label": "Adzuna API", "kind": "external", "domain": "adzuna.com", "detail": "Primary external job postings source (requires ADZUNA_APP_ID/KEY)" },
+      { "id": "transformer", "label": "Transformer", "kind": "service", "sub": "app/etl/transformers", "sourceRef": "app/etl/transformers:1", "detail": "Maps external schema into internal JobTransformed model" },
+      { "id": "enricher", "label": "Enricher", "kind": "service", "sub": "app/etl/enrichment/enricher.py", "sourceRef": "app/etl/enrichment/enricher.py:1", "detail": "Orchestrates language detection, skill extraction, classification, country/currency/salary enrichment" },
+      { "id": "language_detector", "label": "Language Detector", "kind": "service", "sub": "app/etl/enrichment/language_detector.py", "sourceRef": "app/etl/enrichment/language_detector.py:1", "detail": "Uses lingua-language-detector library; caches results (ISO 639-1 codes)" },
+      { "id": "skill_extractor", "label": "Skill Extractor", "kind": "service", "sub": "app/etl/enrichment/skill_extractor.py", "sourceRef": "app/etl/enrichment/skill_extractor.py:1", "detail": "Keyword-driven skill extraction from title+description" },
+      { "id": "tech_scorer", "label": "Technology Scorer", "kind": "service", "sub": "app/etl/enrichment/tech_scorer.py", "sourceRef": "app/etl/enrichment/tech_scorer.py:1", "detail": "Rule/keyword-based scoring and classifier (policy-driven decisions)" },
+      { "id": "validator", "label": "Validator (Pydantic)", "kind": "service", "sub": "app/etl/validators", "sourceRef": "app/etl/validators:1", "detail": "Pydantic schemas validate enriched job payloads" },
+      { "id": "loader", "label": "Loader (Upsert + Purge)", "kind": "service", "sub": "app/etl/loaders", "sourceRef": "app/etl/loaders:1", "detail": "Performs upserts by source_id and purges jobs older than 90 days" },
+      { "id": "repositories", "label": "Repository layer", "kind": "service", "sub": "app/repositories", "sourceRef": "app/repositories:1", "detail": "DB access abstraction (SQLAlchemy + Alembic migrations)" },
+      { "id": "postgres", "label": "Postgres", "kind": "store", "domain": "postgresql.org", "detail": "Primary persistence for jobs and analytics (DATABASE_URL)" },
+      { "id": "analytics", "label": "Analytics service", "kind": "service", "sub": "app/services", "sourceRef": "app/services:1", "detail": "Aggregations and KPI computations for dashboard endpoints" },
+      { "id": "fastapi", "label": "FastAPI backend", "kind": "entry", "sub": "app/main.py", "sourceRef": "app/main.py:1", "detail": "REST API exposing jobs and analytics; health endpoints and OpenAPI" },
+      { "id": "api_routes", "label": "API routes", "kind": "service", "sub": "app/api/routes", "sourceRef": "app/api/routes:1", "detail": "Routes implement filtering, pagination, and analytics endpoints" },
+      { "id": "dashboard", "label": "Streamlit Dashboard", "kind": "entry", "sub": "dashboard/app.py", "sourceRef": "dashboard/app.py:1", "detail": "Interactive Streamlit UI that calls the FastAPI backend (no DB access)" },
+      { "id": "dashboard_services", "label": "Dashboard services", "kind": "service", "sub": "dashboard/services", "sourceRef": "dashboard/services:1", "detail": "Client layer + Plotly visualizations and caching" },
+      { "id": "docker_compose", "label": "Docker Compose", "kind": "service", "sub": "compose.yml", "sourceRef": "compose.yml:1", "detail": "Local orchestration for backend, db, dashboard for development" },
+      { "id": "render", "label": "Render", "kind": "external", "domain": "render.com", "detail": "Optional production deployment target (render.yaml)" },
+      { "id": "github", "label": "GitHub", "kind": "external", "domain": "github.com", "detail": "Source repo, CI runs, workflows and actions" }
+    ],
+    "edges": [
+      { "from": "github_actions", "to": "run_pipeline", "kind": "triggers" },
+      { "from": "run_pipeline", "to": "extractor", "kind": "triggers" },
+      { "from": "extractor", "to": "http_client", "kind": "calls" },
+      { "from": "http_client", "to": "adzuna", "kind": "calls" },
+      { "from": "extractor", "to": "transformer", "kind": "triggers" },
+      { "from": "transformer", "to": "enricher", "kind": "triggers" },
+      { "from": "enricher", "to": "language_detector", "kind": "calls" },
+      { "from": "enricher", "to": "skill_extractor", "kind": "calls" },
+      { "from": "enricher", "to": "tech_scorer", "kind": "calls" },
+      { "from": "enricher", "to": "validator", "kind": "triggers" },
+      { "from": "validator", "to": "loader", "kind": "triggers" },
+      { "from": "loader", "to": "repositories", "kind": "writes", "label": "upsert by source_id; 90d purge" },
+      { "from": "repositories", "to": "postgres", "kind": "writes" },
+      { "from": "analytics", "to": "repositories", "kind": "reads" },
+      { "from": "fastapi", "to": "api_routes", "kind": "triggers" },
+      { "from": "api_routes", "to": "repositories", "kind": "reads" },
+      { "from": "dashboard", "to": "fastapi", "kind": "calls", "label": "API-driven; no direct DB access" },
+      { "from": "docker_compose", "to": "postgres", "kind": "triggers" },
+      { "from": "docker_compose", "to": "fastapi", "kind": "triggers" },
+      { "from": "docker_compose", "to": "dashboard", "kind": "triggers" },
+      { "from": "github", "to": "github_actions", "kind": "triggers" }
+    ]
+  }
+}
