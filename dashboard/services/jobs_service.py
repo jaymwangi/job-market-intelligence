@@ -100,6 +100,8 @@ class JobsService(BaseService):
             params["max_salary"] = filters.max_salary
         if filters.language:
             params["language"] = filters.language
+        if filters.is_tech_role is not None:
+            params["is_tech_role"] = filters.is_tech_role
 
         return params
 
