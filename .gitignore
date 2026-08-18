@@ -93,3 +93,6 @@ Thumbs.db
 tempCodeRunnerFile.pydata/
 reports/
 data/
+
+# Foglamp scan data
+.foglamp/
