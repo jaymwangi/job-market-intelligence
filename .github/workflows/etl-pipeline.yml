@@ -20,7 +20,9 @@ jobs:
       ETL_TIMEOUT_MINUTES: ${{ secrets.ETL_TIMEOUT_MINUTES || '240' }}
       ENVIRONMENT: production
       LOG_LEVEL: INFO
-
+      TRANSLATION_PROVIDER: deepl
+      DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -39,6 +41,17 @@ jobs:
 
       - name: Run migrations
         run: alembic upgrade head
+      
+      - name: Validate production configuration
+        run: |
+          python -c "
+          from config.settings import settings
+          print('Environment:', settings.environment)
+          print('Translation provider:', settings.translation_provider)
+          print('DeepL configured:', bool(settings.deepl_api_key))
+          print('Debug:', settings.debug)
+          print('Production errors:', settings.validate_production())
+          "
 
       - name: Run ETL pipeline
         run: python -m scripts.run_pipeline

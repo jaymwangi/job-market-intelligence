@@ -26,3 +26,9 @@ services:
 
       - key: LOG_FORMAT
         value: json
+
+      - key: TRANSLATION_PROVIDER
+        value: deepl
+
+      - key: DEEPL_API_KEY
+        sync: false

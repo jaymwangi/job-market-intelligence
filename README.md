@@ -860,8 +860,8 @@ The application can be deployed to Render using the provided `render.yaml`:
 services:
   - type: web
     name: job-market-intelligence-api
-    runtime: python
-    plan: starter
+    runtime: docker
+    plan: free
     envVars:
       - key: DATABASE_URL
         fromDatabase:
