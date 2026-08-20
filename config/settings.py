@@ -1,18 +1,18 @@
 from enum import StrEnum
 from functools import lru_cache
 from urllib.parse import quote_plus
-from typing import List
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 # ============================================================
 # Enums for type-safe configuration
 # ============================================================
 
+
 class Environment(StrEnum):
     """Application environments."""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -20,6 +20,7 @@ class Environment(StrEnum):
 
 class LogLevel(StrEnum):
     """Log levels."""
+
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -29,37 +30,40 @@ class LogLevel(StrEnum):
 
 class LogFormat(StrEnum):
     """Log output formats."""
+
     STANDARD = "standard"
     JSON = "json"
 
 
 class TranslationProvider(StrEnum):
     """Supported translation providers."""
-    GOOGLE = "google"      # Development/demo only
-    DEEPL = "deepl"        # Production-ready
-    AZURE = "azure"        # Production-ready
-    MOCK = "mock"          # Testing
+
+    GOOGLE = "google"  # Development/demo only
+    DEEPL = "deepl"  # Production-ready
+    AZURE = "azure"  # Production-ready
+    MOCK = "mock"  # Testing
 
 
 # ============================================================
 # Mixin Classes (Using BaseModel for configuration sections)
 # ============================================================
 
+
 class ApplicationSettings(BaseModel):
     """Application configuration."""
-    
+
     app_name: str = Field(default="Job Market Intelligence")
     environment: Environment = Field(default=Environment.DEVELOPMENT)
     debug: bool = Field(default=False)
-    
+
     @property
     def is_production(self) -> bool:
         return self.environment == Environment.PRODUCTION
-    
+
     @property
     def is_development(self) -> bool:
         return self.environment == Environment.DEVELOPMENT
-    
+
     @property
     def is_staging(self) -> bool:
         return self.environment == Environment.STAGING
@@ -67,23 +71,22 @@ class ApplicationSettings(BaseModel):
 
 class ServerSettings(BaseModel):
     """Server configuration."""
-    
+
     host: str = Field(default="0.0.0.0", description="Server host to bind to")
     port: int = Field(default=8000, description="Server port to bind to", ge=1, le=65535)
 
 
 class SecuritySettings(BaseModel):
     """Security configuration."""
-    
+
     secret_key: str | None = Field(
-        default=None,
-        description="Secret key for JWT and sessions. Required in production."
+        default=None, description="Secret key for JWT and sessions. Required in production."
     )
 
 
 class DatabaseSettings(BaseModel):
     """Database configuration."""
-    
+
     # Support both DATABASE_URL and individual fields
     database_url: str | None = Field(default=None)
     database_host: str = Field(default="localhost")
@@ -91,19 +94,19 @@ class DatabaseSettings(BaseModel):
     database_name: str = Field(default="job_market_intelligence")
     database_user: str = Field(default="postgres")
     database_password: str = Field(default="password")
-    
+
     # Connection pool
     db_pool_size: int = Field(default=5, ge=1, le=50)
     db_max_overflow: int = Field(default=10, ge=0, le=100)
     db_pool_timeout: int = Field(default=30, ge=5)
     db_pool_pre_ping: bool = Field(default=True)
-    
+
     @property
     def sqlalchemy_database_url(self) -> str:
         """Get SQLAlchemy database URL with proper driver."""
         if self.database_url:
             url = self.database_url
-            
+
             # Handle various URL formats
             if url.startswith("postgres://"):
                 return url.replace("postgres://", "postgresql+psycopg://", 1)
@@ -113,7 +116,7 @@ class DatabaseSettings(BaseModel):
                 return url
             else:
                 return url
-        
+
         # Build from individual fields
         encoded_password = quote_plus(self.database_password)
         return (
@@ -128,10 +131,10 @@ class DatabaseSettings(BaseModel):
 
 class LoggingSettings(BaseModel):
     """Logging configuration."""
-    
+
     log_level: LogLevel = Field(default=LogLevel.INFO)
     log_format: LogFormat = Field(default=LogFormat.STANDARD)
-    
+
     @property
     def structured_logging(self) -> bool:
         """Enable structured logging when format is JSON."""
@@ -140,21 +143,21 @@ class LoggingSettings(BaseModel):
 
 class APISettings(BaseModel):
     """API configuration."""
-    
+
     api_title: str = Field(default="Job Market Intelligence API")
     api_description: str = Field(
         default="REST API for technology job market analytics and insights."
     )
     api_version: str = Field(default="1.0.0")
     api_prefix: str = Field(default="/api/v1")
-    allowed_origins: List[str] = Field(
+    allowed_origins: list[str] = Field(
         default=["http://localhost:3000", "http://localhost:8501", "http://localhost:8000"]
     )
 
 
 class AdzunaSettings(BaseModel):
     """Adzuna API configuration."""
-    
+
     adzuna_base_url: str = Field(default="https://api.adzuna.com/v1/api")
     adzuna_app_id: str = Field(default="")
     adzuna_app_key: str = Field(default="")
@@ -162,84 +165,65 @@ class AdzunaSettings(BaseModel):
 
 class PipelineSettings(BaseModel):
     """ETL pipeline configuration."""
-    
+
+    etl_timeout_minutes: int = Field(
+        default=240, ge=1, description="Maximum ETL pipeline runtime in minutes"
+    )
+
     pipeline_results_per_page: int = Field(
-        default=25,
-        ge=1,
-        le=50,
-        description="Number of results per page when fetching jobs"
+        default=25, ge=1, le=50, description="Number of results per page when fetching jobs"
     )
     pipeline_max_pages: int = Field(
-        default=5,
-        ge=1,
-        le=20,
-        description="Maximum number of pages to fetch"
+        default=5, ge=1, le=20, description="Maximum number of pages to fetch"
     )
     pipeline_retention_days: int = Field(
         default=90,
         ge=30,
         le=365,
-        description="Number of days to retain jobs (based on scraped_date)"
+        description="Number of days to retain jobs (based on scraped_date)",
     )
 
 
 class LanguageSettings(BaseModel):
     """Language detection configuration."""
-    
+
     language_detection_enabled: bool = Field(
-        default=True,
-        description="Enable language detection during ETL"
+        default=True, description="Enable language detection during ETL"
     )
     default_language: str = Field(
         default="en",
-        description="Default language code (ISO 639-1) for jobs without detected language"
+        description="Default language code (ISO 639-1) for jobs without detected language",
     )
 
 
 class TranslationSettings(BaseModel):
     """Translation configuration."""
-    
+
     translation_provider: TranslationProvider = Field(
-        default=TranslationProvider.GOOGLE,
-        description="Translation provider"
+        default=TranslationProvider.GOOGLE, description="Translation provider"
     )
     translation_timeout: int = Field(
-        default=15,
-        ge=5,
-        le=60,
-        description="Translation API timeout in seconds"
+        default=15, ge=5, le=60, description="Translation API timeout in seconds"
     )
-    
+
     # DeepL
     deepl_api_key: str | None = Field(
-        default=None,
-        description="DeepL API key for production translation"
+        default=None, description="DeepL API key for production translation"
     )
-    
+
     # Azure Translator
-    azure_translator_key: str | None = Field(
-        default=None,
-        description="Azure Translator API key"
-    )
+    azure_translator_key: str | None = Field(default=None, description="Azure Translator API key")
     azure_translator_endpoint: str | None = Field(
-        default=None,
-        description="Azure Translator endpoint"
+        default=None, description="Azure Translator endpoint"
     )
-    azure_translator_region: str | None = Field(
-        default=None,
-        description="Azure Translator region"
-    )
-    
+    azure_translator_region: str | None = Field(default=None, description="Azure Translator region")
+
     # Google Cloud Translation
-    google_cloud_project: str | None = Field(
-        default=None,
-        description="Google Cloud project ID"
-    )
+    google_cloud_project: str | None = Field(default=None, description="Google Cloud project ID")
     google_application_credentials: str | None = Field(
-        default=None,
-        description="Path to Google Cloud service account key JSON"
+        default=None, description="Path to Google Cloud service account key JSON"
     )
-    
+
     @property
     def translation_enabled(self) -> bool:
         """Check if translation is enabled."""
@@ -248,78 +232,65 @@ class TranslationSettings(BaseModel):
 
 class TechClassificationSettings(BaseModel):
     """Technology classification configuration."""
-    
+
     tech_classification_enabled: bool = Field(
-        default=True,
-        description="Enable technology classification during ETL"
+        default=True, description="Enable technology classification during ETL"
     )
     tech_classification_config_path: str = Field(
         default="config/tech_classification.yaml",
-        description="Path to technology classification YAML config"
+        description="Path to technology classification YAML config",
     )
     tech_only_analytics: bool = Field(
-        default=True,
-        description="Filter analytics to technology roles only"
+        default=True, description="Filter analytics to technology roles only"
     )
     tech_classification_min_confidence: float = Field(
         default=0.3,
         ge=0.0,
         le=1.0,
-        description="Minimum confidence threshold for tech classification"
+        description="Minimum confidence threshold for tech classification",
     )
 
 
 class GeographicSettings(BaseModel):
     """Geographic configuration."""
-    
-    default_countries: List[str] = Field(
+
+    default_countries: list[str] = Field(
         default=["gb", "us", "de", "fr", "ca", "au"],
-        description="Default countries to fetch jobs from (ISO 3166-1 alpha-2)"
+        description="Default countries to fetch jobs from (ISO 3166-1 alpha-2)",
     )
 
 
 class FeatureFlags(BaseModel):
     """Feature flags for optional functionality."""
-    
-    feature_enable_translation: bool = Field(
-        default=True,
-        description="Enable translation feature"
-    )
+
+    feature_enable_translation: bool = Field(default=True, description="Enable translation feature")
     feature_enable_tech_classification: bool = Field(
-        default=True,
-        description="Enable technology classification feature"
+        default=True, description="Enable technology classification feature"
     )
     feature_enable_multi_country: bool = Field(
-        default=True,
-        description="Enable multi-country ingestion"
+        default=True, description="Enable multi-country ingestion"
     )
     feature_enable_language_filter: bool = Field(
-        default=True,
-        description="Enable language filtering in dashboard"
+        default=True, description="Enable language filtering in dashboard"
     )
 
 
 class AcquisitionSettings(BaseModel):
     """Acquisition strategy configuration for balanced dataset collection."""
-    
+
     # ------------------------------------------------------------------
     # Core acquisition controls
     # ------------------------------------------------------------------
     acquisition_enabled: bool = Field(
-        default=True,
-        description="Enable balanced acquisition strategy"
+        default=True, description="Enable balanced acquisition strategy"
     )
     acquisition_target_tech_ratio: float = Field(
-        default=0.5,
-        ge=0.0,
-        le=1.0,
-        description="Target ratio of tech jobs in acquired dataset"
+        default=0.5, ge=0.0, le=1.0, description="Target ratio of tech jobs in acquired dataset"
     )
     acquisition_use_category_filter: bool = Field(
-        default=True,
-        description="Use 'it-jobs' category for tech queries"
+        default=True, description="Use 'it-jobs' category for tech queries"
     )
-    
+
     # ------------------------------------------------------------------
     # Per-run limits (used by adaptive acquisition)
     # ------------------------------------------------------------------
@@ -327,27 +298,21 @@ class AcquisitionSettings(BaseModel):
         default=2000,
         ge=100,
         le=10000,
-        description="Maximum jobs to acquire per pipeline run (adaptive mode)"
+        description="Maximum jobs to acquire per pipeline run (adaptive mode)",
     )
     acquisition_batch_size: int = Field(
         default=100,
         ge=10,
         le=500,
-        description="Number of jobs to process per batch before updating controller"
+        description="Number of jobs to process per batch before updating controller",
     )
     acquisition_max_queries_per_country: int = Field(
-        default=25,
-        ge=1,
-        le=100,
-        description="Maximum queries per country per run"
+        default=25, ge=1, le=100, description="Maximum queries per country per run"
     )
     acquisition_parity_tolerance: float = Field(
-        default=0.05,
-        ge=0.0,
-        le=0.10,
-        description="Tolerance for balanced check (±5%)"
+        default=0.05, ge=0.0, le=0.10, description="Tolerance for balanced check (±5%)"
     )
-    
+
     # ------------------------------------------------------------------
     # Legacy / total limit (kept for backward compatibility)
     # ------------------------------------------------------------------
@@ -355,46 +320,86 @@ class AcquisitionSettings(BaseModel):
         default=10000,
         ge=100,
         le=100000,
-        description="[Deprecated] Maximum total jobs to acquire across all runs"
+        description="[Deprecated] Maximum total jobs to acquire across all runs",
     )
-    
+
     # ------------------------------------------------------------------
     # Query lists
     # ------------------------------------------------------------------
-    acquisition_broad_queries: List[str] = Field(
+    acquisition_broad_queries: list[str] = Field(
         default=[
-            "nurse", "doctor", "healthcare", "medical",
-            "teacher", "professor", "educator",
-            "retail", "cashier", "customer service", "barista",
-            "driver", "delivery", "logistics",
-            "construction", "electrician", "plumber", "carpenter", "mechanic",
-            "accountant", "administrative", "receptionist", "clerk",
-            "chef", "hospitality", "hotel"
+            "nurse",
+            "doctor",
+            "healthcare",
+            "medical",
+            "teacher",
+            "professor",
+            "educator",
+            "retail",
+            "cashier",
+            "customer service",
+            "barista",
+            "driver",
+            "delivery",
+            "logistics",
+            "construction",
+            "electrician",
+            "plumber",
+            "carpenter",
+            "mechanic",
+            "accountant",
+            "administrative",
+            "receptionist",
+            "clerk",
+            "chef",
+            "hospitality",
+            "hotel",
         ],
-        description="Broad query terms for non-tech jobs"
+        description="Broad query terms for non-tech jobs",
     )
-    acquisition_tech_queries: List[str] = Field(
+    acquisition_tech_queries: list[str] = Field(
         default=[
-            "software engineer", "software developer",
-            "backend developer", "frontend developer", "full stack developer",
-            "devops engineer", "site reliability engineer",
-            "data scientist", "data engineer", "data analyst",
-            "machine learning engineer", "ai engineer",
-            "cloud engineer", "cloud architect",
-            "security engineer", "network engineer", "systems administrator",
-            "ios developer", "android developer", "mobile developer",
-            "qa engineer", "test automation engineer", "quality assurance",
-            "game developer", "unity developer", "unreal developer",
-            "embedded engineer", "firmware engineer", "iot engineer",
-            "blockchain developer", "web3 developer", "smart contract developer"
+            "software engineer",
+            "software developer",
+            "backend developer",
+            "frontend developer",
+            "full stack developer",
+            "devops engineer",
+            "site reliability engineer",
+            "data scientist",
+            "data engineer",
+            "data analyst",
+            "machine learning engineer",
+            "ai engineer",
+            "cloud engineer",
+            "cloud architect",
+            "security engineer",
+            "network engineer",
+            "systems administrator",
+            "ios developer",
+            "android developer",
+            "mobile developer",
+            "qa engineer",
+            "test automation engineer",
+            "quality assurance",
+            "game developer",
+            "unity developer",
+            "unreal developer",
+            "embedded engineer",
+            "firmware engineer",
+            "iot engineer",
+            "blockchain developer",
+            "web3 developer",
+            "smart contract developer",
         ],
-        description="Tech query terms for IT jobs"
+        description="Tech query terms for IT jobs",
     )
 
 
 # ============================================================
 # Combined Settings Class
 # ============================================================
+
 
 class Settings(
     ApplicationSettings,
@@ -415,11 +420,11 @@ class Settings(
 ):
     """
     Application settings loaded from environment variables.
-    
+
     Inherits from multiple mixin classes for clean organization.
     Supports both DATABASE_URL and individual database fields.
     """
-    
+
     # Use SettingsConfigDict from pydantic_settings
     # This resolves the type conflict between BaseModel.ConfigDict and BaseSettings.SettingsConfigDict
     model_config: SettingsConfigDict = SettingsConfigDict(  # type: ignore[assignment]
@@ -475,7 +480,7 @@ class Settings(
 
     @field_validator("default_countries")
     @classmethod
-    def validate_default_countries(cls, v: List[str]) -> List[str]:
+    def validate_default_countries(cls, v: list[str]) -> list[str]:
         """Validate that default countries are valid ISO 3166-1 alpha-2 codes."""
         if not v:
             raise ValueError("default_countries cannot be empty")
@@ -552,7 +557,7 @@ class Settings(
 
     @field_validator("acquisition_broad_queries", "acquisition_tech_queries")
     @classmethod
-    def validate_acquisition_queries_not_empty(cls, v: List[str]) -> List[str]:
+    def validate_acquisition_queries_not_empty(cls, v: list[str]) -> list[str]:
         """Validate that query lists are not empty when acquisition is enabled."""
         if not v:
             raise ValueError("Acquisition query list cannot be empty")
@@ -562,7 +567,7 @@ class Settings(
     # Production Validation
     # ============================================================
 
-    def validate_production(self) -> List[str]:
+    def validate_production(self) -> list[str]:
         """Validate production configuration, return list of errors."""
         if not self.is_production:
             return []
@@ -603,7 +608,9 @@ class Settings(
             if not self.azure_translator_key:
                 errors.append("AZURE_TRANSLATOR_KEY is required when using Azure in production")
             if not self.azure_translator_endpoint:
-                errors.append("AZURE_TRANSLATOR_ENDPOINT is required when using Azure in production")
+                errors.append(
+                    "AZURE_TRANSLATOR_ENDPOINT is required when using Azure in production"
+                )
 
         # Validate acquisition settings in production
         if self.acquisition_enabled:
@@ -634,6 +641,7 @@ class Settings(
 # ============================================================
 # Singleton Instance
 # ============================================================
+
 
 @lru_cache
 def get_settings() -> Settings:
