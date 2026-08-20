@@ -1,21 +1,21 @@
 """Job loader for persisting validated jobs to the database."""
 
+import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
-from typing import Set
 
-from sqlalchemy.orm import Session
+from sqlalchemy import tuple_
 from sqlalchemy.exc import IntegrityError, PendingRollbackError
+from sqlalchemy.orm import Session
 
-from app.etl.schemas.validated import JobValidated
 from app.etl.schemas.metrics import PipelineMetrics
-from app.repositories.job_repository import JobRepository
-from app.models.skill import Skill
-from app.models.job_skill import JobSkill
+from app.etl.schemas.validated import JobValidated
 from app.models.job import Job
+from app.models.job_skill import JobSkill
+from app.models.skill import Skill
+from app.repositories.job_repository import JobRepository
 from config.settings import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,6 @@ class JobLoader:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
-
     def upsert(self, jobs: list[JobValidated]) -> LoadResult:
         """
         Upsert validated jobs into the database.
@@ -106,8 +105,7 @@ class JobLoader:
             self.db_session.flush()
 
             logger.info(
-                "Load complete: inserted=%d, updated=%d, "
-                "skills=%d, relationships=%d, purged=%d",
+                "Load complete: inserted=%d, updated=%d, " "skills=%d, relationships=%d, purged=%d",
                 result.inserted,
                 result.updated,
                 result.skills_added,
@@ -125,35 +123,44 @@ class JobLoader:
         """
         Upsert jobs via repository.
 
+        Uses the composite key (source_site, source_id) to match
+        the database unique constraint 'uq_job_source'.
+
         All-or-nothing: any exception aborts the entire batch.
 
         Returns:
-            UpsertResult with inserted and updated counts
+            UpsertResult with inserted and updated counts.
         """
+        if not jobs:
+            return UpsertResult()
+
+        # Build composite keys matching uq_job_source
+        source_keys = {(job.source, job.source_id) for job in jobs}
+
+        existing_jobs = (
+            self.db_session.query(Job)
+            .filter(tuple_(Job.source_site, Job.source_id).in_(source_keys))
+            .all()
+        )
+
+        existing_keys = {(job.source_site, job.source_id) for job in existing_jobs}
+
+        job_repo = JobRepository(self.db_session)
+
         inserted = 0
         updated = 0
 
-        # Get existing jobs to track insert vs update
-        source_ids = [j.source_id for j in jobs]
-        existing_jobs = self.db_session.query(Job).filter(
-            Job.source_id.in_(source_ids)
-        ).all()
-        existing_source_ids = {j.source_id for j in existing_jobs}
-
-        # Create job repo here to ensure fresh session state
-        job_repo = JobRepository(self.db_session)
-
         for job in jobs:
-            is_existing = job.source_id in existing_source_ids
+            key = (job.source, job.source_id)
 
             # Let exceptions propagate - all-or-nothing
             job_repo.upsert_from_validated(job)
 
-            if is_existing:
+            if key in existing_keys:
                 updated += 1
             else:
                 inserted += 1
-                existing_source_ids.add(job.source_id)
+                existing_keys.add(key)
 
         # Flush to get job IDs for skill relationships
         self.db_session.flush()
@@ -162,19 +169,24 @@ class JobLoader:
             inserted=inserted,
             updated=updated,
         )
+
     def _process_skills(self, jobs: list[JobValidated]) -> SkillResult:
         """
         Process skills and create job-skill relationships.
 
+        Uses composite key (source_site, source_id) for job lookups
+        to maintain consistency with the database unique constraint.
+
         Database reads are completed before relationship inserts.
-        Relationships are inserted in batches using savepoints for 
+        Relationships are inserted in batches using savepoints for
         transaction isolation and duplicate handling.
 
         Returns:
             SkillResult with skills_added and relationships_added counts.
         """
-        all_skills: Set[str] = set()
-        job_skills: list[tuple[str, str]] = []  # (source_id, skill_name)
+        all_skills: set[str] = set()
+        # Store (source_site, source_id, skill_name) for composite key consistency
+        job_skills: list[tuple[str, str, str]] = []
 
         # ------------------------------------------------------------
         # 1. Collect unique skills and job-skill pairs in memory
@@ -190,7 +202,8 @@ class JobLoader:
                     continue
 
                 all_skills.add(skill_name)
-                job_skills.append((job.source_id, skill_name))
+                # Store the full composite key to avoid source_id ambiguity
+                job_skills.append((job.source, job.source_id, skill_name))
 
         if not all_skills:
             return SkillResult()
@@ -198,25 +211,14 @@ class JobLoader:
         # ------------------------------------------------------------
         # 2. Load existing skills
         # ------------------------------------------------------------
-        existing_skills = (
-            self.db_session.query(Skill)
-            .filter(Skill.name.in_(all_skills))
-            .all()
-        )
+        existing_skills = self.db_session.query(Skill).filter(Skill.name.in_(all_skills)).all()
 
-        existing_skill_names = {
-            skill.name
-            for skill in existing_skills
-        }
+        existing_skill_names = {skill.name for skill in existing_skills}
 
         # ------------------------------------------------------------
         # 3. Insert missing skills
         # ------------------------------------------------------------
-        new_skills = [
-            Skill(name=name)
-            for name in all_skills
-            if name not in existing_skill_names
-        ]
+        new_skills = [Skill(name=name) for name in all_skills if name not in existing_skill_names]
 
         skills_added = 0
 
@@ -228,35 +230,22 @@ class JobLoader:
         # ------------------------------------------------------------
         # 4. Build skill → ID mapping
         # ------------------------------------------------------------
-        all_skill_objects = (
-            self.db_session.query(Skill)
-            .filter(Skill.name.in_(all_skills))
-            .all()
-        )
+        all_skill_objects = self.db_session.query(Skill).filter(Skill.name.in_(all_skills)).all()
 
-        skill_map = {
-            skill.name: skill.id
-            for skill in all_skill_objects
-        }
+        skill_map = {skill.name: skill.id for skill in all_skill_objects}
 
         # ------------------------------------------------------------
-        # 5. Load all corresponding jobs
+        # 5. Load all corresponding jobs using composite key
         # ------------------------------------------------------------
-        source_ids = list({
-            source_id
-            for source_id, _ in job_skills
-        })
+        source_keys = list({(source_site, source_id) for source_site, source_id, _ in job_skills})
 
         jobs_db = (
             self.db_session.query(Job)
-            .filter(Job.source_id.in_(source_ids))
+            .filter(tuple_(Job.source_site, Job.source_id).in_(source_keys))
             .all()
         )
 
-        job_map = {
-            job.source_id: job.id
-            for job in jobs_db
-        }
+        job_map = {(job.source_site, job.source_id): job.id for job in jobs_db}
 
         if not job_map:
             return SkillResult(
@@ -280,8 +269,7 @@ class JobLoader:
         )
 
         existing_pairs = {
-            (relationship.job_id, relationship.skill_id)
-            for relationship in existing_relationships
+            (relationship.job_id, relationship.skill_id) for relationship in existing_relationships
         }
 
         # ------------------------------------------------------------
@@ -290,22 +278,24 @@ class JobLoader:
         relationships: list[JobSkill] = []
         seen: set[tuple[UUID, UUID]] = set()
 
-        for source_id, skill_name in job_skills:
-            job_id = job_map.get(source_id)
+        # Use the stored composite key (source_site, source_id, skill_name)
+        for source_site, source_id, skill_name in job_skills:
+            key = (source_site, source_id)
+            job_id = job_map.get(key)
             skill_id = skill_map.get(skill_name)
 
             if job_id is None or skill_id is None:
                 continue
 
-            key = (job_id, skill_id)
+            pair_key = (job_id, skill_id)
 
-            if key in seen:
+            if pair_key in seen:
                 continue
 
-            if key in existing_pairs:
+            if pair_key in existing_pairs:
                 continue
 
-            seen.add(key)
+            seen.add(pair_key)
 
             relationships.append(
                 JobSkill(
@@ -321,7 +311,7 @@ class JobLoader:
         batch_size = 100
 
         for start in range(0, len(relationships), batch_size):
-            batch = relationships[start:start + batch_size]
+            batch = relationships[start : start + batch_size]
 
             try:
                 with self.db_session.begin_nested():
@@ -358,7 +348,7 @@ class JobLoader:
 
         logger.info(
             "Skills processed: skills_added=%d, "
-            "relationships_added=%d, duplicates_skipped=%d",
+            "relationships_added=%d, relationships_skipped=%d",
             skills_added,
             relationships_added,
             len(job_skills) - relationships_added,
@@ -375,11 +365,8 @@ class JobLoader:
 
         The repository handles all deletion logic including relationships.
         """
-        cutoff_date = datetime.now(UTC) - timedelta(
-            days=settings.pipeline_retention_days
-        )
+        cutoff_date = datetime.now(UTC) - timedelta(days=settings.pipeline_retention_days)
 
-        # Create repo here to ensure fresh session state
         job_repo = JobRepository(self.db_session)
         purged_count = job_repo.delete_jobs_older_than(cutoff_date)
 

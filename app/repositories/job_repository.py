@@ -1,25 +1,23 @@
 """Job repository for database operations."""
 
+import logging
 from datetime import UTC, datetime
 from decimal import Decimal
-from uuid import UUID
 from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
-from sqlalchemy import or_, func, desc
+from sqlalchemy import desc, func, or_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models.job import Job
-from app.models.skill import Skill
 from app.models.job_skill import JobSkill
+from app.models.skill import Skill
 from app.schemas.job import JobFilters
 
 # Use TYPE_CHECKING to avoid circular import at runtime
 if TYPE_CHECKING:
     from app.etl.schemas.validated import JobValidated
-
-# Import at runtime using a local import inside methods instead
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +41,9 @@ class JobRepository:
     def _build_job_dict(self, job: "JobValidated") -> dict:
         """
         Build a dictionary of job fields for database operations.
-        
+
         Maps from JobValidated schema fields to Job model fields.
         """
-        from app.etl.schemas.validated import JobValidated  # Local import to avoid circular
-
         now = datetime.now(UTC)
         return {
             "title": job.title,
@@ -68,17 +64,16 @@ class JobRepository:
             "technology_category": job.technology_category,
             "is_tech_role": job.is_tech_role,
             "country_code": job.country_code,
-            # ❌ REMOVE THIS LINE - currency doesn't exist in DB
-            # "currency": job.salary_currency,
             "employment_type": job.employment_type,
         }
 
-    def upsert_from_validated(self, job: "JobValidated") -> Job:
+    def upsert_from_validated(self, job: "JobValidated") -> None:
         """
         Upsert a single validated job using PostgreSQL's ON CONFLICT.
-        """
-        from app.etl.schemas.validated import JobValidated  # Local import to avoid circular
 
+        Returns None to avoid unnecessary ORM object materialization during
+        ETL batch processing. The loader tracks insert/update status separately.
+        """
         job_dict = self._build_job_dict(job)
 
         stmt = insert(Job).values(**job_dict)
@@ -100,18 +95,57 @@ class JobRepository:
             "technology_category": stmt.excluded.technology_category,
             "is_tech_role": stmt.excluded.is_tech_role,
             "country_code": stmt.excluded.country_code,
-            # ❌ REMOVE THIS LINE - currency doesn't exist in DB
-            # "currency": stmt.excluded.currency,
             "employment_type": stmt.excluded.employment_type,
         }
 
         stmt = stmt.on_conflict_do_update(
             constraint="uq_job_source",
             set_=update_columns,
-        ).returning(Job)
+        )
+        # Removed .returning(Job) to reduce SQLAlchemy ORM overhead
+        # during ETL batch operations
 
-        result = self.session.execute(stmt)
-        return result.scalar_one()
+        self.session.execute(stmt)
+
+    def upsert_batch_from_validated(self, jobs: list["JobValidated"]) -> None:
+        """
+        Batch upsert multiple validated jobs using PostgreSQL's ON CONFLICT.
+
+        This is an optional performance optimization for large batches.
+        Currently not used by JobLoader but available for future use.
+        """
+        if not jobs:
+            return
+
+        job_dicts = [self._build_job_dict(job) for job in jobs]
+
+        stmt = insert(Job).values(job_dicts)
+
+        update_columns = {
+            "title": stmt.excluded.title,
+            "description": stmt.excluded.description,
+            "company_name": stmt.excluded.company_name,
+            "location": stmt.excluded.location,
+            "salary_min": stmt.excluded.salary_min,
+            "salary_max": stmt.excluded.salary_max,
+            "salary_currency": stmt.excluded.salary_currency,
+            "source_url": stmt.excluded.source_url,
+            "posted_date": stmt.excluded.posted_date,
+            "scraped_date": stmt.excluded.scraped_date,
+            "is_active": stmt.excluded.is_active,
+            "is_deleted": stmt.excluded.is_deleted,
+            "technology_category": stmt.excluded.technology_category,
+            "is_tech_role": stmt.excluded.is_tech_role,
+            "country_code": stmt.excluded.country_code,
+            "employment_type": stmt.excluded.employment_type,
+        }
+
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_job_source",
+            set_=update_columns,
+        )
+
+        self.session.execute(stmt)
 
     def delete_jobs_older_than(self, cutoff_date: datetime) -> int:
         """Delete jobs whose scraped_date is older than the cutoff."""
@@ -153,7 +187,7 @@ class JobRepository:
             query = query.filter(Job.employment_type == filters.employment_type)
 
         # Sprint 6.6.1: Tech role filter
-        if hasattr(filters, 'is_tech_role') and filters.is_tech_role is not None:
+        if hasattr(filters, "is_tech_role") and filters.is_tech_role is not None:
             query = query.filter(Job.is_tech_role == filters.is_tech_role)
 
         if search_query:
@@ -162,10 +196,7 @@ class JobRepository:
                 or_(Job.title.ilike(search_pattern), Job.company_name.ilike(search_pattern))
             )
 
-        query = query.filter(
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        )
+        query = query.filter(Job.is_active.is_(True), Job.is_deleted.is_(False))
         return query
 
     def get_jobs(
@@ -174,10 +205,7 @@ class JobRepository:
         query = self.session.query(Job)
         query = self._apply_filters(query, filters, search_query)
         return (
-            query.order_by(Job.posted_date.desc(), Job.id.desc())
-            .offset(offset)
-            .limit(limit)
-            .all()
+            query.order_by(Job.posted_date.desc(), Job.id.desc()).offset(offset).limit(limit).all()
         )
 
     def count_jobs(self, filters: JobFilters, search_query: str | None = None) -> int:
@@ -188,11 +216,7 @@ class JobRepository:
     def get_by_id(self, job_id: UUID) -> Job | None:
         return (
             self.session.query(Job)
-            .filter(
-                Job.id == job_id,
-                Job.is_active.is_(True),
-                Job.is_deleted.is_(False)
-            )
+            .filter(Job.id == job_id, Job.is_active.is_(True), Job.is_deleted.is_(False))
             .first()
         )
 
@@ -215,23 +239,17 @@ class JobRepository:
         Returns:
             List of dicts with skill name and count
         """
-        query = self.session.query(
-            Skill.name,
-            func.count(JobSkill.job_id).label("count")
-        ).join(JobSkill, Skill.id == JobSkill.skill_id)\
-         .join(Job, Job.id == JobSkill.job_id)\
-         .filter(
-             Job.is_active.is_(True),
-             Job.is_deleted.is_(False)
-         )
+        query = (
+            self.session.query(Skill.name, func.count(JobSkill.job_id).label("count"))
+            .join(JobSkill, Skill.id == JobSkill.skill_id)
+            .join(Job, Job.id == JobSkill.job_id)
+            .filter(Job.is_active.is_(True), Job.is_deleted.is_(False))
+        )
 
         if country_code:
             query = query.filter(Job.country_code == country_code.upper())
 
-        results = query.group_by(Skill.name)\
-                      .order_by(desc("count"))\
-                      .limit(limit)\
-                      .all()
+        results = query.group_by(Skill.name).order_by(desc("count")).limit(limit).all()
 
         return [{"skill": r[0], "count": r[1]} for r in results]
 
@@ -242,16 +260,15 @@ class JobRepository:
         Returns:
             List of dicts with country and job count
         """
-        results = self.session.query(
-            Job.country_code,
-            func.count(Job.id).label("count")
-        ).filter(
-            Job.country_code.isnot(None),
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).group_by(Job.country_code)\
-         .order_by(desc("count"))\
-         .all()
+        results = (
+            self.session.query(Job.country_code, func.count(Job.id).label("count"))
+            .filter(
+                Job.country_code.isnot(None), Job.is_active.is_(True), Job.is_deleted.is_(False)
+            )
+            .group_by(Job.country_code)
+            .order_by(desc("count"))
+            .all()
+        )
 
         return [{"country": r[0] or "Unknown", "count": r[1]} for r in results]
 
@@ -262,16 +279,17 @@ class JobRepository:
         Returns:
             List of dicts with category and job count
         """
-        results = self.session.query(
-            Job.technology_category,
-            func.count(Job.id).label("count")
-        ).filter(
-            Job.technology_category.isnot(None),
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).group_by(Job.technology_category)\
-         .order_by(desc("count"))\
-         .all()
+        results = (
+            self.session.query(Job.technology_category, func.count(Job.id).label("count"))
+            .filter(
+                Job.technology_category.isnot(None),
+                Job.is_active.is_(True),
+                Job.is_deleted.is_(False),
+            )
+            .group_by(Job.technology_category)
+            .order_by(desc("count"))
+            .all()
+        )
 
         return [{"category": r[0], "count": r[1]} for r in results]
 
@@ -283,61 +301,56 @@ class JobRepository:
             Dict with various statistics
         """
         # Total jobs
-        total_jobs = self.session.query(
-            func.count(Job.id)
-        ).filter(
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).scalar() or 0
+        total_jobs = (
+            self.session.query(func.count(Job.id))
+            .filter(Job.is_active.is_(True), Job.is_deleted.is_(False))
+            .scalar()
+            or 0
+        )
 
         # Total companies
-        total_companies = self.session.query(
-            func.count(func.distinct(Job.company_name))
-        ).filter(
-            Job.company_name.isnot(None),
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).scalar() or 0
+        total_companies = (
+            self.session.query(func.count(func.distinct(Job.company_name)))
+            .filter(
+                Job.company_name.isnot(None), Job.is_active.is_(True), Job.is_deleted.is_(False)
+            )
+            .scalar()
+            or 0
+        )
 
         # Total countries
-        total_countries = self.session.query(
-            func.count(func.distinct(Job.country_code))
-        ).filter(
-            Job.country_code.isnot(None),
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).scalar() or 0
+        total_countries = (
+            self.session.query(func.count(func.distinct(Job.country_code)))
+            .filter(
+                Job.country_code.isnot(None), Job.is_active.is_(True), Job.is_deleted.is_(False)
+            )
+            .scalar()
+            or 0
+        )
 
         # Total skills
-        total_skills = self.session.query(
-            func.count(Skill.id)
-        ).scalar() or 0
+        total_skills = self.session.query(func.count(Skill.id)).scalar() or 0
 
         # Average salary
-        avg_min = self.session.query(
-            func.avg(Job.salary_min)
-        ).filter(
-            Job.salary_min.isnot(None),
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).scalar()
+        avg_min = (
+            self.session.query(func.avg(Job.salary_min))
+            .filter(Job.salary_min.isnot(None), Job.is_active.is_(True), Job.is_deleted.is_(False))
+            .scalar()
+        )
 
-        avg_max = self.session.query(
-            func.avg(Job.salary_max)
-        ).filter(
-            Job.salary_max.isnot(None),
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).scalar()
+        avg_max = (
+            self.session.query(func.avg(Job.salary_max))
+            .filter(Job.salary_max.isnot(None), Job.is_active.is_(True), Job.is_deleted.is_(False))
+            .scalar()
+        )
 
         # Technology role count
-        tech_roles = self.session.query(
-            func.count(Job.id)
-        ).filter(
-            Job.is_tech_role.is_(True),
-            Job.is_active.is_(True),
-            Job.is_deleted.is_(False)
-        ).scalar() or 0
+        tech_roles = (
+            self.session.query(func.count(Job.id))
+            .filter(Job.is_tech_role.is_(True), Job.is_active.is_(True), Job.is_deleted.is_(False))
+            .scalar()
+            or 0
+        )
 
         return {
             "total_jobs": total_jobs,
