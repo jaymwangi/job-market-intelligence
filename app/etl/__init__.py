@@ -405,9 +405,12 @@ class ETLPipeline:
     # ------------------------------------------------------------------
     # Load
     # ------------------------------------------------------------------
-
-    def _load_jobs(self, jobs: List[JobValidated], metrics: PipelineMetrics) -> PipelineMetrics:
-        """Load validated jobs to database."""
+    def _load_jobs(
+        self,
+        jobs: List[JobValidated],
+        metrics: PipelineMetrics,
+    ) -> PipelineMetrics:
+        """Load validated jobs to database using bounded batches."""
         if not jobs:
             return metrics
 
@@ -415,7 +418,10 @@ class ETLPipeline:
             with SessionLocal() as session:
                 loader = JobLoader(db_session=session)
 
-                load_result = loader.upsert(jobs)
+                load_result = loader.upsert_in_batches(
+                    jobs,
+                    batch_size=100,
+                )
                 load_metrics = loader.to_metrics(load_result)
 
                 metrics.inserted = load_metrics.inserted

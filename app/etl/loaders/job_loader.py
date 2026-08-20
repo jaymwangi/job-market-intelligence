@@ -62,24 +62,106 @@ class JobLoader:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
-    def upsert(self, jobs: list[JobValidated]) -> LoadResult:
+    def upsert_in_batches(
+        self,
+        jobs: list[JobValidated],
+        batch_size: int = 100,
+    ) -> LoadResult:
         """
-        Upsert validated jobs into the database.
+        Load validated jobs in bounded batches.
 
-        All-or-nothing semantics: if any job fails, the entire batch fails.
+        Processes jobs in batches to avoid stack depth issues
+        and reduce memory pressure during ETL operations.
+
+        Transaction management still belongs to the caller.
+        Purge is performed once at the end of all batches.
 
         Args:
             jobs: List of validated JobValidated objects
+            batch_size: Number of jobs to process per batch
 
         Returns:
-            LoadResult: Summary of the loading operation
+            LoadResult: Aggregated summary of the loading operation
 
         Raises:
             Exception: If any database operation fails
+        """
+        if not jobs:
+            return LoadResult()
 
-        Note:
-            Caller owns the transaction. This method only flushes.
-            Caller must commit or rollback.
+        result = LoadResult(processed=len(jobs))
+        total_batches = (len(jobs) + batch_size - 1) // batch_size
+
+        logger.info(
+            "Starting batch load: %d jobs in %d batches of %d",
+            len(jobs),
+            total_batches,
+            batch_size,
+        )
+
+        for batch_idx, start in enumerate(range(0, len(jobs), batch_size), 1):
+            batch = jobs[start : start + batch_size]
+
+            logger.info(
+                "Processing batch %d/%d: jobs %d-%d of %d",
+                batch_idx,
+                total_batches,
+                start + 1,
+                min(start + batch_size, len(jobs)),
+                len(jobs),
+            )
+
+            batch_result = self._upsert_batch(batch)
+
+            result.inserted += batch_result.inserted
+            result.updated += batch_result.updated
+            result.skills_added += batch_result.skills_added
+            result.relationships_added += batch_result.relationships_added
+
+            # Flush after each batch to bound pending database work.
+            # Does NOT commit - caller owns the transaction.
+            self.db_session.flush()
+
+            logger.debug(
+                "Batch %d complete: inserted=%d, updated=%d, skills=%d, relationships=%d",
+                batch_idx,
+                batch_result.inserted,
+                batch_result.updated,
+                batch_result.skills_added,
+                batch_result.relationships_added,
+            )
+
+        # Purge only once at the end (if configured)
+        if settings.pipeline_retention_days > 0:
+            result.purged = self._purge_old_jobs()
+
+        # Final flush - caller handles commit
+        self.db_session.flush()
+
+        logger.info(
+            "Batch load complete: inserted=%d, updated=%d, "
+            "skills=%d, relationships=%d, purged=%d",
+            result.inserted,
+            result.updated,
+            result.skills_added,
+            result.relationships_added,
+            result.purged,
+        )
+
+        return result
+
+    def _upsert_batch(self, jobs: list[JobValidated]) -> LoadResult:
+        """
+        Process one bounded job batch.
+
+        This method handles upserting jobs and processing their skills
+        for a single batch. It does NOT perform purge operations.
+
+        Args:
+            jobs: List of validated JobValidated objects for this batch
+
+        Returns:
+            LoadResult: Summary for this batch only
         """
         result = LoadResult(processed=len(jobs))
 
@@ -97,26 +179,10 @@ class JobLoader:
             result.skills_added = skill_result.skills_added
             result.relationships_added = skill_result.relationships_added
 
-            # Phase 3: Apply retention policy (if configured)
-            if settings.pipeline_retention_days > 0:
-                result.purged = self._purge_old_jobs()
-
-            # Final flush - caller handles commit
-            self.db_session.flush()
-
-            logger.info(
-                "Load complete: inserted=%d, updated=%d, " "skills=%d, relationships=%d, purged=%d",
-                result.inserted,
-                result.updated,
-                result.skills_added,
-                result.relationships_added,
-                result.purged,
-            )
-
             return result
 
         except (IntegrityError, PendingRollbackError):
-            logger.exception("Database error during job load")
+            logger.exception("Database error during batch load")
             raise
 
     def _upsert_jobs(self, jobs: list[JobValidated]) -> UpsertResult:
@@ -308,10 +374,10 @@ class JobLoader:
         # 8. Insert relationships in batches with savepoints
         # ------------------------------------------------------------
         relationships_added = 0
-        batch_size = 100
+        relationship_batch_size = 100
 
-        for start in range(0, len(relationships), batch_size):
-            batch = relationships[start : start + batch_size]
+        for start in range(0, len(relationships), relationship_batch_size):
+            batch = relationships[start : start + relationship_batch_size]
 
             try:
                 with self.db_session.begin_nested():
