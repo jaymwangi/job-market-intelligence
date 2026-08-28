@@ -8,8 +8,10 @@ venv.bak/
 
 # Environment Variables
 .env
+.env.test
 .envrc
 !.env.example
+
 
 # Python
 __pycache__/
@@ -96,3 +98,4 @@ data/
 
 # Foglamp scan data
 .foglamp/
+sprint 6_)7.md

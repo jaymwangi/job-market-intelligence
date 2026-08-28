@@ -16,7 +16,7 @@ class PipelineRun(Base):
 
     __tablename__ = "pipeline_runs"
     __table_args__ = (
-        Index("idx_pipeline_runs_started_at_desc", "started_at", postgresql_ops={"started_at": "DESC"}),
+        Index("idx_pipeline_runs_started_at_desc", text("started_at DESC")),
         {"schema": "public"},  # This MUST be the last element in the tuple
     )
 

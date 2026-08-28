@@ -24,20 +24,37 @@ class TestJobsRoutes:
 
     @pytest.fixture
     def mock_job(self):
-        """Create a mock job."""
+        """Create a mock job matching the JobResponse contract."""
         job = Mock()
+
+        # Core job fields
         job.id = uuid4()
         job.title = "Test Job"
         job.company_name = "Test Company"
         job.location = "San Francisco"
         job.description = "Test description"
+
+        # Salary fields
         job.salary_min = 100000.0
         job.salary_max = 150000.0
         job.salary_currency = "USD"
-        job.posted_date = datetime.now()
+
+        # Source fields
         job.source_site = "Test"
         job.source_url = "https://test.com"
+
+        # Job metadata
+        job.posted_date = datetime.now()
         job.is_active = True
+
+        # Enrichment fields required by JobResponse.from_model()
+        job.language = "en"
+        job.skills = []
+        job.technology_category = "backend"
+        job.is_tech_role = True
+        job.country_code = "US"
+        job.employment_type = "FULL_TIME"
+
         return job
 
     def test_get_jobs_empty(self, client):
@@ -49,9 +66,11 @@ class TestJobsRoutes:
 
         try:
             response = client.get("/api/v1/jobs")
+
             assert response.status_code == 200
 
             data = response.json()
+
             assert data["total"] == 0
             assert len(data["data"]) == 0
             assert data["page"] == 1
@@ -68,9 +87,11 @@ class TestJobsRoutes:
 
         try:
             response = client.get("/api/v1/jobs")
+
             assert response.status_code == 200
 
             data = response.json()
+
             assert data["total"] == 1
             assert len(data["data"]) == 1
         finally:
@@ -85,7 +106,11 @@ class TestJobsRoutes:
 
         try:
             response = client.get("/api/v1/jobs?page=1&limit=5")
+
+            assert response.status_code == 200
+
             data = response.json()
+
             assert len(data["data"]) == 5
             assert data["total"] == 10
             assert data["page"] == 1
@@ -102,8 +127,13 @@ class TestJobsRoutes:
 
         try:
             response = client.get("/api/v1/jobs?q=Test")
+
+            assert response.status_code == 200
+
             data = response.json()
-            assert data["total"] >= 1
+
+            assert data["total"] == 1
+            assert len(data["data"]) == 1
         finally:
             app.dependency_overrides.clear()
 
@@ -115,7 +145,10 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.get("/api/v1/jobs?location=San Francisco")
+            response = client.get(
+                "/api/v1/jobs?location=San Francisco"
+            )
+
             assert response.status_code == 200
         finally:
             app.dependency_overrides.clear()
@@ -123,10 +156,14 @@ class TestJobsRoutes:
     def test_get_jobs_invalid_salary_range(self, client):
         """Test job listing with invalid salary range."""
         mock_service = Mock()
+
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.get("/api/v1/jobs?min_salary=200000&max_salary=100000")
+            response = client.get(
+                "/api/v1/jobs?min_salary=200000&max_salary=100000"
+            )
+
             assert response.status_code == 400
         finally:
             app.dependency_overrides.clear()
@@ -134,10 +171,12 @@ class TestJobsRoutes:
     def test_get_jobs_invalid_page(self, client):
         """Test job listing with invalid page number."""
         mock_service = Mock()
+
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
             response = client.get("/api/v1/jobs?page=0")
+
             assert response.status_code == 422
         finally:
             app.dependency_overrides.clear()
@@ -145,10 +184,12 @@ class TestJobsRoutes:
     def test_get_jobs_invalid_limit(self, client):
         """Test job listing with invalid limit."""
         mock_service = Mock()
+
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
             response = client.get("/api/v1/jobs?limit=200")
+
             assert response.status_code == 422
         finally:
             app.dependency_overrides.clear()
@@ -162,10 +203,15 @@ class TestJobsRoutes:
 
         try:
             job_id = mock_job.id
-            response = client.get(f"/api/v1/jobs/{job_id}")
+
+            response = client.get(
+                f"/api/v1/jobs/{job_id}"
+            )
+
             assert response.status_code == 200
 
             data = response.json()
+
             assert data["id"] == str(job_id)
         finally:
             app.dependency_overrides.clear()
@@ -179,7 +225,11 @@ class TestJobsRoutes:
 
         try:
             fake_id = uuid4()
-            response = client.get(f"/api/v1/jobs/{fake_id}")
+
+            response = client.get(
+                f"/api/v1/jobs/{fake_id}"
+            )
+
             assert response.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -187,10 +237,14 @@ class TestJobsRoutes:
     def test_get_job_by_id_invalid_uuid(self, client):
         """Test getting job with invalid UUID format."""
         mock_service = Mock()
+
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.get("/api/v1/jobs/invalid-uuid")
+            response = client.get(
+                "/api/v1/jobs/invalid-uuid"
+            )
+
             assert response.status_code == 422
         finally:
             app.dependency_overrides.clear()
@@ -204,6 +258,9 @@ class TestJobsRoutes:
 
         try:
             response = client.get("/api/v1/jobs")
+
+            assert response.status_code == 200
+
             data = response.json()
 
             assert "page" in data

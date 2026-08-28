@@ -218,7 +218,7 @@ class Job(Base):
         doc="Confidence score for technology classification (0.0 - 1.0)",
     )
     matched_tech_terms: Mapped[list[str] | None] = mapped_column(
-        ARRAY(String),
+        ARRAY(Text),
         nullable=True,
         doc="Terms that matched during classification (for explainability)",
     )

@@ -8,7 +8,7 @@ from datetime import datetime
 import streamlit as st
 
 # Use relative imports to avoid circular dependency
-from api.client import APIClient
+from dashboard.api.client import APIClient
 from core.config import settings
 from utils.cache import CacheManager
 

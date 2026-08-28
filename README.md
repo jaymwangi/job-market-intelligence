@@ -125,7 +125,7 @@ The goal is to demonstrate backend engineering, data engineering, analytics engi
 
 ### Database
 
-- PostgreSQL
+- PostgreSQL 16
 
 ### Data Processing
 
@@ -284,8 +284,16 @@ job-market-intelligence/
 │   ├── run_pipeline.py
 │   └── sample_jobs.py
 ├── tests/
-│   └── smoke/
-│       └── test_production.py
+│   ├── smoke/
+│   │   └── test_production.py
+│   ├── integration/
+│   │   ├── test_database.py
+│   │   ├── test_repository_service.py
+│   │   ├── test_etl_pipeline.py
+│   │   ├── test_analytics_pipeline.py
+│   │   ├── test_api.py
+│   │   └── test_dashboard_api.py
+│   └── unit/
 │
 ├── Dockerfile
 ├── compose.yml
@@ -602,102 +610,85 @@ job-market-intelligence/
 
 ---
 
-### 🚧 Sprint 6.7 — E2E & Integration Tests (Planned)
+### ✅ Sprint 6.7.1 — E2E & Integration Tests
 
-After completing Sprint 6.6.2, the next step is to ensure the entire system works together correctly through comprehensive end-to-end and integration testing.
+**Goal:** Establish a reliable PostgreSQL-backed integration-testing environment and prove all system layers work against the real PostgreSQL schema.
 
+#### 🔧 PostgreSQL Test Environment
+- PostgreSQL 16 running on `localhost:15432`
+- Dedicated test database: `job_market_intelligence_test`
+- `TEST_DATABASE_URL` configuration
+
+#### 🗄️ Database Schema Fixes
+- Added missing columns: `tech_confidence`, `matched_tech_terms`
+- Created Alembic migration `74b5dc797be3`
+- Added check constraint: `ck_job_tech_confidence`
+- Migrated test database to head (no modification to already-applied migration `3182e514fa7d`)
+
+#### 🧪 Test Infrastructure
+- Replaced SQLite in-memory with PostgreSQL-backed engine
+- Transaction cleanup for test isolation
+- Proper test fixture with non-null `language` field
+
+#### 🔄 ETL Transaction Boundary
+- Fixed transaction/session management
+- ETL uses its own `SessionLocal()` lifecycle
+- Proper commit/rollback boundaries
+
+#### 📊 Six Integration Test Areas
+
+| Test File | Coverage |
+|-----------|----------|
+| `test_database.py` | PostgreSQL connection, schema, constraints |
+| `test_repository_service.py` | CRUD, queries, filtering |
+| `test_etl_pipeline.py` | Processing, persistence, upsert |
+| `test_analytics_pipeline.py` | Analytics queries, aggregations |
+| `test_api.py` | PostgreSQL-backed job retrieval, pagination |
+| `test_dashboard_api.py` | Health, jobs, analytics, languages, technology, enriched analytics, salary, ETL status, transport |
+
+#### ✅ Test Results
+
+```text
+test_etl_pipeline.py          3 passed
+test_analytics_pipeline.py   11 passed
+test_api.py                   5 passed
+test_dashboard_api.py        44 passed
+─────────────────────────────────────
+Total:                        74 passed
+Warnings:                     2 (dependency/deprecation cleanup)
 ```
-SPRINT 6.7
-│
-├── 6.7.1 E2E Test Framework
-│   ├── API end-to-end tests
-│   ├── ETL pipeline end-to-end tests
-│   ├── Dashboard end-to-end tests
-│   └── Cross-service integration tests
-│
-├── 6.7.2 Integration Tests
-│   ├── Database integration tests
-│   ├── API integration tests
-│   ├── ETL integration tests
-│   └── Dashboard API client tests
-│
-├── 6.7.3 Performance Tests
-│   ├── API load testing
-│   ├── ETL performance testing
-│   └── Database query optimization
-│
-├── 6.7.4 Test Coverage & Reporting
-│   ├── Coverage report generation
-│   ├── Test result reporting
-│   └── CI/CD integration
-│
-└── 6.7.5 Deployment Preparation
-    ├── Production readiness review
-    ├── Documentation updates
-    └── Final deployment
-```
+
+#### 💡 Key Insight
+
+> The achievement wasn't simply "writing 74 tests" — it was establishing a **reliable PostgreSQL-backed integration-testing environment** and proving that the database, SQLAlchemy layer, repositories, services, ETL, analytics, API, and dashboard API can operate against the real PostgreSQL schema.
 
 ---
 
-## Current Status
+## 🚧 Pending Sprints
 
-### ✅ Completed
+### Sprint 6.7.2 — Performance Tests *(Planned)*
+- API load testing
+- ETL performance testing
+- Database query optimization
+- Response time benchmarking
 
-- Planning & Architecture
-- Database Foundation
-- Complete ETL Pipeline with Upsert
-- Analytics Engine with Dashboard Metrics
-- FastAPI REST API with Health Checks
-- Interactive Streamlit Dashboard
-- Repository Layer
-- Service Layer
-- API Client Layer
-- Dashboard Service Layer
-- PostgreSQL Integration
-- OpenAPI Documentation
-- Interactive Plotly Visualizations
-- Dashboard Caching
-- Health Monitoring
-- Request Validation
-- End-to-End ETL Testing
-- API Testing
-- Dashboard Regression Testing
-- Production Hardening
-- Docker Containerization
-- CI/CD with GitHub Actions
-- Automated ETL Pipeline
-- 90-Day Retention Policy
-- Pipeline Run Tracking
-- Structured JSON Logging
-- Request Correlation
-- Production Deployment Configuration
-- **Enrichment Layer (Sprint 6.6)**
-  - Skill Extraction
-  - Technology Classification
-  - Country Normalization
-  - Currency Normalization
-  - Typed ETL Pipeline
-  - Enrichment API Endpoints
-  - Dashboard Integration
-- **Classifier Refactor & UI Improvements (Sprint 6.6.1)**
-  - Policy System (`policy.py`)
-  - Single Source of Truth (`classifier.py`)
-  - Sampling Framework (`sample_jobs.py`)
-  - Professional SVG Icon System
-  - Language Detection Fixes
-  - UI Improvements (Translate button, filter redesign)
-  - 7 Critical Issues Fixed
-- **Acquisition Strategy & Balanced Dataset (Sprint 6.6.2)**
-  - Two-Phase Acquisition Strategy (CATCH-UP → BALANCED)
-  - Batch-Level Feedback Loop
-  - Tech/Broad Query Families
-  - 50/50 Tech/Non-Tech Target Achieved (48%)
-  - 4 Batches of 25 Jobs Each
-  - Query-Level Adaptation Metrics
+### Sprint 6.7.3 — Test Coverage & Reporting *(Planned)*
+- Coverage report generation
+- Test result reporting
+- Quality metrics dashboard
+- Coverage threshold enforcement
 
-### 📋 Pending
+### Sprint 6.7.4 — CI/CD Integration *(Planned)*
+- Automated test execution in CI/CD
+- Test result publishing
+- Performance regression detection
+- Deployment pipeline integration
 
-- **E2E & Integration Tests** - Planned for Sprint 6.7
+### Sprint 6.7.5 — Deployment Preparation *(Planned)*
+- Production readiness review
+- Documentation updates
+- Final deployment to production
+- Post-deployment validation
 
 ---
 
@@ -827,6 +818,13 @@ The project includes testing for:
 - End-to-end ETL workflow
 - Production smoke tests
 - Sprint regression verification
+- **Integration tests** (PostgreSQL-backed)
+  - Database connectivity and schema
+  - Repository and service operations
+  - ETL pipeline processing
+  - Analytics engine queries
+  - API endpoint validation
+  - Dashboard API client integration
 
 **Example verification:**
 ```bash
@@ -838,6 +836,16 @@ python scripts/verify_sprint5.py
 pytest tests/smoke/ -v -m smoke
 ```
 
+**Integration Tests:**
+```bash
+pytest tests/integration/ -v
+```
+
+**Run specific integration test:**
+```bash
+pytest tests/integration/test_dashboard_api.py -v
+```
+
 **Continuous Integration:**
 Testing is automatically validated through GitHub Actions. The CI pipeline executes:
 
@@ -845,7 +853,7 @@ Testing is automatically validated through GitHub Actions. The CI pipeline execu
 - Black formatting checks
 - MyPy type checking
 - Unit tests
-- PostgreSQL integration tests
+- PostgreSQL integration tests (74+ tests)
 - Docker image builds
 
 ---
@@ -919,7 +927,11 @@ Record Pipeline Run
 | ✅ Sprint 6.6 | Complete | Enrichment Layer (Skill Extraction & Intelligence) |
 | ✅ Sprint 6.6.1 | Complete | Classifier Refactor & UI Improvements |
 | ✅ Sprint 6.6.2 | Complete | Acquisition Strategy & Balanced Dataset |
-| 🚧 Sprint 6.7 | Planned | E2E & Integration Tests |
+| ✅ Sprint 6.7.1 | Complete | PostgreSQL Integration Test Infrastructure |
+| 🚧 Sprint 6.7.2 | Planned | Performance Tests |
+| 🚧 Sprint 6.7.3 | Planned | Test Coverage & Reporting |
+| 🚧 Sprint 6.7.4 | Planned | CI/CD Integration |
+| 🚧 Sprint 6.7.5 | Planned | Deployment Preparation |
 
 ---
 
@@ -960,4 +972,3 @@ This project is licensed under the MIT License.
 **GitHub:** [jaymwangi](https://github.com/jaymwangi)
 
 **Project:** [job-market-intelligence](https://github.com/jaymwangi/job-market-intelligence)
-```

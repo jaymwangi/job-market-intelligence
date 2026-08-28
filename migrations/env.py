@@ -5,6 +5,8 @@ from alembic import context
 
 from app.database.base import Base
 from app.database.session import engine
+from app import models
+
 from config import settings
 
 # this is the Alembic Config object, which provides

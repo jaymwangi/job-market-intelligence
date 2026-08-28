@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.database.base import Base
 from app.database.session import get_db
 
 # Import from your actual modules
@@ -21,18 +20,31 @@ from app.models import Job, PipelineRun, Skill
 
 @pytest.fixture(scope="session")
 def test_db_engine():
-    """
-    Create a test database engine using SQLite in memory.
-    Note: SQLite doesn't support JSONB, so we use JSON instead.
-    """
+    """Create a PostgreSQL engine for integration tests."""
+    import os
+
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    database_url = os.getenv("TEST_DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("TEST_DATABASE_URL is not configured")
+
     engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, echo=False
+        database_url,
+        echo=False,
+        pool_pre_ping=True,
     )
 
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-    yield engine
-    Base.metadata.drop_all(bind=engine)
+    try:
+        # Verify the PostgreSQL test database is reachable.
+        with engine.connect() as connection:
+            connection.exec_driver_sql("SELECT 1")
+
+        yield engine
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture
@@ -64,22 +76,6 @@ def api_client(db_session) -> Generator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-
-
-# Mark tests that require JSONB support as skipped
-def pytest_collection_modifyitems(config, items):
-    """Skip tests that require JSONB when using SQLite."""
-    skip_jsonb = pytest.mark.skip(reason="JSONB not supported in SQLite")
-    for item in items:
-        # Skip tests in these modules
-        if "test_loaders.py" in str(item.fspath):
-            item.add_marker(skip_jsonb)
-        elif "test_pipeline_repository.py" in str(item.fspath):
-            item.add_marker(skip_jsonb)
-        elif "test_skill_repository.py" in str(item.fspath):
-            item.add_marker(skip_jsonb)
-        elif "test_job_repository.py" in str(item.fspath):
-            item.add_marker(skip_jsonb)
 
 
 @pytest.fixture

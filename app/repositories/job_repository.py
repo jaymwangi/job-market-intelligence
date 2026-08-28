@@ -65,6 +65,7 @@ class JobRepository:
             "is_tech_role": job.is_tech_role,
             "country_code": job.country_code,
             "employment_type": job.employment_type,
+            "language": job.language,
         }
 
     def upsert_from_validated(self, job: "JobValidated") -> None:
@@ -96,6 +97,7 @@ class JobRepository:
             "is_tech_role": stmt.excluded.is_tech_role,
             "country_code": stmt.excluded.country_code,
             "employment_type": stmt.excluded.employment_type,
+            "language": stmt.excluded.language,
         }
 
         stmt = stmt.on_conflict_do_update(
@@ -138,6 +140,7 @@ class JobRepository:
             "is_tech_role": stmt.excluded.is_tech_role,
             "country_code": stmt.excluded.country_code,
             "employment_type": stmt.excluded.employment_type,
+            "language": stmt.excluded.language,
         }
 
         stmt = stmt.on_conflict_do_update(
