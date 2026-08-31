@@ -1,8 +1,6 @@
 """Professional Streamlit dashboard application."""
 
 import logging
-import os
-import sys
 
 import streamlit as st
 
@@ -10,16 +8,10 @@ import streamlit as st
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Add dashboard directory to path
-dashboard_dir = os.path.dirname(os.path.abspath(__file__))
-if dashboard_dir not in sys.path:
-    sys.path.insert(0, dashboard_dir)
-
-# Imports after sys.path modification
-from components.sidebar import render_sidebar
-from core import settings
-from core.theme import COLORS, GLOBAL_STYLES
-from utils.state import StateManager
+from dashboard.components.sidebar import render_sidebar
+from dashboard.core import settings
+from dashboard.core.theme import COLORS, GLOBAL_STYLES
+from dashboard.utils.state import StateManager
 
 # Page configuration
 st.set_page_config(
@@ -329,19 +321,19 @@ page = StateManager.get_current_page()
 # Page routing
 try:
     if page == "overview":
-        from pages.overview import render
+        from dashboard.pages.overview import render
 
         render()
     elif page == "jobs":
-        from pages.jobs import render
+        from dashboard.pages.jobs import render
 
         render()
     elif page == "analytics":
-        from pages.analytics import render
+        from dashboard.pages.analytics import render
 
         render()
     elif page == "about":
-        from pages.about import render
+        from dashboard.pages.about import render
 
         render()
     else:
