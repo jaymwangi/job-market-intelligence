@@ -3,6 +3,9 @@
 These tests verify that the dashboard's APIClient can communicate with
 the real FastAPI backend and consume the API contracts used by the
 dashboard.
+
+The FastAPI database dependency is overridden so all integration tests
+use the PostgreSQL test database provided by the ``db_session`` fixture.
 """
 
 import asyncio
@@ -12,6 +15,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
+from app.database.session import get_db
 from app.main import app
 from dashboard.api.client import APIClient
 from dashboard.api.exceptions import (
@@ -83,8 +87,18 @@ def api_client():
 
 
 @pytest.fixture
-def live_api_client():
-    """Create APIClient backed by the real FastAPI ASGI application."""
+def live_api_client(db_session):
+    """Create APIClient backed by the real FastAPI ASGI application.
+
+    The application's database dependency is overridden so all API
+    requests use the PostgreSQL test session supplied by the
+    ``db_session`` fixture instead of the production database.
+    """
+
+    def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
 
     transport = SyncASGITransport(app)
 
@@ -106,9 +120,11 @@ def live_api_client():
         },
     )
 
-    yield client
-
-    client.close()
+    try:
+        yield client
+    finally:
+        client.close()
+        app.dependency_overrides.clear()
 
 
 class TestDashboardAPIHealth:

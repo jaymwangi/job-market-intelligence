@@ -167,6 +167,35 @@ class JobsExtractor:
         )
         return all_jobs
 
+    def fetch_page(
+        self,
+        page: int,
+        results_per_page: Optional[int] = None,
+        country: str = "gb",
+    ) -> RawJob:
+        """
+        Fetch a single page using the public compatibility API.
+
+        Returns the raw API response dictionary.
+        """
+        params = {
+            "app_id": self.app_id,
+            "app_key": self.api_key,
+            "results_per_page": (
+                results_per_page
+                if results_per_page is not None
+                else self.results_per_page
+            ),
+        }
+
+        url = f"{self.api_url}/jobs/{country}/search/{page}"
+
+        if self.debug:
+            logger.debug("📍 URL: %s", url)
+            logger.debug("📦 Params: %s", mask_params(params))
+
+        return self.client.get(url, params=params)
+    
     def _fetch_page(self, country: str, page: int) -> tuple[RawJobs, bool]:
         """
         Fetch a single page of results.

@@ -2,247 +2,293 @@
 Unit tests for ETL validators.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
-from pydantic import HttpUrl, ValidationError
+from pydantic import ValidationError
 
-from app.etl.validators.job_schema import JobValidated, validate_job, validate_jobs
+from app.etl.schemas.enriched import JobEnriched
+from app.etl.schemas.validated import JobValidated
+from app.etl.validators.job_schema import JobValidator
+
+
+def make_enriched_job(**overrides) -> JobEnriched:
+    """Create a valid JobEnriched fixture for validator tests."""
+    data = {
+        "source_id": "12345",
+        "source": "adzuna",
+        "title": "Python Developer",
+        "company": "TechCorp",
+        "location": "Nairobi, Kenya",
+        "description": "Python developer role.",
+        "salary_min": 100000.0,
+        "salary_max": 150000.0,
+        "salary_currency": "USD",
+        "employment_type": "FULL_TIME",
+        "category": "IT",
+        "posted_date": datetime(2026, 1, 15, 10, 30, tzinfo=UTC),
+        "scraped_date": datetime(2026, 1, 15, 12, 30, tzinfo=UTC),
+        "url": "https://example.com/job/12345",
+        "language": "en",
+        "skills": ["Python", "PostgreSQL"],
+        "technology_category": "backend",
+        "is_tech_role": True,
+        "tech_confidence": 0.92,
+        "matched_tech_terms": ["Python", "Django"],
+        "country_code": "KE",
+        "currency": "USD",
+        "normalized_salary_min": 100000.0,
+        "normalized_salary_max": 150000.0,
+    }
+    data.update(overrides)
+    return JobEnriched(**data)
 
 
 class TestJobValidated:
     """Test suite for JobValidated model."""
 
     def test_valid_job_minimal(self):
-        """Test creating a valid job with minimal fields."""
+        """Test creating a valid JobValidated job."""
         job = JobValidated(
-            external_id="12345", title="Python Developer", source="adzuna"
-        )  # type: ignore
-        assert job.external_id == "12345"
+            source_id="12345",
+            title="Python Developer",
+            company="TechCorp",
+            location="Nairobi, Kenya",
+        )
+
+        assert job.source_id == "12345"
         assert job.title == "Python Developer"
+        assert job.company == "TechCorp"
+        assert job.location == "Nairobi, Kenya"
         assert job.source == "adzuna"
-        assert job.company_name is None
         assert job.salary_min is None
         assert job.salary_max is None
+        assert job.is_tech_role is False
 
     def test_valid_job_full(self):
-        """Test creating a valid job with all fields."""
-        job = JobValidated(
-            external_id="12345",
+        """Test creating a fully populated valid job."""
+        job = make_enriched_job(
+            source_id="12345",
             title="Senior Python Developer",
-            company_name="TechCorp",
-            location="San Francisco, CA",
-            description="We are looking for a skilled Python developer...",
+            company="TechCorp",
             salary_min=120000.0,
             salary_max=180000.0,
             currency="USD",
-            source="adzuna",
-            source_url=HttpUrl("https://example.com/job/12345"),
-            posted_date=datetime.fromisoformat("2026-01-15T10:30:00+00:00"),
-        )  # type: ignore
-        assert job.external_id == "12345"
-        assert job.title == "Senior Python Developer"
-        assert job.company_name == "TechCorp"
-        assert job.location == "San Francisco, CA"
-        assert job.salary_min == 120000.0
-        assert job.salary_max == 180000.0
-        assert job.currency == "USD"
-        assert job.source == "adzuna"
-        assert str(job.source_url) == "https://example.com/job/12345"
-        assert isinstance(job.posted_date, datetime)
+        )
 
-    def test_invalid_external_id_empty(self):
-        """Test job with empty external_id."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(external_id="", title="Python Developer", source="adzuna")  # type: ignore
-        assert "external_id" in str(exc_info.value)
+        validated = JobValidated(
+            **job.model_dump(),
+            validation_timestamp=datetime.now(UTC),
+            validation_warnings=[],
+        )
 
-    def test_invalid_title_empty(self):
-        """Test job with empty title."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(external_id="12345", title="", source="adzuna")  # type: ignore
-        assert "title" in str(exc_info.value)
-
-    def test_invalid_salary_min_negative(self):
-        """Test job with negative salary_min."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(
-                external_id="12345",
-                title="Python Developer",
-                source="adzuna",
-                salary_min=-1000.0,
-                salary_max=50000.0,
-            )  # type: ignore
-        assert "salary_min" in str(exc_info.value)
-
-    def test_invalid_salary_max_negative(self):
-        """Test job with negative salary_max."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(
-                external_id="12345",
-                title="Python Developer",
-                source="adzuna",
-                salary_min=50000.0,
-                salary_max=-1000.0,
-            )  # type: ignore
-        assert "salary_max" in str(exc_info.value)
-
-    def test_invalid_salary_range(self):
-        """Test job with salary_min > salary_max."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(
-                external_id="12345",
-                title="Python Developer",
-                source="adzuna",
-                salary_min=180000.0,
-                salary_max=120000.0,
-            )  # type: ignore
-        assert "salary_min" in str(exc_info.value)
-        assert "salary_max" in str(exc_info.value)
+        assert validated.source_id == "12345"
+        assert validated.title == "Senior Python Developer"
+        assert validated.company == "TechCorp"
+        assert validated.salary_min == 120000.0
+        assert validated.salary_max == 180000.0
+        assert validated.currency == "USD"
+        assert isinstance(validated.validation_timestamp, datetime)
+        assert validated.validation_warnings == []
 
     def test_invalid_currency_length(self):
-        """Test job with invalid currency code length."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(
-                external_id="12345", title="Python Developer", source="adzuna", currency="US"
-            )  # type: ignore
-        assert "currency" in str(exc_info.value)
-
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(
-                external_id="12345", title="Python Developer", source="adzuna", currency="USDD"
-            )  # type: ignore
-        assert "currency" in str(exc_info.value)
-
-    def test_invalid_source_empty(self):
-        """Test job with empty source."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(external_id="12345", title="Python Developer", source="")  # type: ignore
-        assert "source" in str(exc_info.value)
-
-    def test_invalid_source_url(self):
-        """Test job with invalid source_url."""
-        with pytest.raises(ValidationError) as exc_info:
-            JobValidated(
-                external_id="12345",
-                title="Python Developer",
-                source="adzuna",
-                source_url="not-a-url",  # type: ignore
-            )  # type: ignore
-        assert "source_url" in str(exc_info.value)
-
-    def test_date_parsing_iso_format(self):
-        """Test date parsing from ISO format string."""
-        job = JobValidated(
-            external_id="12345",
-            title="Python Developer",
-            source="adzuna",
-            posted_date=datetime.fromisoformat("2026-01-15T10:30:00+00:00"),
-        )  # type: ignore
-        assert isinstance(job.posted_date, datetime)
-        assert job.posted_date.year == 2026
-        assert job.posted_date.month == 1
-        assert job.posted_date.day == 15
-
-    def test_date_parsing_datetime_object(self):
-        """Test date parsing from datetime object."""
-        now = datetime.now()
-        job = JobValidated(
-            external_id="12345", title="Python Developer", source="adzuna", posted_date=now
-        )  # type: ignore
-        assert job.posted_date == now
-
-    def test_date_parsing_none(self):
-        """Test date parsing with None."""
-        job = JobValidated(
-            external_id="12345", title="Python Developer", source="adzuna", posted_date=None
-        )  # type: ignore
-        assert job.posted_date is None
-
-    def test_model_config_frozen(self):
-        """Test that model is frozen (immutable)."""
-        job = JobValidated(
-            external_id="12345", title="Python Developer", source="adzuna"
-        )  # type: ignore
-        with pytest.raises(Exception):
-            job.title = "New Title"  # Should raise error because frozen=True
-
-    def test_string_stripping(self):
-        """Test that strings are stripped of whitespace."""
-        job = JobValidated(
-            external_id="  12345  ",
-            title="  Python Developer  ",
-            company_name="  TechCorp  ",
-            source="adzuna",
-        )  # type: ignore
-        assert job.external_id == "12345"
-        assert job.title == "Python Developer"
-        assert job.company_name == "TechCorp"
-
-
-class TestValidateJob:
-    """Test suite for validate_job function."""
-
-    def test_validate_job_success(self):
-        """Test successful job validation."""
-        job_dict = {
-            "external_id": "12345",
-            "title": "Python Developer",
-            "company_name": "TechCorp",
-            "salary_min": 100000.0,
-            "salary_max": 150000.0,
-            "currency": "USD",
-            "source": "adzuna",
-        }
-        job = validate_job(job_dict)
-        assert isinstance(job, JobValidated)
-        assert job.external_id == "12345"
-        assert job.title == "Python Developer"
-
-    def test_validate_job_failure(self):
-        """Test job validation failure."""
-        job_dict = {"external_id": "", "title": "Python Developer", "source": "adzuna"}
+        """Test that invalid currency codes are rejected."""
         with pytest.raises(ValidationError):
-            validate_job(job_dict)
+            make_enriched_job(currency="US")
 
-    def test_validate_job_with_extra_fields(self):
-        """Test validation with extra fields (should be ignored)."""
-        job_dict = {
-            "external_id": "12345",
-            "title": "Python Developer",
-            "source": "adzuna",
-            "extra_field": "This should be ignored",
-        }
-        job = validate_job(job_dict)
-        assert isinstance(job, JobValidated)
-        assert not hasattr(job, "extra_field")
+        with pytest.raises(ValidationError):
+            make_enriched_job(currency="USDD")
+
+    def test_invalid_country_code_length(self):
+        """Test that invalid country codes are rejected."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(country_code="USA")
+
+    def test_invalid_technology_confidence(self):
+        """Test that technology confidence outside 0-1 is rejected."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(tech_confidence=1.5)
+
+        with pytest.raises(ValidationError):
+            make_enriched_job(tech_confidence=-0.1)
+
+    def test_tech_role_requires_category(self):
+        """Test that tech roles require a technology category."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(
+                is_tech_role=True,
+                technology_category=None,
+            )
+
+    def test_tech_role_requires_confidence(self):
+        """Test that tech roles require tech confidence."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(
+                is_tech_role=True,
+                tech_confidence=None,
+            )
+
+    def test_non_tech_role_rejects_category(self):
+        """Test that non-tech roles cannot have a technology category."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(
+                is_tech_role=False,
+                technology_category="backend",
+                tech_confidence=None,
+                matched_tech_terms=[],
+            )
+
+    def test_non_tech_role_rejects_confidence(self):
+        """Test that non-tech roles cannot have tech confidence."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(
+                is_tech_role=False,
+                technology_category=None,
+                tech_confidence=0.8,
+                matched_tech_terms=[],
+            )
+
+    def test_string_normalization(self):
+        """Test that supported string fields are normalized."""
+        job = make_enriched_job(
+            title="  Python Developer  ",
+            company="  TechCorp  ",
+            language="EN",
+            country_code="ke",
+            currency="usd",
+        )
+
+        assert job.title == "Python Developer"
+        assert job.company == "TechCorp"
+        assert job.language == "en"
+        assert job.country_code == "KE"
+        assert job.currency == "USD"
 
 
-class TestValidateJobs:
-    """Test suite for validate_jobs function."""
+class TestJobValidator:
+    """Test suite for JobValidator."""
 
-    def test_validate_jobs_success(self):
+    def test_validate_success(self):
+        """Test successful validation of an enriched job."""
+        validator = JobValidator()
+        job = make_enriched_job()
+
+        validated = validator.validate(job)
+
+        assert isinstance(validated, JobValidated)
+        assert validated.source_id == "12345"
+        assert validated.title == "Python Developer"
+        assert validated.company == "TechCorp"
+        assert validated.validation_warnings == []
+
+    def test_validate_missing_source_id(self):
+        """Test that a job missing source_id is rejected."""
+        validator = JobValidator()
+        job = make_enriched_job(source_id="")
+
+        validated = validator.validate(job)
+
+        assert validated is None
+
+    def test_validate_missing_title(self):
+        """Test that a job missing title is rejected."""
+        validator = JobValidator()
+        job = make_enriched_job(title="")
+
+        validated = validator.validate(job)
+
+        assert validated is None
+
+    def test_validate_missing_company(self):
+        """Test that a job missing company is rejected."""
+        validator = JobValidator()
+        job = make_enriched_job(company="")
+
+        validated = validator.validate(job)
+
+        assert validated is None
+
+    def test_validate_negative_salary_min(self):
+        """Test that negative salary_min is rejected."""
+        validator = JobValidator()
+        job = make_enriched_job(salary_min=-1000.0)
+
+        validated = validator.validate(job)
+
+        assert validated is None
+
+    def test_validate_negative_salary_max(self):
+        """Test that negative salary_max is rejected."""
+        validator = JobValidator()
+        job = make_enriched_job(salary_max=-1000.0)
+
+        validated = validator.validate(job)
+
+        assert validated is None
+
+    def test_validate_swaps_reversed_salary_range(self):
+        """Test that reversed salary ranges are swapped with a warning."""
+        validator = JobValidator()
+        job = make_enriched_job(
+            salary_min=180000.0,
+            salary_max=120000.0,
+        )
+
+        validated = validator.validate(job)
+
+        assert validated is not None
+        assert validated.salary_min == 120000.0
+        assert validated.salary_max == 180000.0
+        assert "Min salary > max salary - values swapped" in (
+            validated.validation_warnings
+        )
+
+    def test_validate_sets_scraped_date_when_missing(self):
+        """Test that missing scraped_date receives a timestamp."""
+        validator = JobValidator()
+        job = make_enriched_job(scraped_date=None)
+
+        validated = validator.validate(job)
+
+        assert validated is not None
+        assert validated.scraped_date is not None
+        assert isinstance(validated.scraped_date, datetime)
+
+    def test_validate_batch_success(self):
         """Test successful batch validation."""
+        validator = JobValidator()
+
         jobs = [
-            {"external_id": "1", "title": "Job 1", "source": "adzuna"},
-            {"external_id": "2", "title": "Job 2", "source": "adzuna"},
+            make_enriched_job(source_id="1", title="Job 1"),
+            make_enriched_job(source_id="2", title="Job 2"),
         ]
-        validated = validate_jobs(jobs)
+
+        validated = validator.validate_batch(jobs)
+
         assert len(validated) == 2
         assert all(isinstance(job, JobValidated) for job in validated)
-        assert validated[0].external_id == "1"
-        assert validated[1].external_id == "2"
+        assert validated[0].source_id == "1"
+        assert validated[1].source_id == "2"
 
-    def test_validate_jobs_empty_list(self):
-        """Test batch validation with empty list."""
-        validated = validate_jobs([])
+    def test_validate_batch_empty(self):
+        """Test validation of an empty batch."""
+        validator = JobValidator()
+
+        validated = validator.validate_batch([])
+
         assert validated == []
 
-    def test_validate_jobs_failure(self):
-        """Test batch validation with one invalid job."""
+    def test_validate_batch_drops_invalid_jobs(self):
+        """Test that invalid jobs are dropped from the batch."""
+        validator = JobValidator()
+
         jobs = [
-            {"external_id": "1", "title": "Job 1", "source": "adzuna"},
-            {"external_id": "", "title": "Job 2", "source": "adzuna"},
+            make_enriched_job(source_id="1", title="Job 1"),
+            make_enriched_job(source_id="", title="Job 2"),
+            make_enriched_job(source_id="3", title="Job 3"),
         ]
-        with pytest.raises(ValidationError):
-            validate_jobs(jobs)
+
+        validated = validator.validate_batch(jobs)
+
+        assert len(validated) == 2
+        assert [job.source_id for job in validated] == ["1", "3"]

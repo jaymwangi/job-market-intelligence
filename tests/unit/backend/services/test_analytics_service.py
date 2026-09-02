@@ -225,15 +225,29 @@ class TestAnalyticsService:
         assert result.top_company == "TechCorp"
         assert result.top_skill == "Python"
         assert result.average_salary == 135000.0
-
+        
     def test_get_dashboard_summary(self, service, mock_repo):
         """Test getting dashboard summary."""
-        mock_repo.get_total_jobs.return_value = 1000
+        mock_repo.get_dataset_summary.return_value = {
+            "total_jobs": 1000,
+            "unique_companies": 200,
+            "unique_locations": 50,
+            "unique_skills": 80,
+        }
         mock_repo.count_recent_jobs.return_value = 50
-        mock_repo.get_top_skills.return_value = [{"skill": "Python", "count": 450}]
-        mock_repo.get_top_companies.return_value = [{"company": "TechCorp", "job_count": 120}]
-        mock_repo.get_jobs_by_location.return_value = [{"location": "SF", "job_count": 200}]
-        mock_repo.get_salary_statistics.return_value = {"average": 135000.0, "sample_size": 500}
+        mock_repo.get_top_skills.return_value = [
+            {"skill": "Python", "count": 450}
+        ]
+        mock_repo.get_top_companies.return_value = [
+            {"company": "TechCorp", "job_count": 120}
+        ]
+        mock_repo.get_jobs_by_location.return_value = [
+            {"location": "SF", "job_count": 200}
+        ]
+        mock_repo.get_salary_statistics.return_value = {
+            "average": 135000.0,
+            "sample_size": 500,
+        }
         mock_repo.get_employment_type_distribution.return_value = []
         mock_repo.get_jobs_posted_by_date.return_value = []
 

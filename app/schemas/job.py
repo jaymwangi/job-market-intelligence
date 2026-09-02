@@ -5,7 +5,7 @@ from uuid import UUID
 from typing import TYPE_CHECKING
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 if TYPE_CHECKING:
     from app.models.job import Job
@@ -80,8 +80,7 @@ class JobResponse(BaseModel):
         description="Employment type (FULL_TIME, CONTRACT, etc.)",
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def from_model(cls, job: "Job") -> "JobResponse":

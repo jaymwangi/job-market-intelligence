@@ -68,6 +68,7 @@ testpaths = [
 
 pythonpath = [
     ".",
+    "dashboard",
 ]
 
 python_files = [

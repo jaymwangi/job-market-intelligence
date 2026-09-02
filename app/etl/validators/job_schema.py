@@ -1,7 +1,7 @@
 """Job validator - ensures data quality, pure validation."""
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 import logging
 from pydantic import ValidationError
 from app.etl.schemas.enriched import JobEnriched
@@ -87,13 +87,13 @@ class JobValidator:
                 "Missing scraped_date for job %s - using current time",
                 data.get("source_id"),
             )
-            data["scraped_date"] = datetime.utcnow()
+            data["scraped_date"] = datetime.now(UTC)
 
         # 4. Build validated job (Pydantic handles field-level validation)
         try:
             return JobValidated(
                 **data,
-                validation_timestamp=datetime.utcnow(),
+                validation_timestamp=datetime.now(UTC),
                 validation_warnings=warnings,
             )
         except ValidationError as e:

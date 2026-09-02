@@ -3,11 +3,11 @@ Unit tests for dashboard jobs service.
 """
 
 from datetime import datetime
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
-from dashboard.schemas.jobs import Job, JobFilters, JobListResponse
+from schemas.jobs import Job, JobFilters, JobListResponse
 from dashboard.services.jobs_service import JobsService
 
 
@@ -47,7 +47,29 @@ class TestJobsService:
     def test_fetch_jobs_success(self, service, mock_api_client):
         """Test fetching jobs successfully."""
         filters = JobFilters()
-        response = service.fetch_jobs(filters, page=1, page_size=20)
+
+        raw_response = {
+            "data": [
+                {
+                    "id": "1",
+                    "title": "Python Developer",
+                    "company_name": "TechCorp",
+                    "location": "San Francisco",
+                    "salary_min": 100000.0,
+                    "salary_max": 150000.0,
+                    "salary_currency": "USD",
+                    "posted_date": datetime.now().isoformat(),
+                    "source_site": "LinkedIn",
+                    "is_active": True,
+                }
+            ],
+            "total": 1,
+            "page": 1,
+            "limit": 20,
+        }
+
+        with patch.object(service, "_fetch_jobs_cached", return_value=raw_response):
+            response = service.fetch_jobs(filters, page=1, page_size=20)
 
         assert isinstance(response, JobListResponse)
         assert len(response.items) == 1
@@ -71,11 +93,25 @@ class TestJobsService:
             max_salary=150000.0,
         )
 
-        service.fetch_jobs(filters, page=1, page_size=20)
+        raw_response = {
+            "data": [],
+            "total": 0,
+            "page": 1,
+            "limit": 20,
+        }
+        with patch.object(
+            service,
+            "_fetch_jobs_cached",
+            return_value=raw_response,
+        ) as mock_fetch:
+            service.fetch_jobs(filters, page=1, page_size=20)
 
-        # Verify correct params were passed
-        call_args = mock_api_client.get.call_args
-        params = call_args[1]["params"]
+        mock_fetch.assert_called_once()
+
+        args, _ = mock_fetch.call_args
+
+        params = args[1]
+
         assert params["q"] == "Python"
         assert params["company_name"] == "TechCorp"
         assert params["location"] == "San Francisco"

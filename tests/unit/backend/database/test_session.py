@@ -51,8 +51,28 @@ class TestDatabaseSession:
         session.close()
         # Session should be closed
         assert True
-
-    @pytest.mark.skip(reason="Requires database with JSONB support")
+        
     def test_session_transaction_rollback(self, db_session):
-        """Test transaction rollback on error."""
-        assert True
+        """Test that a database transaction can be rolled back."""
+        from app.models.job import Job
+
+        job = Job(
+            title="Rollback Test Job",
+            description="Test job for transaction rollback.",
+            company_name="Test Company",
+            source_url="https://example.com/jobs/rollback-test",
+            source_site="test",
+            source_id="rollback-test",
+            language="en",
+        )
+
+        db_session.add(job)
+        db_session.flush()
+
+        job_id = job.id
+
+        assert db_session.get(Job, job_id) is not None
+
+        db_session.rollback()
+
+        assert db_session.get(Job, job_id) is None

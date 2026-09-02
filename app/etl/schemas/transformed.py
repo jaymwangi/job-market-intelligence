@@ -4,7 +4,7 @@
 
 from typing import Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class JobTransformed(BaseModel):
@@ -58,5 +58,4 @@ class JobTransformed(BaseModel):
         description="Batch number when acquired"
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

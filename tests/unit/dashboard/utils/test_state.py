@@ -63,7 +63,7 @@ class TestStateManager:
             "current_page": "overview",
             "job_filters": {},
             "jobs_page": 1,
-            "jobs_page_size": 20,
+            "jobs_page_size": 10,
             "selected_job_id": None,
             "services": {},
         }
@@ -86,7 +86,7 @@ class TestStateManager:
             assert session_state["current_page"] == "overview"
             assert session_state["job_filters"] == {}
             assert session_state["jobs_page"] == 1
-            assert session_state["jobs_page_size"] == 20
+            assert session_state["jobs_page_size"] == 10
             assert session_state["selected_job_id"] is None
             assert session_state["services"] == {}
 
@@ -228,7 +228,7 @@ class TestStateManager:
         with patch("dashboard.utils.state.st.session_state", session_state):
             StateManager.init()
 
-            assert StateManager.get_jobs_page_size() == 20
+            assert StateManager.get_jobs_page_size() == 10
 
             StateManager.set_jobs_page_size(50)
             assert StateManager.get_jobs_page_size() == 50

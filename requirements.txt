@@ -1,7 +1,7 @@
 # ============================================
 # Web Framework & Server
 # ============================================
-fastapi~=0.115.11
+fastapi~=0.139.0
 uvicorn[standard]~=0.34.0
 python-multipart~=0.0.20
 
@@ -49,10 +49,11 @@ lingua-language-detector>=2.1.0
 # ⚠️  Development/demo only.
 # ⚠️  Uses Google's unofficial endpoints and may break without notice.
 # ⚠️  Replace with DeepL, Azure Translator, or Google Cloud Translation in production.
-googletrans==4.0.0-rc1
+googletrans==4.0.2
 
 # ============================================
 # Dashboard
 # ============================================
 streamlit~=1.42.0
+httpx2~=2.12.0
 plotly~=5.24.0

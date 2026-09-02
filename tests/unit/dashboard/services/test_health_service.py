@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from dashboard.schemas.health import HealthResponse
+from schemas.health import HealthResponse
 from dashboard.services.health import HealthService
 
 

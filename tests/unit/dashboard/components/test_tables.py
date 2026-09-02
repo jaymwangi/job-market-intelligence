@@ -1,18 +1,16 @@
-"""
-Unit tests for dashboard tables component.
-"""
+"""Unit tests for dashboard tables component."""
 
-import pytest
+from unittest.mock import patch
 
-# Skip these tests if components can't be imported due to missing dependencies
-pytestmark = pytest.mark.skip(
-    reason="Components require core.config which is not available in test environment"
-)
+from dashboard.components.tables import render_jobs_table
 
 
 class TestTables:
-    """Test suite for tables component - SKIPPED."""
+    """Test suite for tables component."""
 
-    def test_placeholder(self):
-        """Placeholder test."""
-        assert True
+    @patch("dashboard.components.tables.st")
+    def test_render_jobs_table_empty(self, mock_st):
+        """Test empty jobs list renders nothing."""
+        render_jobs_table([])
+
+        mock_st.container.assert_not_called()

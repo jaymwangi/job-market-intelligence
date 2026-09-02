@@ -180,22 +180,32 @@ class TestHealthRoutes:
         data = response.json()
         assert data["detail"]["status"] == "not_ready"
 
-    def test_database_health_endpoint_success(self, client, mocker):
+    def test_database_health_endpoint_success(self, client):
         """Test database health endpoint when database is healthy."""
         mock_db = Mock()
         mock_result = Mock()
         mock_result.server_time = datetime.now()
-        mock_db.execute.return_value.first.return_value = mock_result
-        mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
 
-        response = client.get("/api/v1/health/database")
+        mock_db.execute.return_value.first.return_value = mock_result
+
+        def override_get_db():
+            yield mock_db
+
+        try:
+            client.app.dependency_overrides[get_db] = override_get_db
+
+            response = client.get("/api/v1/health/database")
+        finally:
+            client.app.dependency_overrides.clear()
+
         assert response.status_code == 200
+
         data = response.json()
         assert data["status"] == "healthy"
         assert data["database"] == "PostgreSQL"
         assert "response_time_ms" in data
         assert "connection_pool_size" in data
-
+    
     def test_database_health_endpoint_failure(self, client):
         """Test database health endpoint when database is unhealthy using dependency_overrides."""
         # Create a mock session that raises an exception

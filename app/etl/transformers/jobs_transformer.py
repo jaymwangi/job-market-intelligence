@@ -3,7 +3,7 @@
 """Transform Adzuna API data to normalized internal format."""
 
 from typing import Any, Dict, List, Optional
-from datetime import datetime
+from datetime import UTC, datetime
 import logging
 from app.etl.schemas.transformed import JobTransformed
 from app.etl.constants import RAW_SOURCE_COUNTRY_FIELD
@@ -76,7 +76,7 @@ class JobsTransformer:
 
             # Parse dates
             posted_date = self._parse_datetime(job.get("created"))
-            scraped_date = posted_date or datetime.utcnow()
+            scraped_date = posted_date or datetime.now(UTC)
 
             # Extract category safely
             category = job.get("category", {})
