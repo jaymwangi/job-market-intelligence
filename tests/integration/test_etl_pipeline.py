@@ -23,7 +23,7 @@ def sample_raw_jobs():
             "company": {"display_name": "Integration Tech"},
             "location": {"display_name": "Nairobi, Kenya"},
             "created": "2026-08-27T06:00:00Z",
-            "redirect_url": "https://example.com/jobs/integration-etl-001",
+            "redirect_url": ("https://example.com/jobs/integration-etl-001"),
             "contract_type": "full_time",
             "category": {"label": "IT Jobs"},
             "salary": {
@@ -41,7 +41,7 @@ def sample_raw_jobs():
             "company": {"display_name": "Analytics Corp"},
             "location": {"display_name": "Nairobi, Kenya"},
             "created": "2026-08-27T07:00:00Z",
-            "redirect_url": "https://example.com/jobs/integration-etl-002",
+            "redirect_url": ("https://example.com/jobs/integration-etl-002"),
             "contract_type": "full_time",
             "category": {"label": "IT Jobs"},
             "salary": {
@@ -53,94 +53,73 @@ def sample_raw_jobs():
     ]
 
 
-def _delete_test_jobs(source_ids: list[str]) -> None:
-    """Remove integration-test jobs using an independent committed session."""
-    from app.database.session import SessionLocal
+def _delete_test_jobs(
+    db_session,
+    source_ids: list[str],
+) -> None:
+    """Remove integration-test jobs using the test database session."""
+    jobs = (
+        db_session.query(Job)
+        .filter(
+            Job.source_site == "adzuna",
+            Job.source_id.in_(source_ids),
+        )
+        .all()
+    )
 
-    db = SessionLocal()
+    job_ids = [job.id for job in jobs]
 
-    try:
-        jobs = (
-            db.query(Job)
-            .filter(
-                Job.source_site == "adzuna",
-                Job.source_id.in_(source_ids),
-            )
-            .all()
+    if job_ids:
+        db_session.query(JobSkill).filter(JobSkill.job_id.in_(job_ids)).delete(
+            synchronize_session=False
         )
 
-        job_ids = [job.id for job in jobs]
+        db_session.query(Job).filter(Job.id.in_(job_ids)).delete(synchronize_session=False)
 
-        if job_ids:
-            db.query(JobSkill).filter(JobSkill.job_id.in_(job_ids)).delete(
-                synchronize_session=False
-            )
-
-            db.query(Job).filter(Job.id.in_(job_ids)).delete(synchronize_session=False)
-
-        db.commit()
-
-    except Exception:
-        db.rollback()
-        raise
-
-    finally:
-        db.close()
+    db_session.flush()
 
 
-def _get_test_jobs(source_ids: list[str]) -> list[Job]:
-    """Fetch integration-test jobs using a fresh database session."""
-    from app.database.session import SessionLocal
-
-    db = SessionLocal()
-
-    try:
-        return (
-            db.query(Job)
-            .filter(
-                Job.source_site == "adzuna",
-                Job.source_id.in_(source_ids),
-            )
-            .all()
+def _get_test_jobs(
+    db_session,
+    source_ids: list[str],
+) -> list[Job]:
+    """Fetch integration-test jobs using the test database session."""
+    return (
+        db_session.query(Job)
+        .filter(
+            Job.source_site == "adzuna",
+            Job.source_id.in_(source_ids),
         )
-    finally:
-        db.close()
+        .all()
+    )
 
 
-def _get_test_skills() -> list[Skill]:
-    """Fetch skills using a fresh database session."""
-    from app.database.session import SessionLocal
-
-    db = SessionLocal()
-
-    try:
-        return db.query(Skill).all()
-    finally:
-        db.close()
+def _get_test_skills(
+    db_session,
+) -> list[Skill]:
+    """Fetch skills using the test database session."""
+    return db_session.query(Skill).all()
 
 
-def _count_test_relationships(job_ids: list) -> int:
-    """Count job-skill relationships using a fresh database session."""
-    from app.database.session import SessionLocal
-
-    db = SessionLocal()
-
-    try:
-        return db.query(JobSkill).filter(JobSkill.job_id.in_(job_ids)).count()
-    finally:
-        db.close()
+def _count_test_relationships(
+    db_session,
+    job_ids: list,
+) -> int:
+    """Count job-skill relationships using the test database session."""
+    return db_session.query(JobSkill).filter(JobSkill.job_id.in_(job_ids)).count()
 
 
 def test_etl_pipeline_processes_and_persists_jobs(
     monkeypatch,
     sample_raw_jobs,
+    db_session,
 ):
     """The complete legacy ETL path transforms and persists valid jobs."""
     source_ids = [job["id"] for job in sample_raw_jobs]
 
-    _delete_test_jobs(source_ids)
+    _delete_test_jobs(db_session, source_ids)
 
-    pipeline = ETLPipeline()
+    pipeline = ETLPipeline(db_session=db_session)
 
     monkeypatch.setattr(
         pipeline.extractor,
@@ -161,7 +140,10 @@ def test_etl_pipeline_processes_and_persists_jobs(
         assert metrics.inserted == 2
         assert metrics.updated == 0
 
-        persisted_jobs = _get_test_jobs(source_ids)
+        persisted_jobs = _get_test_jobs(
+            db_session,
+            source_ids,
+        )
 
         assert len(persisted_jobs) == 2
 
@@ -172,18 +154,25 @@ def test_etl_pipeline_processes_and_persists_jobs(
             "Data Analyst",
         }
 
-        persisted_skills = _get_test_skills()
+        persisted_skills = _get_test_skills(db_session)
+
         skill_names = {skill.name.lower() for skill in persisted_skills}
 
         assert "python" in skill_names
         assert "sql" in skill_names
 
-        relationship_count = _count_test_relationships([job.id for job in persisted_jobs])
+        relationship_count = _count_test_relationships(
+            db_session,
+            [job.id for job in persisted_jobs],
+        )
 
         assert relationship_count > 0
 
     finally:
-        _delete_test_jobs(source_ids)
+        _delete_test_jobs(
+            db_session,
+            source_ids,
+        )
 
 
 def test_etl_pipeline_handles_empty_extraction(
@@ -216,13 +205,17 @@ def test_etl_pipeline_handles_empty_extraction(
 def test_etl_pipeline_upserts_existing_jobs(
     monkeypatch,
     sample_raw_jobs,
+    db_session,
 ):
     """Running the same ETL input twice updates rather than duplicates."""
     source_ids = [job["id"] for job in sample_raw_jobs]
 
-    _delete_test_jobs(source_ids)
+    _delete_test_jobs(
+        db_session,
+        source_ids,
+    )
 
-    pipeline = ETLPipeline()
+    pipeline = ETLPipeline(db_session=db_session)
 
     monkeypatch.setattr(
         pipeline.extractor,
@@ -239,6 +232,33 @@ def test_etl_pipeline_upserts_existing_jobs(
         assert first_metrics.inserted == 2
         assert first_metrics.updated == 0
 
+        original_job = next(
+            job
+            for job in _get_test_jobs(db_session, source_ids)
+            if job.source_id == "integration-etl-001"
+        )
+
+        original_id = original_job.id
+        original_source_id = original_job.source_id
+
+        updated_raw_jobs = [
+            {
+                **job,
+                "title": (
+                    "Updated Integration Test Job"
+                    if job["id"] == "integration-etl-001"
+                    else job["title"]
+                ),
+            }
+            for job in sample_raw_jobs
+        ]
+
+        monkeypatch.setattr(
+            pipeline.extractor,
+            "extract",
+            lambda country: updated_raw_jobs,
+        )
+
         second_metrics = pipeline.run(
             countries=["ke"],
             use_acquisition=False,
@@ -247,9 +267,23 @@ def test_etl_pipeline_upserts_existing_jobs(
         assert second_metrics.inserted == 0
         assert second_metrics.updated == 2
 
-        persisted_count = len(_get_test_jobs(source_ids))
+        # Force SQLAlchemy to reload ORM state from PostgreSQL after the Core-level upsert.
+        db_session.expire_all()
 
-        assert persisted_count == 2
+        persisted_jobs = _get_test_jobs(
+            db_session,
+            source_ids,
+        )
+
+        assert len(persisted_jobs) == 2
+
+        updated_job = next(job for job in persisted_jobs if job.source_id == original_source_id)
+
+        assert updated_job.id == original_id
+        assert updated_job.title == "Updated Integration Test Job"
 
     finally:
-        _delete_test_jobs(source_ids)
+        _delete_test_jobs(
+            db_session,
+            source_ids,
+        )
