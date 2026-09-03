@@ -18,12 +18,15 @@ def sample_raw_jobs():
             "id": "integration-etl-001",
             "title": "Senior Python Backend Engineer",
             "description": (
-                "Build scalable APIs with Python, FastAPI, PostgreSQL, " "Docker, and AWS."
+                "Build scalable APIs with Python, FastAPI, PostgreSQL, "
+                "Docker, and AWS."
             ),
             "company": {"display_name": "Integration Tech"},
             "location": {"display_name": "Nairobi, Kenya"},
             "created": "2026-08-27T06:00:00Z",
-            "redirect_url": ("https://example.com/jobs/integration-etl-001"),
+            "redirect_url": (
+                "https://example.com/jobs/integration-etl-001"
+            ),
             "contract_type": "full_time",
             "category": {"label": "IT Jobs"},
             "salary": {
@@ -36,12 +39,15 @@ def sample_raw_jobs():
             "id": "integration-etl-002",
             "title": "Data Analyst",
             "description": (
-                "Analyze business data using SQL, Python, Power BI, " "and data visualization."
+                "Analyze business data using SQL, Python, Power BI, "
+                "and data visualization."
             ),
             "company": {"display_name": "Analytics Corp"},
             "location": {"display_name": "Nairobi, Kenya"},
             "created": "2026-08-27T07:00:00Z",
-            "redirect_url": ("https://example.com/jobs/integration-etl-002"),
+            "redirect_url": (
+                "https://example.com/jobs/integration-etl-002"
+            ),
             "contract_type": "full_time",
             "category": {"label": "IT Jobs"},
             "salary": {
@@ -70,11 +76,17 @@ def _delete_test_jobs(
     job_ids = [job.id for job in jobs]
 
     if job_ids:
-        db_session.query(JobSkill).filter(JobSkill.job_id.in_(job_ids)).delete(
+        db_session.query(JobSkill).filter(
+            JobSkill.job_id.in_(job_ids)
+        ).delete(
             synchronize_session=False
         )
 
-        db_session.query(Job).filter(Job.id.in_(job_ids)).delete(synchronize_session=False)
+        db_session.query(Job).filter(
+            Job.id.in_(job_ids)
+        ).delete(
+            synchronize_session=False
+        )
 
     db_session.flush()
 
@@ -106,7 +118,9 @@ def _count_test_relationships(
     job_ids: list,
 ) -> int:
     """Count job-skill relationships using the test database session."""
-    return db_session.query(JobSkill).filter(JobSkill.job_id.in_(job_ids)).count()
+    return db_session.query(JobSkill).filter(
+        JobSkill.job_id.in_(job_ids)
+    ).count()
 
 
 def test_etl_pipeline_processes_and_persists_jobs(
@@ -126,7 +140,6 @@ def test_etl_pipeline_processes_and_persists_jobs(
         "extract",
         lambda country: sample_raw_jobs,
     )
-
     try:
         metrics = pipeline.run(
             countries=["ke"],
@@ -154,9 +167,41 @@ def test_etl_pipeline_processes_and_persists_jobs(
             "Data Analyst",
         }
 
+        senior_backend_job = next(
+            job
+            for job in persisted_jobs
+            if job.source_id == "integration-etl-001"
+        )
+
+        data_analyst_job = next(
+            job
+            for job in persisted_jobs
+            if job.source_id == "integration-etl-002"
+        )
+
+        # Verify persisted technology classification.
+        assert senior_backend_job.is_tech_role is True
+        assert senior_backend_job.technology_category == "backend"
+
+        # Data Analyst is classified as non-tech under the
+        # current technology classification policy.
+        assert data_analyst_job.is_tech_role is False
+        assert data_analyst_job.technology_category is None
+
+        # Verify persisted country normalization.
+        assert senior_backend_job.country_code == "KE"
+        assert data_analyst_job.country_code == "KE"
+
+        # Verify the original salary currency survives persistence.
+        assert senior_backend_job.salary_currency == "USD"
+        assert data_analyst_job.salary_currency == "USD"
+
         persisted_skills = _get_test_skills(db_session)
 
-        skill_names = {skill.name.lower() for skill in persisted_skills}
+        skill_names = {
+            skill.name.lower()
+            for skill in persisted_skills
+        }
 
         assert "python" in skill_names
         assert "sql" in skill_names
@@ -172,6 +217,34 @@ def test_etl_pipeline_processes_and_persists_jobs(
         _delete_test_jobs(
             db_session,
             source_ids,
+        )
+
+def test_etl_pipeline_propagates_extraction_failure(
+    monkeypatch,
+):
+    """The pipeline propagates extraction failures to the caller."""
+    pipeline = ETLPipeline()
+
+    expected_error = RuntimeError(
+        "Simulated extraction failure"
+    )
+
+    def fail_extract(country):
+        raise expected_error
+
+    monkeypatch.setattr(
+        pipeline.extractor,
+        "extract",
+        fail_extract,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Simulated extraction failure",
+    ):
+        pipeline.run(
+            countries=["ke"],
+            use_acquisition=False,
         )
 
 
@@ -267,7 +340,8 @@ def test_etl_pipeline_upserts_existing_jobs(
         assert second_metrics.inserted == 0
         assert second_metrics.updated == 2
 
-        # Force SQLAlchemy to reload ORM state from PostgreSQL after the Core-level upsert.
+        # Force SQLAlchemy to reload ORM state from the
+        # Core-level upsert.
         db_session.expire_all()
 
         persisted_jobs = _get_test_jobs(
@@ -277,7 +351,11 @@ def test_etl_pipeline_upserts_existing_jobs(
 
         assert len(persisted_jobs) == 2
 
-        updated_job = next(job for job in persisted_jobs if job.source_id == original_source_id)
+        updated_job = next(
+            job
+            for job in persisted_jobs
+            if job.source_id == original_source_id
+        )
 
         assert updated_job.id == original_id
         assert updated_job.title == "Updated Integration Test Job"

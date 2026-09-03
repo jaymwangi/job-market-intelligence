@@ -50,6 +50,9 @@ COUNTRY_MAP = {
     # Ireland
     "ie": "IE",
     "ireland": "IE",
+    #Kenya
+    "ke": "KE",
+    "kenya": "KE",
     # New Zealand
     "nz": "NZ",
     "new zealand": "NZ",
@@ -71,4 +74,5 @@ COUNTRY_NAMES = {
     "CH": "Switzerland",
     "IE": "Ireland",
     "NZ": "New Zealand",
+    "KE": "Kenya",
 }
