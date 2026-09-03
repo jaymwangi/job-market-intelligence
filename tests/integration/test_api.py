@@ -166,3 +166,257 @@ class TestJobsAPIIntegration:
 
         assert data["total"] >= 1
         assert any(item["id"] == str(job.id) for item in data["data"])
+        
+class TestJobsAPIFilterIntegration:
+    """Integration tests for job filtering against PostgreSQL."""
+
+    @staticmethod
+    def create_job(db_session, **overrides):
+        """Create a deterministic PostgreSQL job for filter tests."""
+
+        defaults = {
+            "title": "Filter Integration Job",
+            "description": "Created for API filter integration testing",
+            "company_name": "Filter Test Company",
+            "location": "Nairobi",
+            "salary_min": Decimal("50000"),
+            "salary_max": Decimal("100000"),
+            "salary_currency": "USD",
+            "source_site": f"filter-{uuid4().hex[:8]}",
+            "source_id": uuid4().hex,
+            "source_url": "https://example.com/job",
+            "posted_date": datetime.now(UTC),
+            "scraped_date": datetime.now(UTC),
+            "is_active": True,
+            "is_deleted": False,
+            "country_code": "KE",
+            "technology_category": "backend",
+            "is_tech_role": True,
+            "employment_type": "full-time",
+            "language": "en",
+        }
+
+        defaults.update(overrides)
+
+        job = Job(**defaults)
+        db_session.add(job)
+        db_session.flush()
+
+        return job
+
+    @pytest.fixture
+    def client(self, db_session):
+        """Create a TestClient using the integration PostgreSQL session."""
+
+        def override_get_db():
+            yield db_session
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        try:
+            with TestClient(app) as test_client:
+                yield test_client
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_country_filter_uses_postgresql(
+        self,
+        client,
+        db_session,
+    ):
+        """Country filtering operates on PostgreSQL data."""
+
+        kenya_job = self.create_job(
+            db_session,
+            title="Kenya Filter Job",
+            country_code="KE",
+        )
+        self.create_job(
+            db_session,
+            title="US Filter Job",
+            country_code="US",
+        )
+
+        response = client.get(
+            "/api/v1/jobs",
+            params={"country_code": "KE"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["total"] == 1
+        assert data["data"][0]["id"] == str(kenya_job.id)
+
+    def test_technology_category_filter_uses_postgresql(
+        self,
+        client,
+        db_session,
+    ):
+        """Technology category filtering operates on PostgreSQL data."""
+
+        backend_job = self.create_job(
+            db_session,
+            title="Backend Filter Job",
+            technology_category="backend",
+        )
+        self.create_job(
+            db_session,
+            title="Frontend Filter Job",
+            technology_category="frontend",
+        )
+
+        response = client.get(
+            "/api/v1/jobs",
+            params={"technology_category": "backend"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["total"] == 1
+        assert data["data"][0]["id"] == str(backend_job.id)
+
+    def test_is_tech_role_filter_uses_postgresql(
+        self,
+        client,
+        db_session,
+    ):
+        """Tech-role filtering operates on PostgreSQL data."""
+
+        tech_job = self.create_job(
+            db_session,
+            title="Tech Filter Job",
+            is_tech_role=True,
+        )
+        self.create_job(
+            db_session,
+            title="Non Tech Filter Job",
+            is_tech_role=False,
+            technology_category=None,
+        )
+
+        response = client.get(
+            "/api/v1/jobs",
+            params={"is_tech_role": True},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["total"] == 1
+        assert data["data"][0]["id"] == str(tech_job.id)
+
+    def test_salary_range_filters_use_postgresql(
+        self,
+        client,
+        db_session,
+    ):
+        """Salary filters operate on PostgreSQL data."""
+
+        matching_job = self.create_job(
+            db_session,
+            title="Salary Match Job",
+            salary_min=Decimal("80000"),
+            salary_max=Decimal("120000"),
+        )
+        self.create_job(
+            db_session,
+            title="Salary Outside Job",
+            salary_min=Decimal("20000"),
+            salary_max=Decimal("40000"),
+        )
+
+        response = client.get(
+            "/api/v1/jobs",
+            params={
+                "min_salary": 70000,
+                "max_salary": 130000,
+            },
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["total"] == 1
+        assert data["data"][0]["id"] == str(matching_job.id)
+
+    def test_combined_filters_use_postgresql(
+        self,
+        client,
+        db_session,
+    ):
+        """Multiple filters are applied together against PostgreSQL."""
+
+        matching_job = self.create_job(
+            db_session,
+            title="Combined Filter Match",
+            country_code="KE",
+            technology_category="backend",
+            is_tech_role=True,
+            employment_type="full-time",
+        )
+
+        self.create_job(
+            db_session,
+            title="Wrong Country",
+            country_code="US",
+            technology_category="backend",
+            is_tech_role=True,
+            employment_type="full-time",
+        )
+
+        self.create_job(
+            db_session,
+            title="Wrong Category",
+            country_code="KE",
+            technology_category="frontend",
+            is_tech_role=True,
+            employment_type="full-time",
+        )
+
+        response = client.get(
+            "/api/v1/jobs",
+            params={
+                "country_code": "KE",
+                "technology_category": "backend",
+                "is_tech_role": True,
+                "employment_type": "full-time",
+            },
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["total"] == 1
+        assert data["data"][0]["id"] == str(matching_job.id)
+
+    def test_filter_with_no_matches_returns_empty_data(
+        self,
+        client,
+        db_session,
+    ):
+        """A filter with no matching PostgreSQL records returns empty data."""
+
+        self.create_job(
+            db_session,
+            country_code="KE",
+        )
+
+        response = client.get(
+            "/api/v1/jobs",
+            params={"country_code": "ZZ"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["total"] == 0
+        assert data["data"] == []
+        assert data["total_pages"] == 0
