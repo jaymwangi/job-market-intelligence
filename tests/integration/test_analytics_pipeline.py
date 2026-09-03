@@ -32,7 +32,7 @@ def analytics_data(db_session):
         source_id=f"analytics-{uuid4()}",
         country_code="GB",
         language="en",
-        posted_date=datetime.now(UTC),
+        posted_date=datetime(2026, 8, 31, tzinfo=UTC),
         is_tech_role=True,
         technology_category="data",
     )
@@ -50,7 +50,7 @@ def analytics_data(db_session):
         source_id=f"analytics-{uuid4()}",
         country_code="GB",
         language="en",
-        posted_date=datetime.now(UTC),
+        posted_date=datetime(2026, 8, 31, tzinfo=UTC),
         is_tech_role=True,
         technology_category="backend",
     )
@@ -68,7 +68,7 @@ def analytics_data(db_session):
         source_id=f"analytics-{uuid4()}",
         country_code="US",
         language="en",
-        posted_date=datetime.now(UTC),
+        posted_date=datetime(2026, 9, 1, tzinfo=UTC),
         is_tech_role=True,
         technology_category="ml_ai",
     )
@@ -86,7 +86,7 @@ def analytics_data(db_session):
         source_id=f"analytics-{uuid4()}",
         country_code="GB",
         language="en",
-        posted_date=datetime.now(UTC),
+        posted_date=datetime(2026, 9, 2, tzinfo=UTC),
         is_tech_role=False,
         technology_category=None,
     )
@@ -331,7 +331,7 @@ class TestSalaryAnalyticsIntegration:
             source_id=f"analytics-{uuid4()}",
             country_code="GB",
             language="en",
-            posted_date=datetime.now(UTC),
+            posted_date=datetime(2026, 9, 2, tzinfo=UTC),
             is_tech_role=True,
             technology_category="data",
         )
@@ -363,3 +363,192 @@ class TestSalaryAnalyticsIntegration:
             "sample_size": 0,
             "currency": None,
         }
+
+
+class TestBasicAggregationIntegration:
+    """Integration tests for basic analytics aggregations."""
+
+    def test_get_total_jobs_returns_correct_count(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Total jobs should count all active PostgreSQL jobs."""
+        result = analytics_repository.get_total_jobs()
+
+        assert result == 4
+
+    def test_get_top_companies_returns_correct_counts(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Company analytics should return exact active-job counts."""
+        result = analytics_repository.get_top_companies()
+
+        companies = {
+            item["company"]: item["job_count"]
+            for item in result
+        }
+
+        assert companies["Tech GB"] == 2
+        assert companies["Tech US"] == 1
+        assert companies["Business GB"] == 1
+
+    def test_get_jobs_by_location_returns_correct_counts(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Location analytics should return exact active-job counts."""
+        result = analytics_repository.get_jobs_by_location()
+
+        locations = {
+            item["location"]: item["job_count"]
+            for item in result
+        }
+
+        assert locations["London"] == 2
+        assert locations["Manchester"] == 1
+        assert locations["New York"] == 1
+
+
+class TestTechnologySplitIntegration:
+    """Integration tests for tech versus non-tech analytics."""
+
+    def test_get_tech_vs_non_tech_returns_correct_values(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Tech/non-tech analytics should match the deterministic dataset."""
+        result = analytics_repository.get_tech_vs_non_tech()
+
+        assert result["total_count"] == 4
+        assert result["tech_count"] == 3
+        assert result["non_tech_count"] == 1
+        assert result["tech_percentage"] == pytest.approx(75.0)
+
+    def test_get_tech_by_country_returns_correct_values(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Tech-by-country analytics should calculate exact country ratios."""
+        result = analytics_repository.get_tech_by_country()
+
+        countries = {
+            item["country"]: item
+            for item in result
+        }
+
+        assert countries["GB"]["total_count"] == 3
+        assert countries["GB"]["tech_count"] == 2
+        assert countries["GB"]["tech_percentage"] == pytest.approx(
+            2 / 3 * 100
+        )
+
+        assert countries["US"]["total_count"] == 1
+        assert countries["US"]["tech_count"] == 1
+        assert countries["US"]["tech_percentage"] == pytest.approx(
+            100.0
+        )
+
+
+class TestEnrichedAnalyticsFilteringIntegration:
+    """Integration tests for filtered enriched analytics."""
+
+    def test_get_enriched_top_skills_filters_by_country(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Country filtering should restrict skill aggregation."""
+        result = analytics_repository.get_enriched_top_skills(
+            country_code="GB"
+        )
+
+        skills = {
+            item["skill"]: item["count"]
+            for item in result
+        }
+
+        assert skills["Python"] == 2
+        assert skills["SQL"] == 3
+
+    def test_get_enriched_top_skills_filters_to_tech_roles(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Tech-only filtering should exclude non-tech job relationships."""
+        result = analytics_repository.get_enriched_top_skills(
+            tech_only=True
+        )
+
+        skills = {
+            item["skill"]: item["count"]
+            for item in result
+        }
+
+        assert skills["Python"] == 3
+        assert skills["SQL"] == 2
+        assert skills["Docker"] == 1
+
+    def test_get_enriched_top_skills_combines_country_and_tech_filters(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Country and tech filters should be applied together."""
+        result = analytics_repository.get_enriched_top_skills(
+            country_code="GB",
+            tech_only=True,
+        )
+
+        skills = {
+            item["skill"]: item["count"]
+            for item in result
+        }
+
+        assert skills["Python"] == 2
+        assert skills["SQL"] == 2
+
+
+class TestTrendAnalyticsIntegration:
+    """Integration tests for time-based analytics."""
+
+    def test_get_jobs_posted_by_date_returns_exact_daily_counts(
+        self,
+        analytics_repository,
+        analytics_data,
+    ):
+        """Posting trends should aggregate jobs into exact calendar dates."""
+        result = analytics_repository.get_jobs_posted_by_date(days=30)
+
+        counts = {
+            item["date"]: item["count"]
+            for item in result
+        }
+
+        assert counts["2026-08-31"] == 2
+        assert counts["2026-09-01"] == 1
+        assert counts["2026-09-02"] == 1
+
+
+class TestEmptyAnalyticsIntegration:
+    """Integration tests for empty active-job analytics."""
+
+    def test_empty_dataset_returns_zero_or_empty_analytics(
+        self,
+        analytics_repository,
+    ):
+        """Analytics should return safe empty results when no jobs exist."""
+        assert analytics_repository.get_total_jobs() == 0
+        assert analytics_repository.get_country_distribution() == []
+
+        result = analytics_repository.get_tech_vs_non_tech()
+
+        assert result["total_count"] == 0
+        assert result["tech_count"] == 0
+        assert result["non_tech_count"] == 0
