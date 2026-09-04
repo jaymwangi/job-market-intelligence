@@ -5,7 +5,7 @@ Unit tests for dashboard analytics mapper.
 import pytest
 
 from dashboard.mappers.analytics_mapper import AnalyticsMapper
-from dashboard.schemas.analytics import (
+from schemas.analytics import (
     DashboardSummary,
     EmploymentType,
     LocationAnalytics,
@@ -14,7 +14,7 @@ from dashboard.schemas.analytics import (
     TopCompany,
     TopSkill,
 )
-from dashboard.schemas.chart_data import (
+from schemas.chart_data import (
     BarChartData,
     DonutChartData,
     HistogramData,
