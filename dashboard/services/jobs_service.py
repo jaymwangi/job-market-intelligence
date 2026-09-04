@@ -39,7 +39,7 @@ class JobsService(BaseService):
         params = self._build_params(filters, page, page_size)
 
         # Get the API base URL from the client
-        api_base_url = self.api_client.base_url if hasattr(self.api_client, 'base_url') else None
+        api_base_url = self.api_client.base_url
 
         # Fetch cached raw data
         raw_response = self._fetch_jobs_cached(api_base_url, params)
@@ -67,8 +67,7 @@ class JobsService(BaseService):
             return client.get(JOBS, params=params)
         except Exception as e:
             logger.error(f"Failed to fetch jobs: {e}")
-            return {"data": [], "total": 0, "limit": 20, "page": 1}
-
+            raise
     def fetch_job(self, job_id: str) -> Job | None:
         """Fetch a single job by ID."""
         try:

@@ -9,6 +9,7 @@ use the PostgreSQL test database provided by the ``db_session`` fixture.
 """
 
 import asyncio
+from datetime import datetime, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -17,6 +18,7 @@ import pytest
 
 from app.database.session import get_db
 from app.main import app
+from app.models.job import Job
 from dashboard.api.client import APIClient
 from dashboard.api.exceptions import (
     APIConnectionError,
@@ -127,6 +129,39 @@ def live_api_client(db_session):
         app.dependency_overrides.clear()
 
 
+def make_test_job(
+    *,
+    title: str,
+    company_name: str,
+    location: str,
+    description: str,
+    is_tech_role: bool = True,
+    technology_category: str | None = "backend",
+    source_site: str = "test",
+    source_id: str | None = None,
+) -> Job:
+    """Create a deterministic Job model for dashboard integration tests."""
+
+    return Job(
+        id=uuid4(),
+        title=title,
+        company_name=company_name,
+        location=location,
+        description=description,
+        posted_date=datetime.now(timezone.utc),
+        source_url="https://example.com/test-job",
+        source_site=source_site,
+        source_id=source_id or str(uuid4()),
+        is_tech_role=is_tech_role,
+        technology_category=technology_category,
+        country_code="GB",
+        salary_currency="GBP",
+        salary_min=50000,
+        salary_max=70000,
+        language="en",
+    )
+
+
 class TestDashboardAPIHealth:
     """Test dashboard communication with API health endpoints."""
 
@@ -179,6 +214,170 @@ class TestDashboardAPIJobs:
         )
 
         assert isinstance(response, dict)
+
+    def test_search_returns_matching_job(
+        self,
+        live_api_client,
+        db_session,
+    ):
+        """Search returns the job matching the requested search term."""
+        matching_job = make_test_job(
+            title="Python Data Engineer",
+            company_name="Dashboard Search Co",
+            location="London",
+            description="Build Python data pipelines.",
+        )
+        non_matching_job = make_test_job(
+            title="Java Developer",
+            company_name="Dashboard Other Co",
+            location="Manchester",
+            description="Build Java applications.",
+        )
+
+        db_session.add_all([matching_job, non_matching_job])
+        db_session.flush()
+
+        response = live_api_client.get_jobs(
+            page=1,
+            limit=10,
+            q="Python Data Engineer",
+        )
+
+        returned_ids = {item["id"] for item in response["data"]}
+
+        assert str(matching_job.id) in returned_ids
+        assert str(non_matching_job.id) not in returned_ids
+        assert response["total"] == 1
+
+    def test_filters_return_matching_jobs(
+        self,
+        live_api_client,
+        db_session,
+    ):
+        """Combined filters return only matching jobs."""
+        matching_job = make_test_job(
+            title="Backend Engineer",
+            company_name="Dashboard Filter Co",
+            location="London",
+            description="Backend Python development.",
+            is_tech_role=True,
+            technology_category="backend",
+        )
+        wrong_location = make_test_job(
+            title="Backend Engineer",
+            company_name="Dashboard Filter Co",
+            location="Manchester",
+            description="Backend Python development.",
+            is_tech_role=True,
+            technology_category="backend",
+        )
+        wrong_category = make_test_job(
+            title="Frontend Engineer",
+            company_name="Dashboard Filter Co",
+            location="London",
+            description="Frontend development.",
+            is_tech_role=True,
+            technology_category="frontend",
+        )
+        non_tech = make_test_job(
+            title="Project Manager",
+            company_name="Dashboard Filter Co",
+            location="London",
+            description="Manage technology projects.",
+            is_tech_role=False,
+            technology_category=None,
+        )
+
+        db_session.add_all(
+            [
+                matching_job,
+                wrong_location,
+                wrong_category,
+                non_tech,
+            ]
+        )
+        db_session.flush()
+
+        response = live_api_client.get_jobs(
+            page=1,
+            limit=10,
+            location="London",
+            technology_category="backend",
+            is_tech_role=True,
+        )
+
+        returned_ids = {item["id"] for item in response["data"]}
+
+        assert returned_ids == {str(matching_job.id)}
+        assert response["total"] == 1
+
+    def test_pagination_returns_requested_page(
+        self,
+        live_api_client,
+        db_session,
+    ):
+        """Pagination returns the requested page and page size."""
+        jobs = [
+            make_test_job(
+                title=f"Pagination Job {index}",
+                company_name="Dashboard Pagination Co",
+                location="Nairobi",
+                description=f"Pagination test job {index}.",
+            )
+            for index in range(3)
+        ]
+
+        db_session.add_all(jobs)
+        db_session.flush()
+
+        response = live_api_client.get_jobs(
+            page=2,
+            limit=1,
+        )
+
+        assert response["page"] == 2
+        assert response["limit"] == 1
+        assert len(response["data"]) == 1
+        assert response["total"] >= 3
+
+    def test_get_job_returns_requested_job(
+        self,
+        live_api_client,
+        db_session,
+    ):
+        """Dashboard client retrieves an existing job by ID."""
+        job = make_test_job(
+            title="Specific Dashboard Job",
+            company_name="Dashboard Detail Co",
+            location="Nairobi",
+            description="Specific job for dashboard detail testing.",
+        )
+
+        db_session.add(job)
+        db_session.flush()
+
+        response = live_api_client.get_job(str(job.id))
+
+        assert response["id"] == str(job.id)
+        assert response["title"] == "Specific Dashboard Job"
+        assert response["company_name"] == "Dashboard Detail Co"
+        assert response["location"] == "Nairobi"
+
+    def test_empty_job_dataset_returns_empty_response(
+        self,
+        live_api_client,
+    ):
+        """Dashboard API receives a valid empty response when no jobs exist."""
+        response = live_api_client.get_jobs(
+            page=1,
+            limit=20,
+        )
+
+        assert isinstance(response, dict)
+        assert response["data"] == []
+        assert response["total"] == 0
+        assert response["page"] == 1
+        assert response["limit"] == 20
 
     def test_get_nonexistent_job(self, live_api_client):
         """Dashboard client converts a 404 into APINotFoundError."""
@@ -579,3 +778,24 @@ class TestDashboardAPITransport:
         ):
             with pytest.raises(APIServerError):
                 api_client.get("api/v1/error")
+                
+
+def test_dashboard_api_failure_is_not_reported_as_empty_data():
+    """API failure must remain distinguishable from a genuinely empty dataset."""
+    from dashboard.services.jobs_service import JobsService
+    from dashboard.schemas.jobs import JobFilters
+
+    service = JobsService(
+        api_client=APIClient(
+            base_url="http://127.0.0.1:59999",
+            timeout=1,
+            retries=0,
+        )
+    )
+
+    with pytest.raises(Exception):
+        service.fetch_jobs(
+            filters=JobFilters(is_tech_role=True),
+            page=1,
+            page_size=20,
+        )
