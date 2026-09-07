@@ -34,7 +34,7 @@ Example:
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable,Any
 
 # Language type - ISO 639-1 codes as strings
 # For type checking, this is a string; at runtime, we use strings
@@ -50,6 +50,7 @@ class TranslationProviderType(StrEnum):
         - AZURE: Azure Translator (production-ready)
         - MOCK: Mock provider for testing
     """
+
     GOOGLE = "google"
     DEEPL = "deepl"
     AZURE = "azure"
@@ -64,7 +65,7 @@ DEFAULT_LANGUAGE = "en"
 class TranslationResult:
     """
     Result of a translation operation.
-    
+
     Attributes:
         text: The translated text
         detected_language: The language detected from the source text (if available)
@@ -76,6 +77,7 @@ class TranslationResult:
         error: Any error that occurred during translation (for partial failures)
         success: Whether the translation was successful
     """
+
     text: str
     detected_language: str | None = None
     provider: TranslationProviderType | None = None
@@ -91,7 +93,7 @@ class TranslationResult:
 class HealthCheckResult:
     """
     Result of a health check operation.
-    
+
     Attributes:
         healthy: Whether the provider is healthy
         latency_ms: The latency of the health check in milliseconds
@@ -100,11 +102,12 @@ class HealthCheckResult:
         details: Additional provider-specific details
         checked_at: ISO timestamp of when the check was performed
     """
+
     healthy: bool
     latency_ms: float | None = None
     provider: TranslationProviderType | None = None
     message: str | None = None
-    details: dict | None = None
+    details: dict[str, Any] | None = None
     checked_at: str | None = None
 
 
@@ -112,17 +115,17 @@ class HealthCheckResult:
 class TranslationProvider(Protocol):
     """
     Protocol for translation providers.
-    
+
     Any class that implements this protocol can be used as a translation
     provider. This allows for easy swapping of translation backends
     without changing the rest of the application.
-    
+
     Methods:
         translate: Translate text from source to target language
         translate_many: Translate multiple texts efficiently
         health_check: Check if the provider is operational
         close: Clean up provider resources
-    
+
     Example:
         @dataclass
         class MyTranslationProvider:
@@ -134,12 +137,12 @@ class TranslationProvider(Protocol):
                 # Implementation here
                 return TranslationResult(text=translated_text)
     """
-    
+
     @property
     def provider_type(self) -> TranslationProviderType:
         """Get the provider type."""
         ...
-    
+
     async def translate(
         self,
         text: str,
@@ -148,15 +151,15 @@ class TranslationProvider(Protocol):
     ) -> TranslationResult:
         """
         Translate text from source language to target language.
-        
+
         Args:
             text: The text to translate
             source_language: ISO 639-1 code of the source language
             target_language: ISO 639-1 code of the target language (default: 'en')
-            
+
         Returns:
             TranslationResult: The translation result
-            
+
         Raises:
             TranslationError: If translation fails
             TranslationTimeoutError: If the translation times out
@@ -164,7 +167,7 @@ class TranslationProvider(Protocol):
             TranslationProviderError: If a provider-specific error occurs
         """
         ...
-    
+
     async def translate_many(
         self,
         texts: list[str],
@@ -173,25 +176,25 @@ class TranslationProvider(Protocol):
     ) -> list[TranslationResult]:
         """
         Translate multiple texts efficiently.
-        
+
         This method should be implemented by providers that support
         batch translation. Fallback implementation can call translate()
         sequentially.
-        
+
         Important:
             The result list will be in the same order as the input texts.
             If an individual translation fails, the result will contain
             the error field set to the exception. The method itself will
             not raise an exception for individual failures.
-        
+
         Args:
             texts: The texts to translate
             source_language: ISO 639-1 code of the source language
             target_language: ISO 639-1 code of the target language (default: 'en')
-            
+
         Returns:
             list[TranslationResult]: The translation results in the same order
-            
+
         Raises:
             TranslationError: If a critical error occurs (not per-item)
             TranslationTimeoutError: If the batch request times out
@@ -199,23 +202,23 @@ class TranslationProvider(Protocol):
             TranslationProviderError: If a provider-specific error occurs
         """
         ...
-    
+
     async def health_check(self) -> HealthCheckResult:
         """
         Check if the provider is operational.
-        
+
         This method should perform a lightweight check to verify that
         the provider can accept translation requests.
-        
+
         Returns:
             HealthCheckResult: The health check result
         """
         ...
-    
+
     async def close(self) -> None:
         """
         Clean up provider resources.
-        
+
         This method should be called when the provider is no longer needed
         to close connections and release resources.
         """
@@ -226,25 +229,29 @@ class TranslationProvider(Protocol):
 # Exceptions
 # ============================================================
 
+
 class TranslationError(Exception):
     """Base exception for translation errors."""
+
     pass
 
 
 class TranslationTimeoutError(TranslationError):
     """Raised when a translation request times out."""
+
     pass
 
 
 class TranslationProviderError(TranslationError):
     """
     Raised when a provider-specific error occurs.
-    
+
     Attributes:
         provider: The provider type that raised the error
         status_code: The HTTP status code (if applicable)
         retry_after: Seconds to wait before retrying (if applicable)
     """
+
     def __init__(
         self,
         message: str,
@@ -261,12 +268,13 @@ class TranslationProviderError(TranslationError):
 class TranslationRateLimitError(TranslationError):
     """
     Raised when rate limit is exceeded.
-    
+
     Attributes:
         provider: The provider type that raised the error
         retry_after: Seconds to wait before retrying
         limit: The rate limit that was exceeded
     """
+
     def __init__(
         self,
         message: str,
@@ -284,17 +292,18 @@ class TranslationRateLimitError(TranslationError):
 # Configuration
 # ============================================================
 
+
 @dataclass(frozen=True, slots=True)
 class TranslationConfig:
     """Configuration for translation providers."""
-    
+
     provider: TranslationProviderType = TranslationProviderType.GOOGLE
     timeout: int = 15
     retry_count: int = 3
     retry_delay: float = 1.0
     retry_backoff_factor: float = 2.0  # Exponential backoff multiplier
     retry_jitter: float = 0.1  # Random jitter to prevent thundering herd
-    
+
     # Provider-specific configurations
     deepl_api_key: str | None = None
     azure_translator_key: str | None = None
@@ -302,10 +311,10 @@ class TranslationConfig:
     azure_translator_region: str | None = None
     google_cloud_project: str | None = None
     google_application_credentials: str | None = None
-    
+
     # Batch settings
     batch_max_size: int = 50
-    
+
     def __post_init__(self) -> None:
         """Validate configuration values."""
         if self.timeout <= 0:

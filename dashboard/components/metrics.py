@@ -1,10 +1,8 @@
 """Professional metric card components with modern design."""
 
-from typing import Optional
 from dataclasses import dataclass
 
 import streamlit as st
-
 from components.icons import get_icon
 from core.theme import COLORS
 
@@ -15,22 +13,22 @@ class MetricCardData:
 
     title: str
     value: str | int | float
-    icon: Optional[str] = None
-    color: Optional[str] = None
-    subtitle: Optional[str] = None
-    trend: Optional[float] = None
-    trend_label: Optional[str] = None
+    icon: str | None = None
+    color: str | None = None
+    subtitle: str | None = None
+    trend: float | None = None
+    trend_label: str | None = None
 
 
 def render_metric_card(data: MetricCardData) -> None:
     """
     Render a professional metric card using Streamlit components.
-    
+
     Args:
         data: MetricCardData with title, value, icon, color, etc.
     """
     color = data.color or COLORS["accent"]
-    
+
     # Use Streamlit columns and metrics for clean rendering
     with st.container():
         # Card container with styling
@@ -91,11 +89,11 @@ def render_metric_card(data: MetricCardData) -> None:
         """,
             unsafe_allow_html=True,
         )
-        
+
         # Get icon
         icon_name = data.icon or "jobs_metric"
         icon_svg = get_icon(icon_name, size=20, color=color)
-        
+
         # Build card HTML
         trend_html = ""
         if data.trend is not None:
@@ -107,9 +105,11 @@ def render_metric_card(data: MetricCardData) -> None:
                 {f'<span style="color:{COLORS["text_light"]};font-weight:400;">{data.trend_label}</span>' if data.trend_label else ''}
             </div>
             """
-        
-        subtitle_html = f'<div class="metric-card-subtitle">{data.subtitle}</div>' if data.subtitle else ""
-        
+
+        subtitle_html = (
+            f'<div class="metric-card-subtitle">{data.subtitle}</div>' if data.subtitle else ""
+        )
+
         st.markdown(
             f"""
         <div class="metric-card-container">

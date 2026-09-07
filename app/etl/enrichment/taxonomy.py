@@ -1,21 +1,21 @@
 # app/etl/enrichment/taxonomy.py
 
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Tuple
+
 from app.etl.enrichment.classification_config import CategoryConfig, CategoryRole
 
 
 class CategoryTaxonomy:
     """Manages category hierarchy and relationships."""
 
-    def __init__(self, categories: Dict[str, CategoryConfig]):
+    def __init__(self, categories: dict[str, CategoryConfig]):
         self.categories = categories
-        
+
         # Build lookup structures
-        self.children: Dict[str, Set[str]] = defaultdict(set)
-        self.parents: Dict[str, Optional[str]] = {}
-        self.roles: Dict[str, CategoryRole] = {}
-        
+        self.children: dict[str, set[str]] = defaultdict(set)
+        self.parents: dict[str, str | None] = {}
+        self.roles: dict[str, CategoryRole] = {}
+
         for name, cfg in categories.items():
             self.parents[name] = cfg.parent
             self.roles[name] = cfg.role
@@ -47,8 +47,8 @@ class CategoryTaxonomy:
     def competing_categories(
         self,
         primary_category: str,
-        sorted_categories: List[Tuple[str, float]],
-    ) -> List[Tuple[str, float]]:
+        sorted_categories: list[tuple[str, float]],
+    ) -> list[tuple[str, float]]:
         """
         Get categories that should legitimately compete with the primary.
         """
@@ -69,10 +69,10 @@ class CategoryTaxonomy:
         """Check if a category is a specialization."""
         return self.roles.get(category) == CategoryRole.SPECIALIZATION
 
-    def get_children(self, category: str) -> List[str]:
+    def get_children(self, category: str) -> list[str]:
         """Get all children of a category."""
         return list(self.children.get(category, set()))
 
-    def get_parent(self, category: str) -> Optional[str]:
+    def get_parent(self, category: str) -> str | None:
         """Get the parent of a category."""
         return self.parents.get(category)

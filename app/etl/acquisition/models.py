@@ -3,13 +3,13 @@
 """Data models for acquisition strategy."""
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
-from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 
 class AcquisitionMode(StrEnum):
     """Acquisition modes."""
+
     CATCH_UP = "catch_up"
     BALANCED = "balanced"
 
@@ -17,6 +17,7 @@ class AcquisitionMode(StrEnum):
 @dataclass
 class DatabaseComposition:
     """Composition of jobs in the database."""
+
     total_jobs: int = 0
     tech_count: int = 0
     non_tech_count: int = 0
@@ -45,6 +46,7 @@ class DatabaseComposition:
 @dataclass
 class AcquisitionStats:
     """Statistics for acquisition progress."""
+
     # Database composition
     db_total: int = 0
     db_tech: int = 0
@@ -75,7 +77,7 @@ class AcquisitionStats:
     # Targets
     target_tech_ratio: float = 0.5
     max_jobs_per_run: int = 2000
-    
+
     # Batch tracking
     batch_count: int = 0
 
@@ -97,18 +99,19 @@ class AcquisitionStats:
 @dataclass
 class AcquisitionResult:
     """Complete result of an acquisition run."""
-    jobs: List[Dict[str, Any]] = field(default_factory=list)
-    tech_intent_jobs: List[Dict[str, Any]] = field(default_factory=list)
-    broad_intent_jobs: List[Dict[str, Any]] = field(default_factory=list)
-    tech_classified_jobs: List[Dict[str, Any]] = field(default_factory=list)
-    non_tech_classified_jobs: List[Dict[str, Any]] = field(default_factory=list)
-    unclassified_jobs: List[Dict[str, Any]] = field(default_factory=list)
-    unique_jobs: List[Dict[str, Any]] = field(default_factory=list)
-    duplicates: List[Dict[str, Any]] = field(default_factory=list)
+
+    jobs: list[dict[str, Any]] = field(default_factory=list)
+    tech_intent_jobs: list[dict[str, Any]] = field(default_factory=list)
+    broad_intent_jobs: list[dict[str, Any]] = field(default_factory=list)
+    tech_classified_jobs: list[dict[str, Any]] = field(default_factory=list)
+    non_tech_classified_jobs: list[dict[str, Any]] = field(default_factory=list)
+    unclassified_jobs: list[dict[str, Any]] = field(default_factory=list)
+    unique_jobs: list[dict[str, Any]] = field(default_factory=list)
+    duplicates: list[dict[str, Any]] = field(default_factory=list)
 
     # Composition
-    initial_composition: Optional[DatabaseComposition] = None
-    final_composition: Optional[DatabaseComposition] = None
+    initial_composition: DatabaseComposition | None = None
+    final_composition: DatabaseComposition | None = None
 
     # Mode
     mode: AcquisitionMode = AcquisitionMode.BALANCED
@@ -138,9 +141,9 @@ class AcquisitionResult:
     duration_seconds: float = 0.0
 
     # ✅ Query metrics - tracks per-query performance
-    query_metrics: List[Dict[str, Any]] = field(default_factory=list)
+    query_metrics: list[dict[str, Any]] = field(default_factory=list)
 
-    def compute_metrics(self):
+    def compute_metrics(self) -> None:
         """Compute derived metrics."""
         self.unique_count = len(self.unique_jobs)
         self.duplicate_count = len(self.duplicates)
@@ -157,7 +160,9 @@ class AcquisitionResult:
             self.actual_classified_tech_ratio = 0.0
 
         # Check parity against target (with tolerance)
-        self.reached_parity = abs(self.actual_classified_tech_ratio - self.target_tech_ratio) <= 0.05
+        self.reached_parity = (
+            abs(self.actual_classified_tech_ratio - self.target_tech_ratio) <= 0.05
+        )
 
         # Tech deficit remaining
         if self.final_composition:

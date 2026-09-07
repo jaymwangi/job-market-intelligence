@@ -1,8 +1,8 @@
 """End-to-end dashboard loading workflow tests."""
 
 import pytest
-
 from api.client import APIClient
+
 from dashboard.schemas.jobs import JobFilters
 from dashboard.services.jobs_service import JobsService
 
@@ -67,4 +67,3 @@ def test_dashboard_loads_jobs_from_api(
 
     finally:
         dashboard_api_client.close()
-

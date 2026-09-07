@@ -28,7 +28,7 @@ class Job(BaseModel):
     country_code: str | None = None
     currency: str | None = None
     employment_type: str | None = None
-    
+
     # ✅ ADD THIS - Sprint 6.6: Language field
     language: str = "en"  # Default to English
 
@@ -64,6 +64,6 @@ class JobFilters(BaseModel):
 
     # Sprint 6.6.1: Tech role filter
     is_tech_role: bool | None = None
-    
+
     # ✅ ADD THIS - Sprint 6.6: Language filter
     language: str | None = None

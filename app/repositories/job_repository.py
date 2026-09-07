@@ -8,7 +8,7 @@ from uuid import UUID
 
 from sqlalchemy import desc, func, or_
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 
 from app.models.job import Job
 from app.models.job_skill import JobSkill
@@ -38,7 +38,7 @@ class JobRepository:
             return None
         return Decimal(str(value))
 
-    def _build_job_dict(self, job: "JobValidated") -> dict:
+    def _build_job_dict(self, job: "JobValidated") -> dict[str, Any]:
         """
         Build a dictionary of job fields for database operations.
 
@@ -163,7 +163,7 @@ class JobRepository:
     # API Query Methods
     # ============================================================
 
-    def _apply_filters(self, query, filters: JobFilters, search_query: str | None = None):
+    def _apply_filters(self, query: Query[Job], filters: JobFilters, search_query: str | None = None) -> Query[Job]:
         if filters.company_name:
             query = query.filter(Job.company_name.ilike(f"%{filters.company_name}%"))
 

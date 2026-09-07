@@ -45,6 +45,7 @@ class LanguageCode(StrEnum):
 # Language Metadata
 # ============================================================
 
+
 @dataclass(frozen=True, slots=True)
 class LanguageInfo:
     """Information about a language."""
@@ -250,6 +251,7 @@ LANGUAGES: MappingProxyType[LanguageCode, LanguageInfo] = MappingProxyType(_LANG
 # Dashboard Language Type
 # ============================================================
 
+
 class DashboardLanguage(TypedDict):
     """Language data formatted for dashboard use."""
 
@@ -276,6 +278,7 @@ for code, info in _LANGUAGES.items():
 # Helper Functions
 # ============================================================
 
+
 def normalize_language_code(code: str | None) -> str:
     """
     Normalize a language code to its base ISO 639-1 form.
@@ -290,12 +293,7 @@ def normalize_language_code(code: str | None) -> str:
     if not code:
         return DEFAULT_LANGUAGE_CODE.value
 
-    return (
-        code.strip()
-        .lower()
-        .replace("_", "-")
-        .split("-")[0]
-    )
+    return code.strip().lower().replace("_", "-").split("-")[0]
 
 
 def validate_language(code: str) -> LanguageCode:
@@ -310,9 +308,7 @@ def validate_language(code: str) -> LanguageCode:
     try:
         return LanguageCode(normalized)
     except ValueError as exc:
-        raise ValueError(
-            f"Unsupported language code: {code}"
-        ) from exc
+        raise ValueError(f"Unsupported language code: {code}") from exc
 
 
 def get_language_info(code: str) -> LanguageInfo | None:

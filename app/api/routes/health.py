@@ -1,14 +1,14 @@
-from datetime import datetime, UTC
-import time
 import logging
-from typing import Dict, Any, Tuple
+import time
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import APIRouter, Depends, Request, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database.session import get_db
 from app.database.health import check_database_connection as check_db_health
+from app.database.session import get_db
 from app.schemas.common import HealthResponse
 from config import settings
 
@@ -16,9 +16,11 @@ from config import settings
 try:
     from app.core.metrics import metrics_collector
 except ImportError:
+
     class DummyMetricsCollector:
-        def get_metrics(self) -> Dict[str, Any]:
+        def get_metrics(self) -> dict[str, Any]:
             return {"error": "Metrics collector not available"}
+
     metrics_collector = DummyMetricsCollector()  # type: ignore
 
 router = APIRouter(tags=["Health"])
@@ -28,14 +30,14 @@ logger = logging.getLogger(__name__)
 APP_START_TIME: float = time.perf_counter()
 
 
-def check_database_connection_with_timing(db: Session, log: logging.Logger) -> Tuple[bool, float]:
+def check_database_connection_with_timing(db: Session, log: logging.Logger) -> tuple[bool, float]:
     """
     Check if database connection is working and measure response time.
-    
+
     Args:
         db: Database session
         log: Request-scoped logger
-    
+
     Returns:
         Tuple of (is_healthy, response_time_ms)
     """
@@ -47,15 +49,14 @@ def check_database_connection_with_timing(db: Session, log: logging.Logger) -> T
         return is_healthy, response_time
     except Exception as exc:
         # log.exception already includes the exception info
-        log.exception(
-            f"Database health check failed: {type(exc).__name__}"
-        )
+        log.exception(f"Database health check failed: {type(exc).__name__}")
         return False, 0.0
 
 
 # ============================================================================
 # Liveness - Process is running
 # ============================================================================
+
 
 @router.get(
     "/health/live",
@@ -64,25 +65,23 @@ def check_database_connection_with_timing(db: Session, log: logging.Logger) -> T
     description="Returns 200 OK if the application process is running.",
     include_in_schema=False,
 )
-async def liveness() -> Dict[str, str]:
+async def liveness() -> dict[str, str]:
     """
     Liveness probe for infrastructure (Render, Kubernetes, etc.).
-    
+
     This endpoint NEVER checks the database or any external dependencies.
     It only confirms the Python process is alive and FastAPI is running.
-    
+
     Returns:
         Simple status indicating the process is alive.
     """
-    return {
-        "status": "alive",
-        "timestamp": datetime.now(UTC).isoformat()
-    }
+    return {"status": "alive", "timestamp": datetime.now(UTC).isoformat()}
 
 
 # ============================================================================
 # Readiness - Application is ready to serve traffic
 # ============================================================================
+
 
 @router.get(
     "/health/ready",
@@ -94,25 +93,25 @@ async def liveness() -> Dict[str, str]:
 async def readiness(
     request: Request,
     db: Session = Depends(get_db),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Readiness probe for infrastructure.
-    
+
     Checks that the application is ready to serve traffic by verifying:
     - Database connectivity
-    
+
     Returns 503 Service Unavailable if dependencies are unhealthy.
     """
     log = request.state.logger
-    
+
     db_healthy, db_response_ms = check_database_connection_with_timing(db, log)
-    
+
     if not db_healthy:
         log.warning(
             f"Readiness check failed - database unavailable (response time: {round(db_response_ms, 2)}ms)",
             extra={
                 "environment": settings.environment,
-            }
+            },
         )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -121,19 +120,20 @@ async def readiness(
                 "reason": "Database unavailable",
                 "environment": settings.environment,
                 "timestamp": datetime.now(UTC).isoformat(),
-            }
+            },
         )
-    
+
     return {
         "status": "ready",
         "environment": settings.environment,
-        "timestamp": datetime.now(UTC).isoformat()
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
 # ============================================================================
 # Health - Detailed health information for operators
 # ============================================================================
+
 
 @router.get(
     "/health",
@@ -148,27 +148,27 @@ async def health_check(
 ) -> HealthResponse:
     """
     Health check endpoint for operators.
-    
+
     Returns comprehensive health information including:
     - API status
     - Database connectivity and response time
     - Environment information
     - Uptime
     - Version
-    
+
     Returns 503 Service Unavailable if the database is unhealthy.
     """
     log = request.state.logger
-    
+
     db_healthy, db_response_ms = check_database_connection_with_timing(db, log)
     uptime_seconds = time.perf_counter() - APP_START_TIME
-    
+
     if not db_healthy:
         log.warning(
             f"Health check failed - database unavailable (response time: {round(db_response_ms, 2)}ms, uptime: {round(uptime_seconds, 1)}s)",
             extra={
                 "environment": settings.environment,
-            }
+            },
         )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -179,9 +179,9 @@ async def health_check(
                 "version": settings.api_version,
                 "uptime_seconds": round(uptime_seconds, 1),
                 "timestamp": datetime.now(UTC).isoformat(),
-            }
+            },
         )
-    
+
     return HealthResponse(
         status="healthy",
         database="connected",
@@ -197,6 +197,7 @@ async def health_check(
 # Database Health - Database diagnostics for administrators
 # ============================================================================
 
+
 @router.get(
     "/health/database",
     status_code=status.HTTP_200_OK,
@@ -207,23 +208,23 @@ async def health_check(
 async def database_health_check(
     request: Request,
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Database-specific health check endpoint.
-    
+
     Returns detailed database connection status and performance metrics.
     This endpoint is intended for administrators and operational monitoring.
     """
     log = request.state.logger
-    
+
     try:
         start_time = time.perf_counter()
         result = db.execute(text("SELECT 1, NOW() as server_time"))
         row = result.first()
         response_time = (time.perf_counter() - start_time) * 1000
-        
-        server_time = row.server_time if row and hasattr(row, 'server_time') else None
-        
+
+        server_time = row.server_time if row and hasattr(row, "server_time") else None
+
         return {
             "status": "healthy",
             "database": "PostgreSQL",
@@ -234,9 +235,7 @@ async def database_health_check(
             "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as exc:
-        log.exception(
-            f"Database health check failed: {type(exc).__name__}"
-        )
+        log.exception(f"Database health check failed: {type(exc).__name__}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
@@ -244,13 +243,14 @@ async def database_health_check(
                 "database": "PostgreSQL",
                 "environment": settings.environment,
                 "timestamp": datetime.now(UTC).isoformat(),
-            }
+            },
         )
 
 
 # ============================================================================
 # Metrics - Operational metrics for monitoring
 # ============================================================================
+
 
 @router.get(
     "/health/metrics",
@@ -259,22 +259,24 @@ async def database_health_check(
     description="Get operational metrics for monitoring.",
     include_in_schema=False,
 )
-async def get_metrics(request: Request) -> Dict[str, Any]:
+async def get_metrics(request: Request) -> dict[str, Any]:
     """
     Get operational metrics.
-    
+
     Returns:
         Request counts, error rates, response times, and other metrics.
         This endpoint is intended for administrators and operational monitoring.
     """
     log = request.state.logger
     log.info("Metrics requested")
-    
+
     return metrics_collector.get_metrics()
+
 
 # ============================================================================
 # Database Health Alias - For Dashboard Compatibility
 # ============================================================================
+
 
 @router.get(
     "/health/db",
@@ -285,16 +287,17 @@ async def get_metrics(request: Request) -> Dict[str, Any]:
 async def db_health_check(
     request: Request,
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Database health check endpoint for dashboard compatibility.
     """
     log = request.state.logger
-    
+
     try:
         from app.database.health import check_database_health
+
         result = check_database_health(db)
-        
+
         if result.get("healthy"):
             return {
                 "status": "healthy",

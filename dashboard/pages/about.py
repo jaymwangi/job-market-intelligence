@@ -321,7 +321,9 @@ def render():
                     </div>
                     <div class="about-hero-meta-item">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                        <strong>Released</strong> """ + f'{datetime.now().strftime("%B %Y")}' + """
+                        <strong>Released</strong> """
+        + f'{datetime.now().strftime("%B %Y")}'
+        + """
                     </div>
                     <div class="about-hero-meta-item">
                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>

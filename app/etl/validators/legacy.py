@@ -1,6 +1,8 @@
 """Legacy validation models for backward compatibility."""
-from typing import Dict, Any, List
+
 from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 
@@ -37,7 +39,7 @@ class JobValidatedModel(BaseModel):
 
     @field_validator("posted_date", mode="before")
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v: Any) -> datetime | None:
         """Parse ISO format dates, handling Zulu timezone indicator."""
         if v is None:
             return None
@@ -47,8 +49,8 @@ class JobValidatedModel(BaseModel):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         raise ValueError(f"Invalid date format: {v}")
 
-    @model_validator(mode="after")
-    def validate_salary_range(self):
+    @model_validator(mode="after")  # type: ignore[misc]
+    def validate_salary_range(self) -> None:
         """Ensure salary_min doesn't exceed salary_max."""
         if (
             self.salary_min is not None
@@ -58,10 +60,10 @@ class JobValidatedModel(BaseModel):
             raise ValueError(
                 f"salary_min ({self.salary_min}) cannot exceed salary_max ({self.salary_max})"
             )
-        return self
+        return self  # type: ignore[return-value]
 
 
-def validate_job(job_dict: Dict[str, Any]) -> JobValidatedModel:
+def validate_job(job_dict: dict[str, Any]) -> JobValidatedModel:
     """
     Convert transformed job dict to validated internal model.
 
@@ -77,7 +79,7 @@ def validate_job(job_dict: Dict[str, Any]) -> JobValidatedModel:
     return JobValidatedModel(**job_dict)
 
 
-def validate_jobs(jobs: List[Dict[str, Any]]) -> List[JobValidatedModel]:
+def validate_jobs(jobs: list[dict[str, Any]]) -> list[JobValidatedModel]:
     """
     Convert a list of transformed job dicts to validated models.
 

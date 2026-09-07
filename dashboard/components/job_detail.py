@@ -1,11 +1,11 @@
 """Job detail component with Sprint 6.6 translation support."""
 
-import streamlit as st
+import logging
 
-from schemas.jobs import Job
+import streamlit as st
 from api.client import APIClient
 from core.config import get_config
-import logging
+from schemas.jobs import Job
 
 logger = logging.getLogger(__name__)
 
@@ -88,19 +88,19 @@ def render_job_detail(job: Job):
         # Header with Title and Language Badge
         # ============================================================
         col1, col2 = st.columns([4, 1])
-        
+
         with col1:
             st.subheader(f"📄 {job.title}")
-        
+
         with col2:
             # Sprint 6.6: Language badge
-            language = getattr(job, 'language', 'en')
-            is_english = language == 'en'
+            language = getattr(job, "language", "en")
+            is_english = language == "en"
             emoji = LANGUAGE_EMOJIS.get(language, "🌐")
             label = LANGUAGE_LABELS.get(language, language.upper())
-            
+
             if is_english:
-                st.success(f"🇬🇧 English")
+                st.success("🇬🇧 English")
             else:
                 st.warning(f"{emoji} {label}")
 
@@ -117,13 +117,13 @@ def render_job_detail(job: Job):
             if job.source_url:
                 st.markdown(f"**URL:** {job.source_url}")
             # Sprint 6.6: Tech role indicator
-            is_tech_role = getattr(job, 'is_tech_role', False)
+            is_tech_role = getattr(job, "is_tech_role", False)
             if is_tech_role:
                 st.markdown("**Role:** 💻 Technology")
             else:
                 st.markdown("**Role:** 👤 Non-Technology")
             # Sprint 6.6: Technology category
-            tech_category = getattr(job, 'technology_category', None)
+            tech_category = getattr(job, "technology_category", None)
             if tech_category:
                 st.markdown(f"**Category:** 🏷️ {tech_category}")
 
@@ -143,9 +143,9 @@ def render_job_detail(job: Job):
             st.markdown(f"**Posted:** {job.posted_date.strftime('%Y-%m-%d %H:%M')}")
             status = "Active" if job.is_active else "Inactive"
             st.markdown(f"**Status:** {status}")
-            
+
             # Sprint 6.6: Skills
-            skills = getattr(job, 'skills', [])
+            skills = getattr(job, "skills", [])
             if skills:
                 st.markdown("**Skills:** " + ", ".join(skills[:10]))
 
@@ -155,25 +155,31 @@ def render_job_detail(job: Job):
         if job.description:
             st.markdown("---")
             st.markdown("### 📝 Description")
-            
+
             # Check if translation is available in session state
             translation_key = f"translated_{job.id}"
             translation_text_key = f"translation_text_{job.id}"
             is_translated = st.session_state.get(translation_key, False)
             translated_text = st.session_state.get(translation_text_key, "")
-            
+
             if is_translated and translated_text:
                 # Show translated content
                 st.markdown("#### 🇬🇧 English Translation")
                 st.markdown(translated_text)
-                
+
                 # Show original with expander
                 with st.expander(f"🔍 View Original ({language.upper()})"):
-                    st.markdown(job.description[:1000] + "..." if len(job.description) > 1000 else job.description)
+                    st.markdown(
+                        job.description[:1000] + "..."
+                        if len(job.description) > 1000
+                        else job.description
+                    )
             else:
                 # Show original description
                 st.markdown(
-                    job.description[:1000] + "..." if len(job.description) > 1000 else job.description
+                    job.description[:1000] + "..."
+                    if len(job.description) > 1000
+                    else job.description
                 )
 
         # ============================================================
@@ -181,7 +187,7 @@ def render_job_detail(job: Job):
         # ============================================================
         if not is_english:
             st.divider()
-            
+
             # Check if translation is already shown
             if st.session_state.get(f"translated_{job.id}", False):
                 # Show option to toggle translation
@@ -197,20 +203,24 @@ def render_job_detail(job: Job):
                             # Get translation from backend
                             config = get_config()
                             client = APIClient(base_url=config.api_base_url)
-                            
+
                             # Call the translation endpoint
                             result = client.translate_job(str(job.id), "en")
-                            
+
                             if result and result.get("success", False):
                                 # Store translation in session state
                                 st.session_state[f"translated_{job.id}"] = True
-                                st.session_state[f"translation_text_{job.id}"] = result.get("translated_description", "")
+                                st.session_state[f"translation_text_{job.id}"] = result.get(
+                                    "translated_description", ""
+                                )
                                 st.success("✅ Translation complete!")
                                 st.rerun()
                             else:
                                 # Fallback: store a simple translation
                                 st.session_state[f"translated_{job.id}"] = True
-                                st.session_state[f"translation_text_{job.id}"] = f"[Translated from {language.upper()}] {job.description}"
+                                st.session_state[f"translation_text_{job.id}"] = (
+                                    f"[Translated from {language.upper()}] {job.description}"
+                                )
                                 st.success("✅ Translation complete!")
                                 st.rerun()
                         except Exception as e:

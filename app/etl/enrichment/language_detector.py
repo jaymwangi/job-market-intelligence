@@ -22,14 +22,14 @@ import hashlib
 import logging
 import re
 from collections import OrderedDict
-from typing import Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 # Import lingua - specifically for v2.2.0+
 if TYPE_CHECKING:
-    from lingua import Language, LanguageDetectorBuilder, ConfidenceValue
+    from lingua import ConfidenceValue, Language, LanguageDetectorBuilder
 else:
     try:
-        from lingua import Language, LanguageDetectorBuilder, ConfidenceValue
+        from lingua import ConfidenceValue, Language, LanguageDetectorBuilder
     except ImportError:
         # Provide dummy types for development when library is not installed
         class Language:  # type: ignore
@@ -71,7 +71,7 @@ else:
             @classmethod
             def from_languages(cls, *args):
                 return cls()
-            
+
             def build(self):
                 return None
 
@@ -80,7 +80,6 @@ else:
             value = 0.0
 
         # Re-raise with clear error message for runtime
-        import sys
         if not TYPE_CHECKING:
             raise ImportError(
                 "lingua-language-detector is required. "
@@ -96,56 +95,56 @@ logger = logging.getLogger(__name__)
 # ============================================================
 
 GERMAN_SUFFIX_PATTERNS = [
-    r'\(m/w/d\)',
-    r'\(w/m/d\)',
-    r'\(d/w/m\)',
-    r'\(m/w\)',
-    r'\(w/m\)',
-    r'\(mwd\)',
-    r'\(wmd\)',
-    r'\(dwm\)',
-    r'\(m/w/d\)',
-    r'\(w/m/d\)',
-    r'\(d/w/m\)',
+    r"\(m/w/d\)",
+    r"\(w/m/d\)",
+    r"\(d/w/m\)",
+    r"\(m/w\)",
+    r"\(w/m\)",
+    r"\(mwd\)",
+    r"\(wmd\)",
+    r"\(dwm\)",
+    r"\(m/w/d\)",
+    r"\(w/m/d\)",
+    r"\(d/w/m\)",
 ]
 
 # Compile patterns for performance
-GERMAN_SUFFIX_REGEX = re.compile('|'.join(GERMAN_SUFFIX_PATTERNS), re.IGNORECASE)
+GERMAN_SUFFIX_REGEX = re.compile("|".join(GERMAN_SUFFIX_PATTERNS), re.IGNORECASE)
 
 
 def clean_text_for_detection(text: str) -> str:
     """
     Remove German job posting conventions before language detection.
-    
+
     German job postings often include gender diversity indicators like
     "(m/w/d)" which can confuse language detection. This function
     removes these patterns to improve detection accuracy.
-    
+
     Args:
         text: Raw text to clean
-        
+
     Returns:
         Cleaned text with German suffixes removed
     """
     if not text:
         return text
-    
+
     # Remove German suffixes
-    cleaned = GERMAN_SUFFIX_REGEX.sub('', text)
-    
+    cleaned = GERMAN_SUFFIX_REGEX.sub("", text)
+
     # Remove extra spaces
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-    
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
     return cleaned
 
 
 class LanguageDetector:
     """
     Fast, deterministic language detector for job postings.
-    
-    Uses lingua-language-detector 2.2.0+ which is more accurate than 
+
+    Uses lingua-language-detector 2.2.0+ which is more accurate than
     langdetect and faster for European languages.
-    
+
     Example:
         detector = LanguageDetector()
         language = detector.detect("Senior Software Engineer")
@@ -201,17 +200,17 @@ class LanguageDetector:
     ]
 
     # Precomputed list of supported language codes
-    SUPPORTED_LANGUAGE_CODES: Tuple[str, ...] = tuple(
+    SUPPORTED_LANGUAGE_CODES: tuple[str, ...] = tuple(
         lang.iso_code_639_1.name.lower()
         for lang in SUPPORTED_LANGUAGES
         if hasattr(lang, "iso_code_639_1") and lang.iso_code_639_1 is not None
     )
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the language detector with supported languages."""
         self._build_detector()
         # LRU cache using OrderedDict - stores (LanguageCode, confidence)
-        self._cache: OrderedDict[str, Tuple[LanguageCode, float]] = OrderedDict()
+        self._cache: OrderedDict[str, tuple[LanguageCode, float]] = OrderedDict()
         self._cache_hits: int = 0
         self._cache_misses: int = 0
         self._cache_evictions: int = 0
@@ -235,7 +234,7 @@ class LanguageDetector:
         normalized = text.casefold()
         return hashlib.sha1(normalized.encode("utf-8")).hexdigest()
 
-    def _cache_get(self, key: str) -> Optional[Tuple[LanguageCode, float]]:
+    def _cache_get(self, key: str) -> tuple[LanguageCode, float] | None:
         """Get value from cache and update LRU order."""
         if key in self._cache:
             self._cache.move_to_end(key)
@@ -244,7 +243,7 @@ class LanguageDetector:
         self._cache_misses += 1
         return None
 
-    def _cache_set(self, key: str, value: Tuple[LanguageCode, float]) -> None:
+    def _cache_set(self, key: str, value: tuple[LanguageCode, float]) -> None:
         """Set value in cache with LRU eviction."""
         if key in self._cache:
             self._cache[key] = value
@@ -259,12 +258,10 @@ class LanguageDetector:
         """Check if text is long enough for detection."""
         return bool(text and len(text.strip()) >= self.MIN_TEXT_LENGTH)
 
-    def _to_language_code(self, detected_lang: "Language") -> Optional[LanguageCode]:
+    def _to_language_code(self, detected_lang: "Language") -> LanguageCode | None:
         """Convert Lingua Language to our LanguageCode enum."""
         try:
             iso = detected_lang.iso_code_639_1
-            if iso is None:
-                return None
             lang_code = iso.name.lower()
             return LanguageCode(lang_code)
         except (ValueError, AttributeError):
@@ -273,36 +270,36 @@ class LanguageDetector:
     def _get_confidence(self, text: str) -> float:
         """
         Get confidence scores using lingua-language-detector 2.2.0+ API.
-        
+
         In 2.2.0+, compute_language_confidence_values() returns a list of
         ConfidenceValue objects with .language and .value attributes.
         """
         try:
             # Use the 2.2.0+ API
             confidence_values = self.detector.compute_language_confidence_values(text)
-            
+
             if not confidence_values:
                 # Return 0.5 as default - don't assume English
                 return 0.5
-            
+
             # Find the highest confidence value
             best = max(confidence_values, key=lambda cv: cv.value)
             return best.value
-            
+
         except Exception as e:
             logger.debug("Confidence calculation failed: %s", e)
             # Return 0.5 as default - don't assume English
             return 0.5
 
-    def _detect_internal(self, text: str) -> Tuple[LanguageCode, float]:
+    def _detect_internal(self, text: str) -> tuple[LanguageCode, float]:
         """
         Internal detection method - returns both language and confidence.
-        
+
         This is the single source of truth for detection logic.
         """
         # Clean text before detection to remove German job posting conventions
         cleaned_text = clean_text_for_detection(text)
-        
+
         if not self._should_detect(cleaned_text):
             logger.debug("Text too short for language detection, defaulting to English")
             return (DEFAULT_LANGUAGE_CODE, 0.0)
@@ -324,7 +321,7 @@ class LanguageDetector:
 
             # Get confidence
             confidence = self._get_confidence(cleaned_text)
-            
+
             # Convert to LanguageCode
             language = self._to_language_code(detected)
 
@@ -336,7 +333,7 @@ class LanguageDetector:
 
             # ✅ REMOVED: Confidence threshold check
             # We now always use the detected language, regardless of confidence
-            
+
             entry = (language, confidence)
             self._cache_set(cache_key, entry)
             logger.debug(
@@ -358,7 +355,7 @@ class LanguageDetector:
         language, _ = self._detect_internal(text)
         return language
 
-    def detect_with_confidence(self, text: str) -> Tuple[LanguageCode, float]:
+    def detect_with_confidence(self, text: str) -> tuple[LanguageCode, float]:
         """Detect the language of a text string with confidence score."""
         return self._detect_internal(text)
 
@@ -366,12 +363,12 @@ class LanguageDetector:
         """Check if text is likely English."""
         return self.detect(text) == LanguageCode.ENGLISH
 
-    def is_english_with_confidence(self, text: str) -> Tuple[bool, float]:
+    def is_english_with_confidence(self, text: str) -> tuple[bool, float]:
         """Check if text is likely English with confidence score."""
         language, confidence = self.detect_with_confidence(text)
         return language == LanguageCode.ENGLISH, confidence
 
-    def get_supported_languages(self) -> Tuple[str, ...]:
+    def get_supported_languages(self) -> tuple[str, ...]:
         """Get list of languages supported by the detector."""
         codes = []
         for lang in self.SUPPORTED_LANGUAGES:
@@ -412,7 +409,7 @@ class LanguageDetector:
 # Convenience Functions
 # ============================================================
 
-_detector: Optional[LanguageDetector] = None
+_detector: LanguageDetector | None = None
 
 
 def get_detector() -> LanguageDetector:
@@ -433,7 +430,7 @@ def is_english(text: str) -> bool:
     return get_detector().is_english(text)
 
 
-def detect_language_with_confidence(text: str) -> Tuple[LanguageCode, float]:
+def detect_language_with_confidence(text: str) -> tuple[LanguageCode, float]:
     """Convenience function to detect language with confidence."""
     return get_detector().detect_with_confidence(text)
 

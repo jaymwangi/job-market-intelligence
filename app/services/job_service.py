@@ -1,14 +1,14 @@
 """Job service layer for business logic."""
 
+import logging
+from typing import Any
 from uuid import UUID
-from typing import List, Dict, Any, Optional
 
 from fastapi import HTTPException, status
 
 from app.models.job import Job
 from app.repositories.job_repository import JobRepository
 from app.schemas.job import JobFilters
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +83,8 @@ class JobService:
     def get_top_skills(
         self,
         limit: int = 20,
-        country_code: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        country_code: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Get the most frequently occurring skills.
 
@@ -110,7 +110,7 @@ class JobService:
                 detail="Failed to retrieve top skills",
             )
 
-    def get_country_distribution(self) -> List[Dict[str, Any]]:
+    def get_country_distribution(self) -> list[dict[str, Any]]:
         """
         Get job distribution by country.
 
@@ -128,7 +128,7 @@ class JobService:
                 detail="Failed to retrieve country distribution",
             )
 
-    def get_technology_distribution(self) -> List[Dict[str, Any]]:
+    def get_technology_distribution(self) -> list[dict[str, Any]]:
         """
         Get distribution of technology categories.
 
@@ -146,7 +146,7 @@ class JobService:
                 detail="Failed to retrieve technology distribution",
             )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         Get summary statistics about jobs.
 

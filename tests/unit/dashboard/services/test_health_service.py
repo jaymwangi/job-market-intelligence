@@ -5,8 +5,8 @@ Unit tests for dashboard health service.
 from unittest.mock import Mock
 
 import pytest
-
 from schemas.health import HealthResponse
+
 from dashboard.services.health import HealthService
 
 

@@ -3,10 +3,9 @@
 import logging
 from datetime import datetime
 
-import streamlit as st
 import pandas as pd
 import plotly.express as px
-
+import streamlit as st
 from api.client import APIClient
 from components.alerts import show_error
 from components.icons import get_icon
@@ -21,16 +20,16 @@ logger = logging.getLogger(__name__)
 
 def render():
     """Render the Sprint 6.6 refined executive overview page."""
-    
+
     # Get services
     analytics_service = StateManager.get_analytics_service()
     jobs_service = StateManager.get_jobs_service()
-    
+
     # ============================================================
     # HEADER - Executive Summary
     # ============================================================
     header_icon = get_icon("overview", size=28, color=COLORS["primary"])
-    
+
     st.markdown(
         f"""
     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
@@ -47,7 +46,7 @@ def render():
     """,
         unsafe_allow_html=True,
     )
-    
+
     # ============================================================
     # LOAD DATA
     # ============================================================
@@ -58,7 +57,7 @@ def render():
             enriched_countries = analytics_service.get_country_distribution()
             enriched_salary = analytics_service.get_enriched_salary()
             enriched_technology = analytics_service.get_technology_distribution()
-            
+
             # Get companies hiring count with fallback
             try:
                 companies_hiring = analytics_service.get_companies_hiring_count()
@@ -67,32 +66,37 @@ def render():
                 logger.warning("get_companies_hiring_count not available, using fallback")
                 try:
                     from schemas.jobs import JobFilters
-                    jobs_response = jobs_service.fetch_jobs(filters=JobFilters(), page=1, page_size=1000)
+
+                    jobs_response = jobs_service.fetch_jobs(
+                        filters=JobFilters(), page=1, page_size=1000
+                    )
                     if jobs_response and jobs_response.items:
-                        companies_hiring = len(set(job.company_name for job in jobs_response.items if job.company_name))
+                        companies_hiring = len(
+                            set(job.company_name for job in jobs_response.items if job.company_name)
+                        )
                     else:
                         companies_hiring = 0
                 except Exception:
                     companies_hiring = 326  # Reasonable fallback
-            
+
             # Calculate metrics
             total_jobs = sum(c.get("count", 0) for c in enriched_countries)
             total_countries = len(enriched_countries)
             avg_salary = enriched_salary.get("average_min") if enriched_salary else None
             top_skill = enriched_skills[0].get("skill") if enriched_skills else "N/A"
-            
+
             # ============================================================
             # KPI ROW - 5 Executive Metrics with SVG Icons
             # ============================================================
             col1, col2, col3, col4, col5 = st.columns(5)
-            
+
             # Get SVG icons as raw HTML strings for metrics
             jobs_icon = get_icon("jobs_metric", size=18, color=COLORS["accent"])
             company_icon = get_icon("companies_metric", size=18, color=COLORS["success"])
             location_icon = get_icon("location", size=18, color=COLORS["info"])
             salary_icon = get_icon("salary_metric", size=18, color=COLORS["warning"])
             skill_icon = get_icon("skills_metric", size=18, color=COLORS["primary"])
-            
+
             with col1:
                 st.markdown(
                     f"""
@@ -108,7 +112,7 @@ def render():
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with col2:
                 st.markdown(
                     f"""
@@ -124,7 +128,7 @@ def render():
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with col3:
                 st.markdown(
                     f"""
@@ -140,7 +144,7 @@ def render():
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with col4:
                 salary_display = f"${avg_salary:,.0f}" if avg_salary else "N/A"
                 st.markdown(
@@ -157,7 +161,7 @@ def render():
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with col5:
                 st.markdown(
                     f"""
@@ -173,14 +177,14 @@ def render():
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             divider()
-            
+
             # ============================================================
             # MARKET SNAPSHOT - Two Charts Side by Side
             # ============================================================
             col1, col2 = st.columns(2)
-            
+
             with col1:
                 analytics_icon = get_icon("analytics", size=16, color=COLORS["primary"])
                 st.markdown(
@@ -206,11 +210,10 @@ def render():
                         )
                         # Enhanced hover template with theme-aware colors
                         fig.update_traces(
-                            hovertemplate=
-                            "<b style='font-size:14px;color:#1a1a2e;'>%{label}</b><br>" +
-                            "<span style='font-size:13px;color:#2d3436;'>Jobs: <b style='color:#1a1a2e;'>%{value:,.0f}</b></span><br>" +
-                            "<span style='font-size:13px;color:#2d3436;'>Share: <b style='color:#1a1a2e;'>%{percent:.1%}</b></span>" +
-                            "<extra></extra>",
+                            hovertemplate="<b style='font-size:14px;color:#1a1a2e;'>%{label}</b><br>"
+                            + "<span style='font-size:13px;color:#2d3436;'>Jobs: <b style='color:#1a1a2e;'>%{value:,.0f}</b></span><br>"
+                            + "<span style='font-size:13px;color:#2d3436;'>Share: <b style='color:#1a1a2e;'>%{percent:.1%}</b></span>"
+                            + "<extra></extra>",
                             textinfo="percent",
                             textposition="inside",
                             textfont=dict(size=12, color="white", family="Inter, sans-serif"),
@@ -233,12 +236,14 @@ def render():
                             paper_bgcolor="rgba(0,0,0,0)",
                             plot_bgcolor="rgba(0,0,0,0)",
                         )
-                        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                        st.plotly_chart(
+                            fig, use_container_width=True, config={"displayModeBar": False}
+                        )
                     else:
                         st.caption("No technology data available")
                 else:
                     st.caption("No technology data available")
-            
+
             with col2:
                 location_icon = get_icon("location", size=16, color=COLORS["primary"])
                 st.markdown(
@@ -263,10 +268,9 @@ def render():
                     )
                     # Enhanced hover template with theme-aware colors
                     fig.update_traces(
-                        hovertemplate=
-                        "<b style='font-size:14px;color:#1a1a2e;'>%{x}</b><br>" +
-                        "<span style='font-size:13px;color:#2d3436;'>Jobs: <b style='color:#1a1a2e;'>%{y:,.0f}</b></span>" +
-                        "<extra></extra>",
+                        hovertemplate="<b style='font-size:14px;color:#1a1a2e;'>%{x}</b><br>"
+                        + "<span style='font-size:13px;color:#2d3436;'>Jobs: <b style='color:#1a1a2e;'>%{y:,.0f}</b></span>"
+                        + "<extra></extra>",
                         textposition="outside",
                         textfont=dict(size=12, family="Inter, sans-serif"),
                         marker=dict(line=dict(width=0)),
@@ -293,14 +297,14 @@ def render():
                     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
                 else:
                     st.caption("No country data available")
-            
+
             divider()
-            
+
             # ============================================================
             # SUMMARY PANELS - Top Skills & Salary Snapshot
             # ============================================================
             col1, col2 = st.columns([1, 1])
-            
+
             with col1:
                 skills_icon = get_icon("skills_metric", size=16, color=COLORS["primary"])
                 st.markdown(
@@ -320,7 +324,7 @@ def render():
                         name = skill.get("skill", "Unknown")
                         count = skill.get("count", 0)
                         pct = min(count / max_count, 1.0)
-                        
+
                         # Custom progress bar with skill name
                         st.markdown(
                             f"""
@@ -337,7 +341,7 @@ def render():
                         )
                 else:
                     st.caption("No skills data available")
-            
+
             with col2:
                 salary_icon = get_icon("salary_metric", size=16, color=COLORS["primary"])
                 st.markdown(
@@ -357,11 +361,11 @@ def render():
                         ("Median", f"${enriched_salary.get('median', 0):,.0f}"),
                         ("Highest", f"${enriched_salary.get('maximum', 0):,.0f}"),
                     ]
-                    
+
                     for label, value in salary_items:
                         st.markdown(
                             f"""
-                        <div style="display: flex; justify-content: space-between; align-items: center; 
+                        <div style="display: flex; justify-content: space-between; align-items: center;
                                     padding: 0.4rem 0; border-bottom: 1px solid #f0f0f0;">
                             <span style="color: {COLORS['text_light']}; font-size: 0.85rem;">{label}</span>
                             <span style="color: {COLORS['text']}; font-weight: 600; font-size: 1rem;">{value}</span>
@@ -371,9 +375,9 @@ def render():
                         )
                 else:
                     st.caption("No salary data available")
-            
+
             divider()
-            
+
             # ============================================================
             # LATEST JOBS - Recent Postings with Clean Cards
             # ============================================================
@@ -391,23 +395,27 @@ def render():
             """,
                 unsafe_allow_html=True,
             )
-            
+
             try:
                 from schemas.jobs import JobFilters
-                
+
                 response = jobs_service.fetch_jobs(filters=JobFilters(), page=1, page_size=5)
-                
+
                 if response and response.items:
                     for job in response.items[:5]:
                         # Clean job card with modern styling - using markdown for everything
                         with st.container(border=True):
                             # Title
                             st.markdown(f"**{job.title}**")
-                            
+
                             # Company and location using markdown with SVG icons
-                            company_icon = get_icon("companies_metric", size=14, color=COLORS["text_light"])
-                            location_icon = get_icon("location_pin", size=14, color=COLORS["text_light"])
-                            
+                            company_icon = get_icon(
+                                "companies_metric", size=14, color=COLORS["text_light"]
+                            )
+                            location_icon = get_icon(
+                                "location_pin", size=14, color=COLORS["text_light"]
+                            )
+
                             company_location_html = f"""
                             <div style="color: {COLORS['text_light']}; font-size: 0.85rem; margin-top: 0.15rem; margin-bottom: 0.15rem;">
                                 <span style="display: inline-flex; align-items: center; gap: 0.2rem;">
@@ -422,10 +430,10 @@ def render():
                             </div>
                             """
                             st.markdown(company_location_html, unsafe_allow_html=True)
-                            
+
                             # Date and Salary in a single row using columns
                             date_col, salary_col = st.columns([1, 1])
-                            
+
                             with date_col:
                                 if job.posted_date:
                                     try:
@@ -437,10 +445,12 @@ def render():
                                         st.caption(f"📅 {days_ago}d ago")
                                     except Exception:
                                         st.caption("📅 Recently posted")
-                            
+
                             with salary_col:
                                 if job.salary_min and job.salary_max:
-                                    salary_icon = get_icon("salary_metric", size=14, color=COLORS["text_light"])
+                                    salary_icon = get_icon(
+                                        "salary_metric", size=14, color=COLORS["text_light"]
+                                    )
                                     salary_html = f"""
                                     <div style="color: {COLORS['text_light']}; font-size: 0.85rem; text-align: right;">
                                         <span style="display: inline-flex; align-items: center; gap: 0.2rem;">
@@ -454,9 +464,9 @@ def render():
                     st.info("No recent jobs found")
             except Exception as e:
                 st.error(f"Could not load jobs: {str(e)}")
-            
+
             divider()
-            
+
             # ============================================================
             # SYSTEM STATUS - Operational Indicators
             # ============================================================
@@ -528,7 +538,7 @@ def render():
                     status_color = status_colors["warning"]
                 else:
                     status_color = status_colors["danger"]
-                
+
                 st.markdown(
                     f"""
                 <div style="background: #f8f9fa; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid {status_color};">
@@ -552,7 +562,7 @@ def render():
                     status_color = status_colors["warning"]
                 else:
                     status_color = status_colors["danger"]
-                
+
                 st.markdown(
                     f"""
                 <div style="background: #f8f9fa; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid {status_color};">
@@ -568,7 +578,7 @@ def render():
                 )
 
             divider()
-            
+
             # ============================================================
             # API CONNECTION STATUS (Collapsible)
             # ============================================================
@@ -617,7 +627,7 @@ def render():
                     2. Check that `API_BASE_URL` is correct in `.env`
                     3. Verify the backend is accessible at the configured URL
                     """)
-            
+
         except Exception as e:
             show_error(f"Failed to load market data: {str(e)}")
             logger.exception("Overview page error")

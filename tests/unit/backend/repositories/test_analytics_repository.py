@@ -178,4 +178,3 @@ class TestAnalyticsRepository:
 
         assert result == 50
         mock_query.count.assert_called_once()
-

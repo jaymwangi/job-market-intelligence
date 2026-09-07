@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Any
 
 import streamlit as st
-
 from api import JOB_DETAIL, JOBS
 from api.client import APIClient
 from schemas.jobs import Job, JobFilters, JobListResponse
@@ -61,13 +60,15 @@ class JobsService(BaseService):
         try:
             # Create a new API client for the cached call
             from api.client import APIClient
+
             client = APIClient(base_url=api_base_url)
-            
+
             logger.debug(f"Fetching jobs with params (cached): {params}")
             return client.get(JOBS, params=params)
         except Exception as e:
             logger.error(f"Failed to fetch jobs: {e}")
             raise
+
     def fetch_job(self, job_id: str) -> Job | None:
         """Fetch a single job by ID."""
         try:
@@ -118,6 +119,7 @@ class JobsService(BaseService):
             except (ValueError, TypeError):
                 try:
                     from dateutil import parser
+
                     return parser.parse(value)
                 except (ValueError, TypeError, ImportError):
                     pass

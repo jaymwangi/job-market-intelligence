@@ -109,9 +109,7 @@ class TestJobRepository:
 
     def test_upsert_batch_from_validated(self, repository, mock_db, mock_job_validated):
         """Test batch validated job upsert."""
-        repository.upsert_batch_from_validated(
-            [mock_job_validated, mock_job_validated]
-        )
+        repository.upsert_batch_from_validated([mock_job_validated, mock_job_validated])
 
         mock_db.execute.assert_called_once()
 
@@ -119,11 +117,7 @@ class TestJobRepository:
         """Test deletion of jobs older than cutoff date."""
         cutoff = datetime.now(UTC)
 
-        (
-            mock_db.query.return_value
-            .filter.return_value
-            .delete.return_value
-        ) = 7
+        mock_db.query.return_value.filter.return_value.delete.return_value = 7
 
         result = repository.delete_jobs_older_than(cutoff)
 
@@ -360,9 +354,9 @@ class TestJobRepository:
         """Test summary statistics."""
         mock_db.query.return_value.filter.return_value.scalar.side_effect = [
             100,  # total jobs
-            25,   # total companies
-            5,    # total countries
-            2,    # average minimum salary? No — see below
+            25,  # total companies
+            5,  # total countries
+            2,  # average minimum salary? No — see below
         ]
 
         # Configure the individual query chains explicitly because
@@ -381,13 +375,13 @@ class TestJobRepository:
         # Results in the exact order used by get_stats().
         scalar_results = iter(
             [
-                100,       # total_jobs
-                25,        # total_companies
-                5,         # total_countries
-                12,        # total_skills
+                100,  # total_jobs
+                25,  # total_companies
+                5,  # total_countries
+                12,  # total_skills
                 Decimal("75000"),  # average salary min
                 Decimal("95000"),  # average salary max
-                40,        # tech roles
+                40,  # tech roles
             ]
         )
 
@@ -395,9 +389,7 @@ class TestJobRepository:
             return next(scalar_results)
 
         mock_db.query.side_effect = lambda *args, **kwargs: (
-            lambda q: (
-                setattr(q.scalar, "side_effect", scalar_side_effect) or q
-            )
+            lambda q: (setattr(q.scalar, "side_effect", scalar_side_effect) or q)
         )(Mock())
 
         # Rebuild with explicit query mocks so filter().scalar()
@@ -422,4 +414,3 @@ class TestJobRepository:
         assert result["average_salary_min"] == 75000.0
         assert result["average_salary_max"] == 95000.0
         assert result["tech_roles"] == 40
-

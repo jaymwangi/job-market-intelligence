@@ -1,16 +1,16 @@
 """Skill extraction - uses configuration for keywords."""
 
-import re
 import json
-from typing import List, Set, Optional
+import re
 from pathlib import Path
+
 from app.etl.enrichment.data.skills import TECH_KEYWORDS
 
 
 class SkillExtractor:
     """Extract technical skills from job titles and descriptions."""
 
-    def __init__(self, keywords: Optional[List[str]] = None, data_path: Optional[str] = None):
+    def __init__(self, keywords: list[str] | None = None, data_path: str | None = None):
         """
         Initialize skill extractor.
 
@@ -20,17 +20,17 @@ class SkillExtractor:
         """
         if keywords is None:
             keywords = TECH_KEYWORDS
-        
+
         self.keywords = self._load_keywords(keywords, data_path)
         self.patterns = self._build_patterns()
 
-    def _load_keywords(self, keywords: List[str], data_path: Optional[str]) -> Set[str]:
+    def _load_keywords(self, keywords: list[str], data_path: str | None) -> set[str]:
         """Load keywords from settings or external file."""
         if data_path:
             try:
                 path = Path(data_path)
                 if path.exists():
-                    with open(path, "r") as f:
+                    with open(path) as f:
                         data = json.load(f)
                         if isinstance(data, list):
                             return set(data)
@@ -42,7 +42,7 @@ class SkillExtractor:
 
         return set(k.lower() for k in keywords)
 
-    def _build_patterns(self) -> dict:
+    def _build_patterns(self) -> dict[str, re.Pattern[str]]:
         """Build regex patterns for skill extraction."""
         patterns = {}
         for skill in self.keywords:
@@ -51,10 +51,10 @@ class SkillExtractor:
             patterns[skill] = re.compile(rf"\b{escaped}\b", re.IGNORECASE)
         return patterns
 
-    def extract_skills(self, title: str, description: str = "") -> List[str]:
+    def extract_skills(self, title: str, description: str = "") -> list[str]:
         """Extract technical skills from job title and description."""
         text = f"{title} {description}".lower()
-        found_skills: Set[str] = set()
+        found_skills: set[str] = set()
 
         for skill, pattern in self.patterns.items():
             if pattern.search(text):
@@ -62,6 +62,6 @@ class SkillExtractor:
 
         return sorted(list(found_skills))
 
-    def extract_from_title(self, title: str) -> List[str]:
+    def extract_from_title(self, title: str) -> list[str]:
         """Extract skills from job title only."""
         return self.extract_skills(title, "")

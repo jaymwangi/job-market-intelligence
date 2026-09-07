@@ -11,7 +11,7 @@ from app.etl.enrichment.data.technology_categories import (
 class TechnologyClassifier:
     """Classify jobs into technology categories."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.categories = CATEGORY_KEYWORDS
 
     @staticmethod

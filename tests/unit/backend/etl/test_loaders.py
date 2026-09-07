@@ -192,9 +192,7 @@ class TestJobLoader:
         existing_job.source_site = "test_source"
         existing_job.source_id = "job_1"
 
-        mock_db.query.return_value.filter.return_value.all.return_value = [
-            existing_job
-        ]
+        mock_db.query.return_value.filter.return_value.all.return_value = [existing_job]
 
         with patch(
             "app.etl.loaders.job_loader.JobRepository",
@@ -309,9 +307,7 @@ class TestJobLoader:
         """Test that database errors propagate to the caller."""
         mock_db.query.return_value.filter.return_value.all.return_value = []
 
-        mock_job_repo.upsert_from_validated.side_effect = Exception(
-            "Database error"
-        )
+        mock_job_repo.upsert_from_validated.side_effect = Exception("Database error")
 
         with patch(
             "app.etl.loaders.job_loader.JobRepository",
@@ -362,4 +358,3 @@ class TestJobLoader:
         assert metrics.purged == 0
         assert metrics.skills_added == 0
         assert metrics.relationships_added == 0
-

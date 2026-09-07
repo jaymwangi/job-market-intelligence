@@ -199,9 +199,7 @@ class TestTopSkillsIntegration:
         """Top skills should include relationships from all active jobs."""
         result = analytics_repository.get_top_skills(limit=10)
 
-        sql_result = next(
-            item for item in result if item["skill"] == "SQL"
-        )
+        sql_result = next(item for item in result if item["skill"] == "SQL")
 
         assert sql_result["count"] == 3
 
@@ -386,10 +384,7 @@ class TestBasicAggregationIntegration:
         """Company analytics should return exact active-job counts."""
         result = analytics_repository.get_top_companies()
 
-        companies = {
-            item["company"]: item["job_count"]
-            for item in result
-        }
+        companies = {item["company"]: item["job_count"] for item in result}
 
         assert companies["Tech GB"] == 2
         assert companies["Tech US"] == 1
@@ -403,10 +398,7 @@ class TestBasicAggregationIntegration:
         """Location analytics should return exact active-job counts."""
         result = analytics_repository.get_jobs_by_location()
 
-        locations = {
-            item["location"]: item["job_count"]
-            for item in result
-        }
+        locations = {item["location"]: item["job_count"] for item in result}
 
         assert locations["London"] == 2
         assert locations["Manchester"] == 1
@@ -437,22 +429,15 @@ class TestTechnologySplitIntegration:
         """Tech-by-country analytics should calculate exact country ratios."""
         result = analytics_repository.get_tech_by_country()
 
-        countries = {
-            item["country"]: item
-            for item in result
-        }
+        countries = {item["country"]: item for item in result}
 
         assert countries["GB"]["total_count"] == 3
         assert countries["GB"]["tech_count"] == 2
-        assert countries["GB"]["tech_percentage"] == pytest.approx(
-            2 / 3 * 100
-        )
+        assert countries["GB"]["tech_percentage"] == pytest.approx(2 / 3 * 100)
 
         assert countries["US"]["total_count"] == 1
         assert countries["US"]["tech_count"] == 1
-        assert countries["US"]["tech_percentage"] == pytest.approx(
-            100.0
-        )
+        assert countries["US"]["tech_percentage"] == pytest.approx(100.0)
 
 
 class TestEnrichedAnalyticsFilteringIntegration:
@@ -464,14 +449,9 @@ class TestEnrichedAnalyticsFilteringIntegration:
         analytics_data,
     ):
         """Country filtering should restrict skill aggregation."""
-        result = analytics_repository.get_enriched_top_skills(
-            country_code="GB"
-        )
+        result = analytics_repository.get_enriched_top_skills(country_code="GB")
 
-        skills = {
-            item["skill"]: item["count"]
-            for item in result
-        }
+        skills = {item["skill"]: item["count"] for item in result}
 
         assert skills["Python"] == 2
         assert skills["SQL"] == 3
@@ -482,14 +462,9 @@ class TestEnrichedAnalyticsFilteringIntegration:
         analytics_data,
     ):
         """Tech-only filtering should exclude non-tech job relationships."""
-        result = analytics_repository.get_enriched_top_skills(
-            tech_only=True
-        )
+        result = analytics_repository.get_enriched_top_skills(tech_only=True)
 
-        skills = {
-            item["skill"]: item["count"]
-            for item in result
-        }
+        skills = {item["skill"]: item["count"] for item in result}
 
         assert skills["Python"] == 3
         assert skills["SQL"] == 2
@@ -506,10 +481,7 @@ class TestEnrichedAnalyticsFilteringIntegration:
             tech_only=True,
         )
 
-        skills = {
-            item["skill"]: item["count"]
-            for item in result
-        }
+        skills = {item["skill"]: item["count"] for item in result}
 
         assert skills["Python"] == 2
         assert skills["SQL"] == 2
@@ -526,10 +498,7 @@ class TestTrendAnalyticsIntegration:
         """Posting trends should aggregate jobs into exact calendar dates."""
         result = analytics_repository.get_jobs_posted_by_date(days=30)
 
-        counts = {
-            item["date"]: item["count"]
-            for item in result
-        }
+        counts = {item["date"]: item["count"] for item in result}
 
         assert counts["2026-08-31"] == 2
         assert counts["2026-09-01"] == 1

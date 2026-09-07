@@ -145,9 +145,7 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.get(
-                "/api/v1/jobs?location=San Francisco"
-            )
+            response = client.get("/api/v1/jobs?location=San Francisco")
 
             assert response.status_code == 200
         finally:
@@ -160,9 +158,7 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.get(
-                "/api/v1/jobs?min_salary=200000&max_salary=100000"
-            )
+            response = client.get("/api/v1/jobs?min_salary=200000&max_salary=100000")
 
             assert response.status_code == 400
         finally:
@@ -204,9 +200,7 @@ class TestJobsRoutes:
         try:
             job_id = mock_job.id
 
-            response = client.get(
-                f"/api/v1/jobs/{job_id}"
-            )
+            response = client.get(f"/api/v1/jobs/{job_id}")
 
             assert response.status_code == 200
 
@@ -226,9 +220,7 @@ class TestJobsRoutes:
         try:
             fake_id = uuid4()
 
-            response = client.get(
-                f"/api/v1/jobs/{fake_id}"
-            )
+            response = client.get(f"/api/v1/jobs/{fake_id}")
 
             assert response.status_code == 404
         finally:
@@ -241,9 +233,7 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.get(
-                "/api/v1/jobs/invalid-uuid"
-            )
+            response = client.get("/api/v1/jobs/invalid-uuid")
 
             assert response.status_code == 422
         finally:

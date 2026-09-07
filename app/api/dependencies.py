@@ -18,23 +18,23 @@ Example:
         ...
 """
 
-from typing import Optional
-
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.repositories.job_repository import JobRepository
 from app.repositories.analytics_repository import AnalyticsRepository
-from app.repositories.skill_repository import SkillRepository
+from app.repositories.job_repository import JobRepository
 from app.repositories.pipeline_run_repository import PipelineRunRepository
-from app.services.job_service import JobService
+from app.repositories.skill_repository import SkillRepository
 from app.services.analytics_service import AnalyticsService
+from app.services.job_service import JobService
+from app.services.translation.interface import TranslationConfig
 from app.services.translation.service import (
     TranslationService,
+)
+from app.services.translation.service import (
     get_translation_service as get_translation_service_instance,
 )
-from app.services.translation.interface import TranslationConfig
 
 # ============================================================
 # Repository Dependencies
@@ -86,10 +86,10 @@ def get_analytics_service(
 
 
 async def get_translation_service(
-    config: Optional[TranslationConfig] = None,
+    config: TranslationConfig | None = None,
     enable_cache: bool = True,
     cache_max_size: int = 1000,
-    cache_ttl: Optional[int] = None,
+    cache_ttl: int | None = None,
 ) -> TranslationService:
     """
     Get TranslationService instance (singleton).

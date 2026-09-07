@@ -2,8 +2,8 @@
 """Session state management - unified StateManager for Sprint 5.1+ infrastructure."""
 
 import logging
-from typing import Any, Dict, Optional
 from datetime import datetime
+from typing import Any
 
 import streamlit as st
 
@@ -25,8 +25,8 @@ class StateManager:
     _services: dict[str, Any] = {}
     _api_client: APIClient | None = None
     _cache_manager: CacheManager | None = None
-    _etl_status_cache: Optional[Dict] = None
-    _etl_cache_timestamp: Optional[datetime] = None
+    _etl_status_cache: dict | None = None
+    _etl_cache_timestamp: datetime | None = None
 
     @classmethod
     def init(cls):
@@ -126,7 +126,7 @@ class StateManager:
         # Clear session state services
         if "services" in st.session_state:
             st.session_state.services = {}
-        
+
         # Clear ETL status cache
         cls._etl_status_cache = None
         cls._etl_cache_timestamp = None
@@ -222,7 +222,7 @@ class StateManager:
 
     @classmethod
     @st.cache_data(ttl=60)  # Cache for 60 seconds
-    def get_etl_status(cls) -> Dict[str, Any]:
+    def get_etl_status(cls) -> dict[str, Any]:
         """
         Get ETL pipeline status with caching.
         Returns dict with status, last_run, etc.
@@ -240,36 +240,32 @@ class StateManager:
         try:
             analytics_service = cls.get_analytics_service()
             return {
-                'status': analytics_service.get_pipeline_status(),
-                'last_run': analytics_service.get_last_etl_run(),
-                'last_run_time': analytics_service.get_last_etl_run_time(),
-                'db_status': analytics_service.get_db_status(),
+                "status": analytics_service.get_pipeline_status(),
+                "last_run": analytics_service.get_last_etl_run(),
+                "last_run_time": analytics_service.get_last_etl_run_time(),
+                "db_status": analytics_service.get_db_status(),
             }
         except Exception as e:
             logger.error(f"Failed to get ETL status: {e}")
-            return {
-                'status': 'unknown',
-                'last_run': 'N/A',
-                'error': str(e)
-            }
+            return {"status": "unknown", "last_run": "N/A", "error": str(e)}
 
     @classmethod
     def get_last_etl_run(cls) -> str:
         """Get formatted last ETL run time."""
         status = cls.get_etl_status()
-        return status.get('last_run', 'No runs yet')
+        return status.get("last_run", "No runs yet")
 
     @classmethod
     def get_pipeline_status(cls) -> str:
         """Get current pipeline status (Running/Idle)."""
         status = cls.get_etl_status()
-        return status.get('status', 'Unknown')
+        return status.get("status", "Unknown")
 
     @classmethod
     def get_db_status(cls) -> str:
         """Get database status."""
         status = cls.get_etl_status()
-        return status.get('db_status', 'Unknown')
+        return status.get("db_status", "Unknown")
 
     @classmethod
     def refresh_etl_status(cls):
@@ -356,15 +352,15 @@ class ServiceFactory:
 
     def refresh_all(self) -> None:
         StateManager.clear_cache()
-    
+
     def get_etl_status(self):
         """Get ETL status."""
         return StateManager.get_etl_status()
-    
+
     def get_last_etl_run(self):
         """Get formatted last ETL run."""
         return StateManager.get_last_etl_run()
-    
+
     def get_pipeline_status(self):
         """Get pipeline status."""
         return StateManager.get_pipeline_status()

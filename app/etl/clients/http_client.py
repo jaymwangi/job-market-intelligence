@@ -1,7 +1,8 @@
+import json
 # app/etl/clients/http_client.py
 """Simple HTTP client with session reuse."""
 
-from typing import Any
+from typing import Any, cast, cast
 
 import requests
 
@@ -65,4 +66,4 @@ class HTTPClient:
             print(f"🔧 Request Headers: {response.request.headers}")
 
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())

@@ -1,7 +1,6 @@
 """Professional Job Explorer page with modern UI."""
 
 import streamlit as st
-
 from components.alerts import show_error
 from components.empty_state import render_empty_state
 from components.filters import render_filters
@@ -9,10 +8,8 @@ from components.icons import get_icon
 from components.job_card import render_job_card
 from components.job_detail import render_job_detail  # ✅ ADD THIS IMPORT
 from components.pagination import render_pagination
-from components.tables import render_jobs_table
 from core.config import settings
 from schemas import JobFilters
-from utils import StateManager
 from utils.service_factory import get_jobs_service
 
 # Professional color palette
@@ -65,7 +62,7 @@ def fetch_jobs_cached(
 
 def render():
     """Render the professional Job Explorer page."""
-    
+
     # Initialize ALL session state variables at the very beginning
     if "jobs_page" not in st.session_state:
         st.session_state.jobs_page = 1
@@ -79,7 +76,7 @@ def render():
         st.session_state.is_tech_role = True  # Default: Tech Jobs Only
     if "selected_job_id" not in st.session_state:
         st.session_state.selected_job_id = None  # ✅ Add this
-    
+
     # Custom CSS for professional styling
     st.markdown(
         f"""
@@ -236,10 +233,10 @@ def render():
     """,
         unsafe_allow_html=True,
     )
-    
+
     # Use columns for the toggle and filters
     filter_col1, filter_col2 = st.columns([3, 1])
-    
+
     with filter_col2:
         # Tech Jobs Only toggle
         tech_only = st.toggle(
@@ -248,7 +245,7 @@ def render():
             key="tech_only_toggle",
             help="When enabled, only shows technology-related roles (engineers, developers, etc.)",
         )
-        
+
         # Update session state if toggle changed
         if tech_only != st.session_state.is_tech_role:
             st.session_state.is_tech_role = tech_only
@@ -256,14 +253,14 @@ def render():
             # Clear cache to refresh data
             st.cache_data.clear()
             st.rerun()
-    
+
     with filter_col1:
         # Get service singleton
         service = get_jobs_service()
 
         # Get filters - don't call st.rerun() here
         raw_filters = render_filters()
-        
+
         # Only update if filters actually changed
         current_filters = st.session_state.jobs_filters
         if raw_filters != current_filters:
@@ -379,7 +376,7 @@ def render():
 
     # Render jobs in a professional container
     st.markdown('<div class="jobs-container">', unsafe_allow_html=True)
-        
+
     # ============================================================
     # Sprint 6.6.1: Render each job with detail support
     # ============================================================
@@ -392,7 +389,7 @@ def render():
         else:
             # Render job card
             render_job_card(job)
-    
+
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Render pagination with professional styling

@@ -4,7 +4,6 @@
 from datetime import datetime
 
 import streamlit as st
-
 from components.icons import get_icon
 
 # Consistent spacing constants

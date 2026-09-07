@@ -239,9 +239,7 @@ class TestJobValidator:
         assert validated is not None
         assert validated.salary_min == 120000.0
         assert validated.salary_max == 180000.0
-        assert "Min salary > max salary - values swapped" in (
-            validated.validation_warnings
-        )
+        assert "Min salary > max salary - values swapped" in (validated.validation_warnings)
 
     def test_validate_sets_scraped_date_when_missing(self):
         """Test that missing scraped_date receives a timestamp."""

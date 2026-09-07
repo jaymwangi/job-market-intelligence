@@ -427,7 +427,7 @@ class Settings(
 
     # Use SettingsConfigDict from pydantic_settings
     # This resolves the type conflict between BaseModel.ConfigDict and BaseSettings.SettingsConfigDict
-    model_config: SettingsConfigDict = SettingsConfigDict(  # type: ignore[assignment]
+    model_config: SettingsConfigDict = SettingsConfigDict(  # type: ignore[misc]
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,

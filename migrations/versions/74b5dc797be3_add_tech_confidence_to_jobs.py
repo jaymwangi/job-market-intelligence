@@ -5,17 +5,18 @@ Revises: 3182e514fa7d
 Create Date: 2026-08-27 10:16:29.191382
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "74b5dc797be3"
-down_revision: Union[str, Sequence[str], None] = "3182e514fa7d"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "3182e514fa7d"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -35,8 +36,7 @@ def upgrade() -> None:
     op.create_check_constraint(
         "ck_job_tech_confidence",
         "jobs",
-        "tech_confidence IS NULL OR "
-        "(tech_confidence >= 0.0 AND tech_confidence <= 1.0)",
+        "tech_confidence IS NULL OR " "(tech_confidence >= 0.0 AND tech_confidence <= 1.0)",
     )
 
 

@@ -1,3 +1,20 @@
+from typing import TypedDict, Any, Dict, List, Optional
+
+class TranslationResponse(TypedDict, total=False):
+    job_id: str
+    source_language: str | None
+    target_language: str
+    needs_translation: bool
+    message: str
+    original_title: str | None
+    original_description: str | None
+    translated_title: str | None
+    translated_description: str | None
+    success: bool
+    duration_ms: float | None
+    character_count: int | None
+    error: str | None
+
 """Jobs API routes."""
 
 from uuid import UUID
@@ -86,7 +103,7 @@ def get_jobs(
         description="Filter by ISO language code (e.g., en, fr, de)",
     ),
     service: JobService = Depends(get_service),
-):
+) -> JobListResponse:
     """
     Get paginated jobs with search and filters.
 
@@ -163,7 +180,9 @@ def get_top_skills(
     """
     Get the most frequently occurring skills.
     """
-    logger.debug(f"Fetching top {limit} skills" + (f" for country {country_code}" if country_code else ""))
+    logger.debug(
+        f"Fetching top {limit} skills" + (f" for country {country_code}" if country_code else "")
+    )
 
     skills = service.get_top_skills(limit, country_code)
 
@@ -256,7 +275,7 @@ def get_job_stats(
 )
 def get_job(
     job_id: UUID = Path(..., description="Job UUID"), service: JobService = Depends(get_service)
-):
+) -> JobResponse:
     """
     Get a single job by ID.
     """
@@ -295,17 +314,17 @@ async def translate_job(
     ),
     db: Session = Depends(get_db),
     service: JobService = Depends(get_service),
-):
+) -> TranslationResponse:
     """
     Translate a job posting to the target language.
-    
+
     This endpoint translates the job title and description on demand.
     Translation is not stored - it's performed and returned to the client.
-    
+
     Args:
         job_id: UUID of the job to translate
         target_language: Target language code (default: 'en')
-        
+
     Returns:
         Translation result with original and translated text
     """

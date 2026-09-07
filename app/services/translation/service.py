@@ -26,17 +26,18 @@ Example:
 import asyncio
 import logging
 from collections import OrderedDict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable, Dict, List, Optional, Tuple, Any, Union
+from typing import Any
 
 from app.services.translation.interface import (
-    TranslationProviderType,
-    TranslationResult,
     HealthCheckResult,
     TranslationConfig,
     TranslationError,
     TranslationProvider,
+    TranslationProviderType,
+    TranslationResult,
 )
 from app.services.translation.providers import create_translation_provider
 from config.settings import settings
@@ -48,22 +49,23 @@ logger = logging.getLogger(__name__)
 # Cache Statistics
 # ============================================================
 
+
 @dataclass(slots=True)
 class CacheStatistics:
     """Statistics for the translation cache."""
-    
+
     size: int = 0
     max_size: int = 0
     hits: int = 0
     misses: int = 0
-    ttl_seconds: Optional[int] = None
-    
+    ttl_seconds: int | None = None
+
     @property
     def hit_rate(self) -> float:
         """Calculate the cache hit rate."""
         total = self.hits + self.misses
         return (self.hits / total * 100) if total > 0 else 0.0
-    
+
     @property
     def used_percent(self) -> float:
         """Calculate the cache usage percentage."""
@@ -74,70 +76,71 @@ class CacheStatistics:
 # Translation Cache
 # ============================================================
 
+
 @dataclass(slots=True)
 class TranslationCache:
     """LRU cache for translation results using OrderedDict."""
-    
+
     max_size: int = 1000
-    ttl_seconds: Optional[int] = None  # None = no expiration
-    
-    _cache: OrderedDict[Tuple[str, str, str], Tuple[TranslationResult, float]] = field(
+    ttl_seconds: int | None = None  # None = no expiration
+
+    _cache: OrderedDict[tuple[str, str, str], tuple[TranslationResult, float]] = field(
         default_factory=OrderedDict
     )
     _hits: int = 0
     _misses: int = 0
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
-    
-    def _get_key(self, text: str, source: str, target: str) -> Tuple[str, str, str]:
+
+    def _get_key(self, text: str, source: str, target: str) -> tuple[str, str, str]:
         """Get cache key from text and languages."""
         return (text, source, target)
-    
+
     def _is_expired(self, timestamp: float) -> bool:
         """Check if a cache entry is expired."""
         if self.ttl_seconds is None:
             return False
         return (datetime.utcnow().timestamp() - timestamp) > self.ttl_seconds
-    
-    async def get(self, text: str, source: str, target: str) -> Optional[TranslationResult]:
+
+    async def get(self, text: str, source: str, target: str) -> TranslationResult | None:
         """Get a translation from cache (thread-safe)."""
         async with self._lock:
             key = self._get_key(text, source, target)
-            
+
             if key not in self._cache:
                 self._misses += 1
                 return None
-            
+
             result, timestamp = self._cache[key]
-            
+
             # Check TTL
             if self._is_expired(timestamp):
                 del self._cache[key]
                 self._misses += 1
                 return None
-            
+
             # Move to end (most recently used) - true LRU
             self._cache.move_to_end(key)
             self._hits += 1
             return result
-    
+
     async def set(self, text: str, source: str, target: str, result: TranslationResult) -> None:
         """Store a translation in cache (thread-safe)."""
         async with self._lock:
             key = self._get_key(text, source, target)
-            
+
             # Evict oldest if cache is full (true LRU)
             if len(self._cache) >= self.max_size:
                 self._cache.popitem(last=False)
-            
+
             self._cache[key] = (result, datetime.utcnow().timestamp())
-    
+
     async def clear(self) -> None:
         """Clear the cache (thread-safe)."""
         async with self._lock:
             self._cache.clear()
             self._hits = 0
             self._misses = 0
-    
+
     async def get_stats(self) -> CacheStatistics:
         """Get cache statistics (thread-safe)."""
         async with self._lock:
@@ -154,30 +157,31 @@ class TranslationCache:
 # Metrics Snapshot
 # ============================================================
 
+
 @dataclass(slots=True)
 class MetricsSnapshot:
     """Snapshot of translation metrics."""
-    
+
     total_requests: int = 0
     successful_requests: int = 0
     failed_requests: int = 0
     total_duration_ms: float = 0.0
     total_characters: int = 0
     provider: str = ""
-    
+
     @property
     def success_rate(self) -> float:
         """Calculate the success rate."""
         total = self.total_requests
         return (self.successful_requests / total * 100) if total > 0 else 0.0
-    
+
     @property
     def avg_duration_ms(self) -> float:
         """Calculate the average duration."""
         total = self.total_requests
         return (self.total_duration_ms / total) if total > 0 else 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "total_requests": self.total_requests,
@@ -195,10 +199,11 @@ class MetricsSnapshot:
 # Translation Metrics
 # ============================================================
 
+
 @dataclass(slots=True)
 class TranslationMetrics:
     """Metrics for translation operations (thread-safe)."""
-    
+
     _total_requests: int = 0
     _successful_requests: int = 0
     _failed_requests: int = 0
@@ -206,7 +211,7 @@ class TranslationMetrics:
     _total_characters: int = 0
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     _provider: TranslationProviderType = TranslationProviderType.GOOGLE
-    
+
     async def record(
         self,
         duration_ms: float,
@@ -218,12 +223,12 @@ class TranslationMetrics:
             self._total_requests += 1
             self._total_duration_ms += duration_ms
             self._total_characters += char_count
-            
+
             if success:
                 self._successful_requests += 1
             else:
                 self._failed_requests += 1
-    
+
     async def snapshot(self, provider: TranslationProviderType) -> MetricsSnapshot:
         """Get a snapshot of metrics (thread-safe)."""
         async with self._lock:
@@ -241,10 +246,11 @@ class TranslationMetrics:
 # Service Statistics
 # ============================================================
 
+
 @dataclass(slots=True)
 class ServiceStatistics:
     """Comprehensive service statistics."""
-    
+
     provider: str
     started_at: str
     uptime_seconds: float
@@ -257,32 +263,33 @@ class ServiceStatistics:
 # Translation Service
 # ============================================================
 
+
 class TranslationService:
     """
     Translation service that orchestrates translation providers.
-    
+
     Features:
     - Provider lifecycle management
     - Optional caching of translations
     - Health checks
     - Metrics tracking
     - Graceful fallback on failure
-    
+
     The service is designed with dependency injection for testability.
-    
+
     Example:
         from app.services.translation import create_translation_provider
-        
+
         provider = create_translation_provider(config)
         cache = TranslationCache(max_size=1000)
         metrics = TranslationMetrics()
-        
+
         service = TranslationService(
             provider=provider,
             cache=cache,
             metrics=metrics,
         )
-        
+
         result = await service.translate(
             text="Hello, world!",
             source_language="en",
@@ -293,13 +300,13 @@ class TranslationService:
     def __init__(
         self,
         provider: TranslationProvider,
-        cache: Optional[TranslationCache] = None,
-        metrics: Optional[TranslationMetrics] = None,
-        clock: Optional[Callable[[], datetime]] = None,
+        cache: TranslationCache | None = None,
+        metrics: TranslationMetrics | None = None,
+        clock: Callable[[], datetime] | None = None,
     ):
         """
         Initialize the translation service.
-        
+
         Args:
             provider: The translation provider to use
             cache: Optional cache for translations
@@ -310,12 +317,12 @@ class TranslationService:
         self._cache = cache
         self._metrics = metrics or TranslationMetrics()
         self._clock = clock or datetime.utcnow
-        
+
         # Service state
         self._closed = False
         self._started_at = self._clock()
         self._lock = asyncio.Lock()
-        
+
         logger.info(
             "TranslationService initialized: provider=%s, cache=%s",
             provider.provider_type,
@@ -325,46 +332,50 @@ class TranslationService:
     @classmethod
     def create_default(
         cls,
-        config: Optional[TranslationConfig] = None,
+        config: TranslationConfig | None = None,
         enable_cache: bool = True,
         cache_max_size: int = 1000,
-        cache_ttl: Optional[int] = None,
-        clock: Optional[Callable[[], datetime]] = None,
+        cache_ttl: int | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> "TranslationService":
         """
         Create a default translation service with standard components.
-        
+
         Args:
             config: Translation configuration
             enable_cache: Whether to enable caching
             cache_max_size: Maximum cache size
             cache_ttl: Cache TTL in seconds
             clock: Optional clock function for time (for testing)
-            
+
         Returns:
             TranslationService: Configured service
         """
         if config is None:
             config = cls._load_config_from_settings()
-        
+
         provider = create_translation_provider(config)
-        cache = TranslationCache(
-            max_size=cache_max_size if enable_cache else 0,
-            ttl_seconds=cache_ttl,
-        ) if enable_cache else None
-        
+        cache = (
+            TranslationCache(
+                max_size=cache_max_size if enable_cache else 0,
+                ttl_seconds=cache_ttl,
+            )
+            if enable_cache
+            else None
+        )
+
         return cls(
             provider=provider,
             cache=cache,
             metrics=TranslationMetrics(),
             clock=clock,
         )
-    
+
     @staticmethod
     def _load_config_from_settings() -> TranslationConfig:
         """Load translation configuration from settings."""
-        provider_str = getattr(settings, 'translation_provider', 'google')
-        
+        provider_str = getattr(settings, "translation_provider", "google")
+
         try:
             provider = TranslationProviderType(provider_str)
         except ValueError:
@@ -373,20 +384,20 @@ class TranslationService:
                 provider_str,
             )
             provider = TranslationProviderType.GOOGLE
-        
+
         return TranslationConfig(
             provider=provider,
-            timeout=getattr(settings, 'translation_timeout', 15),
-            retry_count=getattr(settings, 'translation_retry_count', 3),
-            retry_delay=getattr(settings, 'translation_retry_delay', 1.0),
-            retry_backoff_factor=getattr(settings, 'translation_retry_backoff', 2.0),
-            deepl_api_key=getattr(settings, 'deepl_api_key', None),
-            azure_translator_key=getattr(settings, 'azure_translator_key', None),
-            azure_translator_endpoint=getattr(settings, 'azure_translator_endpoint', None),
-            azure_translator_region=getattr(settings, 'azure_translator_region', None),
-            google_cloud_project=getattr(settings, 'google_cloud_project', None),
+            timeout=getattr(settings, "translation_timeout", 15),
+            retry_count=getattr(settings, "translation_retry_count", 3),
+            retry_delay=getattr(settings, "translation_retry_delay", 1.0),
+            retry_backoff_factor=getattr(settings, "translation_retry_backoff", 2.0),
+            deepl_api_key=getattr(settings, "deepl_api_key", None),
+            azure_translator_key=getattr(settings, "azure_translator_key", None),
+            azure_translator_endpoint=getattr(settings, "azure_translator_endpoint", None),
+            azure_translator_region=getattr(settings, "azure_translator_region", None),
+            google_cloud_project=getattr(settings, "google_cloud_project", None),
             google_application_credentials=getattr(
-                settings, 'google_application_credentials', None
+                settings, "google_application_credentials", None
             ),
         )
 
@@ -413,22 +424,22 @@ class TranslationService:
     ) -> TranslationResult:
         """
         Translate a single text.
-        
+
         Args:
             text: The text to translate
             source_language: ISO 639-1 code of the source language
             target_language: ISO 639-1 code of the target language (default: 'en')
             use_cache: Whether to use the cache
-            
+
         Returns:
             TranslationResult: The translation result
-            
+
         Raises:
             TranslationError: If translation fails
         """
         if self._closed:
             raise TranslationError("Translation service is closed")
-        
+
         if not text or not text.strip():
             return TranslationResult(
                 text=text,
@@ -452,22 +463,22 @@ class TranslationService:
                 source_language=source_language,
                 target_language=target_language,
             )
-            
+
             # Cache the result
             if use_cache and self._cache is not None:
                 await self._cache.set(text, source_language, target_language, result)
-            
+
             # Record metrics
             duration_ms = (self._clock().timestamp() - start_time) * 1000
             await self._record_metrics(duration_ms, result.success, len(text))
-            
+
             logger.debug(
                 "Translation completed: %s -> %s, duration=%.2fms",
                 source_language,
                 target_language,
                 duration_ms,
             )
-            
+
             return result
 
         except Exception as e:
@@ -479,7 +490,7 @@ class TranslationService:
                 target_language,
                 e,
             )
-            
+
             # Return a fallback result
             return TranslationResult(
                 text=text,
@@ -491,43 +502,45 @@ class TranslationService:
 
     async def translate_many(
         self,
-        texts: List[str],
+        texts: list[str],
         source_language: str,
         target_language: str = "en",
         use_cache: bool = True,
-    ) -> List[TranslationResult]:
+    ) -> list[TranslationResult]:
         """
         Translate multiple texts.
-        
+
         Args:
             texts: The texts to translate
             source_language: ISO 639-1 code of the source language
             target_language: ISO 639-1 code of the target language (default: 'en')
             use_cache: Whether to use the cache
-            
+
         Returns:
             List[TranslationResult]: The translation results
         """
         if self._closed:
             raise TranslationError("Translation service is closed")
-        
+
         if not texts:
             return []
 
         start_time = self._clock().timestamp()
-        results: List[Optional[TranslationResult]] = []
-        uncached_indices: List[int] = []
-        uncached_texts: List[str] = []
+        results: list[TranslationResult | None] = []
+        uncached_indices: list[int] = []
+        uncached_texts: list[str] = []
 
         # Check cache for each text
         for i, text in enumerate(texts):
             if not text or not text.strip():
-                results.append(TranslationResult(
-                    text=text,
-                    source_language=source_language,
-                    target_language=target_language,
-                    success=True,
-                ))
+                results.append(
+                    TranslationResult(
+                        text=text,
+                        source_language=source_language,
+                        target_language=target_language,
+                        success=True,
+                    )
+                )
                 continue
 
             if use_cache and self._cache is not None:
@@ -586,12 +599,12 @@ class TranslationService:
         await self._record_metrics(duration_ms, success_count == len(results), total_chars)
 
         # Type-safe return
-        return [r for r in results if r is not None]  # type: ignore
+        return [r for r in results if r is not None]
 
     async def health_check(self) -> HealthCheckResult:
         """
         Check the health of the translation service.
-        
+
         Returns:
             HealthCheckResult: The health check result
         """
@@ -602,10 +615,10 @@ class TranslationService:
                 message="Translation service is closed",
                 checked_at=self._clock().isoformat(),
             )
-        
+
         try:
             result = await self._provider.health_check()
-            
+
             # Add service-level information
             return HealthCheckResult(
                 healthy=result.healthy,
@@ -640,7 +653,7 @@ class TranslationService:
         """Get comprehensive service statistics."""
         cache_stats = await self.get_cache_stats()
         metrics_snapshot = await self.get_metrics()
-        
+
         return ServiceStatistics(
             provider=self.provider_type.value,
             started_at=self._started_at.isoformat(),
@@ -656,7 +669,7 @@ class TranslationService:
             await self._provider.close()
             self._closed = True
             logger.info("Translation service closed")
-        
+
         if self._cache is not None:
             await self._cache.clear()
 
@@ -666,11 +679,11 @@ class TranslationService:
             await self._cache.clear()
             logger.info("Translation cache cleared")
 
-    async def __aenter__(self):
+    async def __aenter__(self):  # type: ignore
         """Enter async context manager."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):  # type: ignore
         """Exit async context manager."""
         await self.close()
 
@@ -679,30 +692,30 @@ class TranslationService:
 # Singleton Instance
 # ============================================================
 
-_service: Optional[TranslationService] = None
+_service: TranslationService | None = None
 _service_lock = asyncio.Lock()
 
 
 async def get_translation_service(
-    config: Optional[TranslationConfig] = None,
+    config: TranslationConfig | None = None,
     enable_cache: bool = True,
     cache_max_size: int = 1000,
-    cache_ttl: Optional[int] = None,
+    cache_ttl: int | None = None,
 ) -> TranslationService:
     """
     Get a singleton instance of the translation service.
-    
+
     Args:
         config: Translation configuration
         enable_cache: Whether to enable caching
         cache_max_size: Maximum cache size
         cache_ttl: Cache TTL in seconds
-        
+
     Returns:
         TranslationService: The translation service
     """
     global _service
-    
+
     if _service is None:
         async with _service_lock:
             if _service is None:
@@ -714,13 +727,14 @@ async def get_translation_service(
                     cache_max_size=cache_max_size,
                     cache_ttl=cache_ttl,
                 )
-    
+
     return _service
 
 
 # ============================================================
 # Convenience Functions
 # ============================================================
+
 
 async def translate_text(
     text: str,
@@ -733,10 +747,10 @@ async def translate_text(
 
 
 async def translate_texts(
-    texts: List[str],
+    texts: list[str],
     source_language: str,
     target_language: str = "en",
-) -> List[TranslationResult]:
+) -> list[TranslationResult]:
     """Convenience function to translate multiple texts."""
     service = await get_translation_service()
     return await service.translate_many(texts, source_language, target_language)

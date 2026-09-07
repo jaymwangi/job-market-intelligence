@@ -2,29 +2,23 @@
 
 import logging
 import time
-from dataclasses import dataclass
-from typing import List, Optional
 
-import streamlit as st
 import pandas as pd
 import plotly.express as px
-
-from components.icons import  icon_button
+import streamlit as st
 from components.alerts import show_error
 from components.charts import (
+    HorizontalBarChartData,
     create_bar_chart,
     create_donut_chart,
     create_histogram,
     create_horizontal_bar_chart,
     create_line_chart,
-    create_pie_chart,
-    HorizontalBarChartData,
 )
 from components.empty_state import empty_state_analytics
-from components.icons import get_icon, IconColor
-from components.layout import divider, page_header, section_header, timestamp
+from components.icons import IconColor, get_icon, icon_button
+from components.layout import divider, section_header, timestamp
 from components.loading import loading_spinner
-from components.metrics import render_metric_card
 from core.theme import COLORS
 from utils.state import StateManager
 
@@ -59,13 +53,17 @@ def render_analytics_dashboard():
 
     # Get service from StateManager
     service = StateManager.get_analytics_service()
-    
-    
+
     # Top bar with refresh
     col_left, col_right = st.columns([3, 1])
     with col_right:
-        if icon_button("Refresh", "refresh", key="refresh_analytics", 
-                    color=COLORS["primary"], use_container_width=True):
+        if icon_button(
+            "Refresh",
+            "refresh",
+            key="refresh_analytics",
+            color=COLORS["primary"],
+            use_container_width=True,
+        ):
             with st.spinner("Refreshing data..."):
                 StateManager.clear_cache()
                 time.sleep(0.5)
@@ -77,7 +75,17 @@ def render_analytics_dashboard():
     render_kpi_cards(service)
 
     # Tabs for detailed analytics
-    tab_labels = ["Overview", "Locations", "Skills", "Companies", "Salaries", "Employment", "Trends", "Language", "Tech"]
+    tab_labels = [
+        "Overview",
+        "Locations",
+        "Skills",
+        "Companies",
+        "Salaries",
+        "Employment",
+        "Trends",
+        "Language",
+        "Tech",
+    ]
     tabs = st.tabs(tab_labels)
 
     with tabs[0]:
@@ -97,67 +105,79 @@ def render_analytics_dashboard():
     with tabs[7]:
         render_language_analytics(service)  # Sprint 6.6
     with tabs[8]:
-        render_tech_analytics(service)      # Sprint 6.6
+        render_tech_analytics(service)  # Sprint 6.6
 
 
 def render_overview_analytics(service):
     """Render overview analytics with key metrics."""
     section_header("Overview", "Key market metrics and insights", "analytics")
-    
+
     with loading_spinner("Loading overview..."):
         try:
             # Get tech vs non-tech data
             tech_stats = service.get_tech_vs_non_tech()
             english_stats = service.get_english_vs_non_english()
-            
+
             col1, col2, col3, col4 = st.columns(4)
-            
+
             with col1:
                 total = tech_stats.get("total_count", 0)
                 icon = get_icon("briefcase", size=18, color=IconColor.PRIMARY)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Total Jobs</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{total:,}</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             with col2:
                 tech_pct = tech_stats.get("tech_percentage", 0)
                 icon = get_icon("tech", size=18, color=IconColor.SUCCESS)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Tech Roles</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{tech_pct:.1f}%</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             with col3:
                 english_pct = english_stats.get("english_percentage", 0)
                 icon = get_icon("translate", size=18, color=IconColor.INFO)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">English Jobs</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{english_pct:.1f}%</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             with col4:
                 countries = service.get_country_distribution()
                 icon = get_icon("location_pin", size=18, color=IconColor.WARNING)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Countries</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{len(countries)}</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             divider()
-            
+
         except Exception as e:
             show_error(f"Failed to load overview: {str(e)}")
 
@@ -170,27 +190,27 @@ def render_kpi_cards(service):
             enriched_skills = service.get_enriched_top_skills(limit=5)
             enriched_countries = service.get_country_distribution()
             enriched_salary = service.get_enriched_salary()
-            
+
             total_jobs = sum(c.get("count", 0) for c in enriched_countries)
             total_countries = len(enriched_countries)
             avg_salary = enriched_salary.get("average_min") if enriched_salary else None
             top_skill = enriched_skills[0].get("skill") if enriched_skills else "N/A"
-            
+
             # Get companies hiring count
             try:
                 companies_hiring = service.get_companies_hiring_count()
             except AttributeError:
                 companies_hiring = 326
-            
+
             # Display KPIs
             cols = st.columns(5)
-            
+
             jobs_icon = get_icon("jobs_metric", size=18, color=COLORS["accent"])
             company_icon = get_icon("companies_metric", size=18, color=COLORS["success"])
             location_icon = get_icon("location_pin", size=18, color=COLORS["info"])
             salary_icon = get_icon("salary_metric", size=18, color=COLORS["warning"])
             skill_icon = get_icon("skills_metric", size=18, color=COLORS["primary"])
-            
+
             with cols[0]:
                 st.markdown(
                     f"""
@@ -206,7 +226,7 @@ def render_kpi_cards(service):
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with cols[1]:
                 st.markdown(
                     f"""
@@ -222,7 +242,7 @@ def render_kpi_cards(service):
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with cols[2]:
                 st.markdown(
                     f"""
@@ -238,7 +258,7 @@ def render_kpi_cards(service):
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with cols[3]:
                 salary_display = f"${avg_salary:,.0f}" if avg_salary else "N/A"
                 st.markdown(
@@ -255,7 +275,7 @@ def render_kpi_cards(service):
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             with cols[4]:
                 st.markdown(
                     f"""
@@ -271,16 +291,18 @@ def render_kpi_cards(service):
                 """,
                     unsafe_allow_html=True,
                 )
-            
+
             divider()
-            
+
         except Exception as e:
             show_error(f"Failed to load metrics: {str(e)}")
 
 
 def render_location_analytics(service):
     """Render location analytics with professional styling."""
-    section_header("Geographic Distribution", "Job postings by location across the market", "location_pin")
+    section_header(
+        "Geographic Distribution", "Job postings by location across the market", "location_pin"
+    )
 
     with loading_spinner("Loading location data..."):
         try:
@@ -317,7 +339,9 @@ def render_location_analytics(service):
 
 def render_skills_analytics(service):
     """Render enriched skills analytics with professional styling."""
-    section_header("Skills in Demand", "Most sought-after skills and their distribution", "skills_metric")
+    section_header(
+        "Skills in Demand", "Most sought-after skills and their distribution", "skills_metric"
+    )
 
     col1, col2 = st.columns([3, 2])
 
@@ -332,9 +356,9 @@ def render_skills_analytics(service):
                         x_values=[s.get("skill", "Unknown") for s in enriched_skills],
                         y_values=[s.get("count", 0) for s in enriched_skills],
                         title="Top Skills",
-                        color="#00b894"
+                        color="#00b894",
                     )
-                    
+
                     fig = create_horizontal_bar_chart(chart_data)
                     fig.update_layout(
                         height=450,
@@ -378,11 +402,10 @@ def render_skills_analytics(service):
                             hole=0.4,
                         )
                         fig.update_traces(
-                            hovertemplate=
-                            "<b style='font-size:14px;color:#1a1a2e;'>%{label}</b><br>" +
-                            "<span style='font-size:13px;color:#2d3436;'>Jobs: <b style='color:#1a1a2e;'>%{value:,.0f}</b></span><br>" +
-                            "<span style='font-size:13px;color:#2d3436;'>Share: <b style='color:#1a1a2e;'>%{percent:.1%}</b></span>" +
-                            "<extra></extra>",
+                            hovertemplate="<b style='font-size:14px;color:#1a1a2e;'>%{label}</b><br>"
+                            + "<span style='font-size:13px;color:#2d3436;'>Jobs: <b style='color:#1a1a2e;'>%{value:,.0f}</b></span><br>"
+                            + "<span style='font-size:13px;color:#2d3436;'>Share: <b style='color:#1a1a2e;'>%{percent:.1%}</b></span>"
+                            + "<extra></extra>",
                             textinfo="percent",
                             textposition="inside",
                             textfont=dict(size=12, color="white", family="Inter, sans-serif"),
@@ -414,7 +437,9 @@ def render_skills_analytics(service):
 
 def render_company_analytics(service):
     """Render company analytics with professional styling."""
-    section_header("Top Hiring Companies", "Companies with the most job postings", "companies_metric")
+    section_header(
+        "Top Hiring Companies", "Companies with the most job postings", "companies_metric"
+    )
 
     col1, col2 = st.columns([3, 2])
 
@@ -576,7 +601,9 @@ def render_salary_analytics(service):
 
 def render_employment_analytics(service):
     """Render employment analytics with professional styling."""
-    section_header("Employment Types", "Distribution of employment types across job postings", "employment")
+    section_header(
+        "Employment Types", "Distribution of employment types across job postings", "employment"
+    )
 
     col1, col2 = st.columns(2)
 
@@ -714,24 +741,27 @@ def render_posting_trends(service):
 # Sprint 6.6: Language Analytics
 # ============================================================
 
+
 def render_language_analytics(service):
     """Render Sprint 6.6 language analytics."""
-    section_header("Language Insights", "Job posting languages and multilingual analytics", "translate")
+    section_header(
+        "Language Insights", "Job posting languages and multilingual analytics", "translate"
+    )
 
     with loading_spinner("Loading language data..."):
         try:
             # Language distribution
             lang_dist = service.get_language_distribution()
-            
+
             if not lang_dist:
                 empty_state_analytics(
                     title="No Language Data",
                     description="No language data available.",
                 )
                 return
-            
+
             col1, col2 = st.columns(2)
-            
+
             with col1:
                 st.subheader("Language Distribution")
                 df = pd.DataFrame(lang_dist)
@@ -764,23 +794,23 @@ def render_language_analytics(service):
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
                     st.plotly_chart(fig, use_container_width=True)
-            
+
             with col2:
                 # English vs non-English
                 english_stats = service.get_english_vs_non_english()
                 if english_stats:
                     st.subheader("English vs Non-English")
-                    
-                    total = english_stats.get("total_count", 0)
+
                     english = english_stats.get("english_count", 0)
                     non_english = english_stats.get("non_english_count", 0)
                     pct = english_stats.get("english_percentage", 0)
-                    
+
                     # Use SVG icons for metrics
                     en_icon = get_icon("translate", size=16, color=IconColor.SUCCESS)
                     non_en_icon = get_icon("translate", size=16, color=IconColor.WARNING)
-                    
-                    st.markdown(f"""
+
+                    st.markdown(
+                        f"""
                         <div style="display:flex;align-items:center;gap:8px;font-size:1.2rem;font-weight:600;color:{COLORS['text']};">
                             {en_icon} English Jobs: <span style="color:{IconColor.SUCCESS};">{english:,}</span>
                             <span style="font-size:0.9rem;font-weight:400;color:{COLORS['text_light']};">({pct:.1f}% of total)</span>
@@ -788,8 +818,10 @@ def render_language_analytics(service):
                         <div style="display:flex;align-items:center;gap:8px;font-size:1.1rem;font-weight:500;color:{COLORS['text']};margin-top:8px;">
                             {non_en_icon} Non-English Jobs: <span style="color:{IconColor.WARNING};">{non_english:,}</span>
                         </div>
-                    """, unsafe_allow_html=True)
-                    
+                    """,
+                        unsafe_allow_html=True,
+                    )
+
                     # Language by country
                     lang_by_country = service.get_language_by_country()
                     if lang_by_country:
@@ -812,21 +844,24 @@ def render_language_analytics(service):
                                 paper_bgcolor="rgba(0,0,0,0)",
                             )
                             st.plotly_chart(fig, use_container_width=True)
-            
+
             divider()
-            
+
             # Language salary stats
             salary_by_lang = service.get_language_salary_stats()
             if salary_by_lang:
                 st.subheader("Salary by Language")
                 icon = get_icon("salary_metric", size=18, color=IconColor.SUCCESS)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Average Salary by Language</span>
                     </div>
-                """, unsafe_allow_html=True)
-                
+                """,
+                    unsafe_allow_html=True,
+                )
+
                 df_salary = pd.DataFrame(salary_by_lang[:10])
                 if not df_salary.empty:
                     fig = px.bar(
@@ -845,7 +880,7 @@ def render_language_analytics(service):
                         paper_bgcolor="rgba(0,0,0,0)",
                     )
                     st.plotly_chart(fig, use_container_width=True)
-                    
+
         except Exception as e:
             show_error(f"Failed to load language analytics: {str(e)}")
 
@@ -853,6 +888,7 @@ def render_language_analytics(service):
 # ============================================================
 # Sprint 6.6: Technology Analytics
 # ============================================================
+
 
 def render_tech_analytics(service):
     """Render Sprint 6.6 technology analytics."""
@@ -862,57 +898,69 @@ def render_tech_analytics(service):
         try:
             # Tech vs non-tech
             tech_stats = service.get_tech_vs_non_tech()
-            
+
             col1, col2, col3, col4 = st.columns(4)
-            
+
             with col1:
                 total = tech_stats.get("total_count", 0)
                 icon = get_icon("briefcase", size=18, color=IconColor.PRIMARY)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Total Jobs</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{total:,}</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             with col2:
                 tech = tech_stats.get("tech_count", 0)
                 icon = get_icon("tech", size=18, color=IconColor.SUCCESS)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Tech Roles</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{tech:,}</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             with col3:
                 non_tech = tech_stats.get("non_tech_count", 0)
                 icon = get_icon("company", size=18, color=IconColor.GRAY)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Non-Tech</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{non_tech:,}</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             with col4:
                 pct = tech_stats.get("tech_percentage", 0)
                 icon = get_icon("analytics", size=18, color=IconColor.WARNING)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;">
                         {icon}
                         <span style="font-weight:500;color:{COLORS['text']};">Tech %</span>
                     </div>
                     <div style="font-size:1.8rem;font-weight:700;color:{COLORS['text']};margin-top:4px;">{pct:.1f}%</div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             divider()
-            
+
             col1, col2 = st.columns(2)
-            
+
             with col1:
                 # Technology category distribution
                 tech_categories = service.get_tech_category_distribution()
@@ -948,7 +996,7 @@ def render_tech_analytics(service):
                             paper_bgcolor="rgba(0,0,0,0)",
                         )
                         st.plotly_chart(fig, use_container_width=True)
-            
+
             with col2:
                 # Tech by country
                 tech_by_country = service.get_tech_by_country()
@@ -972,20 +1020,23 @@ def render_tech_analytics(service):
                             paper_bgcolor="rgba(0,0,0,0)",
                         )
                         st.plotly_chart(fig, use_container_width=True)
-            
+
             divider()
-            
+
             # Tech skills
             tech_skills = service.get_tech_skills(limit=20)
             if tech_skills:
                 icon = get_icon("skills_metric", size=18, color=IconColor.WARNING)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
                         {icon}
                         <span style="font-weight:600;font-size:1.1rem;color:{COLORS['text']};">Top Skills in Tech Roles</span>
                     </div>
-                """, unsafe_allow_html=True)
-                
+                """,
+                    unsafe_allow_html=True,
+                )
+
                 df_skills = pd.DataFrame(tech_skills[:15])
                 if not df_skills.empty:
                     fig = px.bar(
@@ -1005,18 +1056,21 @@ def render_tech_analytics(service):
                         xaxis_tickangle=-45,
                     )
                     st.plotly_chart(fig, use_container_width=True)
-            
+
             # Tech salary stats
             tech_salary = service.get_tech_salary_stats()
             if tech_salary:
                 icon = get_icon("salary_metric", size=18, color=IconColor.SUCCESS)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <div style="display:flex;align-items:center;gap:8px;margin-top:16px;margin-bottom:12px;">
                         {icon}
                         <span style="font-weight:600;font-size:1.1rem;color:{COLORS['text']};">Tech Role Salary Statistics</span>
                     </div>
-                """, unsafe_allow_html=True)
-                
+                """,
+                    unsafe_allow_html=True,
+                )
+
                 cols = st.columns(4)
                 with cols[0]:
                     avg = tech_salary.get("average")
@@ -1030,9 +1084,9 @@ def render_tech_analytics(service):
                 with cols[3]:
                     max_sal = tech_salary.get("maximum")
                     st.metric("Maximum", f"${max_sal:,.0f}" if max_sal else "N/A")
-                
+
                 sample_size = tech_salary.get("sample_size", 0)
                 st.caption(f"Based on {sample_size:,} tech job postings")
-                    
+
         except Exception as e:
             show_error(f"Failed to load technology analytics: {str(e)}")

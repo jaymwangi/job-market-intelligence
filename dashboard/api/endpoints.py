@@ -11,7 +11,7 @@ Sprint 6.6 adds:
 
 Example:
     from api.endpoints import endpoints
-    
+
     # Get URL for top skills
     url = endpoints.TOP_SKILLS
 """
@@ -32,7 +32,7 @@ class Endpoints:
     # ============================================================
     JOBS = "/api/v1/jobs"
     JOB_DETAIL = "/api/v1/jobs/{job_id}"
-    
+
     # ============================================================
     # Sprint 6.6: Translation
     # ============================================================

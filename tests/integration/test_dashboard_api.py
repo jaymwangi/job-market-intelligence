@@ -9,7 +9,7 @@ use the PostgreSQL test database provided by the ``db_session`` fixture.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -148,7 +148,7 @@ def make_test_job(
         company_name=company_name,
         location=location,
         description=description,
-        posted_date=datetime.now(timezone.utc),
+        posted_date=datetime.now(UTC),
         source_url="https://example.com/test-job",
         source_site=source_site,
         source_id=source_id or str(uuid4()),
@@ -674,45 +674,35 @@ class TestDashboardAPIETL:
 
     def test_last_etl_run(self, live_api_client):
         """Dashboard can retrieve formatted last ETL run information."""
-        response = live_api_client.get(
-            "api/v1/analytics/etl/last-run"
-        )
+        response = live_api_client.get("api/v1/analytics/etl/last-run")
 
         assert isinstance(response, dict)
         assert "last_run" in response
 
     def test_last_etl_run_time(self, live_api_client):
         """Dashboard can retrieve the last ETL run datetime."""
-        response = live_api_client.get(
-            "api/v1/analytics/etl/last-run-time"
-        )
+        response = live_api_client.get("api/v1/analytics/etl/last-run-time")
 
         assert isinstance(response, dict)
         assert "last_run_time" in response
 
     def test_etl_status(self, live_api_client):
         """Dashboard can retrieve ETL pipeline status."""
-        response = live_api_client.get(
-            "api/v1/analytics/etl/status"
-        )
+        response = live_api_client.get("api/v1/analytics/etl/status")
 
         assert isinstance(response, dict)
         assert "status" in response
 
     def test_etl_db_status(self, live_api_client):
         """Dashboard can retrieve database status."""
-        response = live_api_client.get(
-            "api/v1/analytics/etl/db-status"
-        )
+        response = live_api_client.get("api/v1/analytics/etl/db-status")
 
         assert isinstance(response, dict)
         assert "status" in response
 
     def test_companies_count(self, live_api_client):
         """Dashboard can retrieve the number of companies hiring."""
-        response = live_api_client.get(
-            "api/v1/analytics/companies/count"
-        )
+        response = live_api_client.get("api/v1/analytics/companies/count")
 
         assert isinstance(response, dict)
         assert "count" in response
@@ -778,12 +768,12 @@ class TestDashboardAPITransport:
         ):
             with pytest.raises(APIServerError):
                 api_client.get("api/v1/error")
-                
+
 
 def test_dashboard_api_failure_is_not_reported_as_empty_data():
     """API failure must remain distinguishable from a genuinely empty dataset."""
-    from dashboard.services.jobs_service import JobsService
     from dashboard.schemas.jobs import JobFilters
+    from dashboard.services.jobs_service import JobsService
 
     service = JobsService(
         api_client=APIClient(

@@ -70,9 +70,7 @@ class TestJobsTransformer:
         assert result.salary_currency == "USD"
         assert result.source == "adzuna"
         assert str(result.url) == "https://example.com/job/123"
-        assert result.posted_date == datetime.fromisoformat(
-            "2026-01-15T10:30:00+00:00"
-        )
+        assert result.posted_date == datetime.fromisoformat("2026-01-15T10:30:00+00:00")
 
     def test_transform(self, transformer, raw_jobs):
         """Test transforming multiple jobs."""
@@ -195,4 +193,3 @@ class TestJobsTransformer:
         assert result.source == "adzuna"
         assert result.url == ""
         assert result.posted_date is None
-

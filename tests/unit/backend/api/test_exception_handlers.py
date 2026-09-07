@@ -3,6 +3,7 @@ Unit tests for API exception handlers.
 """
 
 from datetime import datetime
+
 import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError

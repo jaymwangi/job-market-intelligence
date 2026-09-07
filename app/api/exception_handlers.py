@@ -40,7 +40,7 @@ def _error_response(
     return JSONResponse(status_code=status_code, content=content)
 
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Handle validation errors with detailed field information."""
     log = _get_logger(request)
 
@@ -59,7 +59,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-async def database_exception_handler(request: Request, exc: SQLAlchemyError):
+async def database_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
     """Handle database errors without exposing internals."""
     log = _get_logger(request)
 
@@ -77,7 +77,7 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
     )
 
 
-async def http_exception_handler(request: Request, exc: HTTPException):
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handle HTTP exceptions with proper status codes."""
     log = _get_logger(request)
 
@@ -105,7 +105,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-async def general_exception_handler(request: Request, exc: Exception):
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unexpected errors without exposing internals."""
     log = _get_logger(request)
 
@@ -127,7 +127,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI application."""
     # Note: FastAPI's ExceptionHandler type is more permissive than Pylance suggests.
     # These handlers work correctly at runtime despite type checker warnings.
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
-    app.add_exception_handler(SQLAlchemyError, database_exception_handler)  # type: ignore
-    app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore
-    app.add_exception_handler(Exception, general_exception_handler)  # type: ignore
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(SQLAlchemyError, database_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(Exception, general_exception_handler)

@@ -2,8 +2,9 @@
 
 """Transformed job schema - intermediate representation."""
 
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -19,43 +20,34 @@ class JobTransformed(BaseModel):
     description: str = Field(default="", description="Job description")
 
     # Salary
-    salary_min: Optional[float] = Field(default=None, description="Minimum salary")
-    salary_max: Optional[float] = Field(default=None, description="Maximum salary")
-    salary_currency: Optional[str] = Field(default=None, description="Salary currency")
+    salary_min: float | None = Field(default=None, description="Minimum salary")
+    salary_max: float | None = Field(default=None, description="Maximum salary")
+    salary_currency: str | None = Field(default=None, description="Salary currency")
 
     # Other fields
     employment_type: str = Field(default="OTHER", description="Employment type")
     category: str = Field(default="", description="Job category")
-    posted_date: Optional[datetime] = Field(default=None, description="Date posted")
-    scraped_date: Optional[datetime] = Field(default=None, description="Date scraped")
+    posted_date: datetime | None = Field(default=None, description="Date posted")
+    scraped_date: datetime | None = Field(default=None, description="Date scraped")
     url: str = Field(default="", description="Job URL")
 
     # Extraction context
-    source_country: Optional[str] = Field(
+    source_country: str | None = Field(
         default=None,
         description="Country used for extraction (for normalization)",
     )
 
     # Acquisition metadata
-    acquisition_tech_intent: Optional[bool] = Field(
-        default=None,
-        description="Whether this job was acquired with tech intent"
+    acquisition_tech_intent: bool | None = Field(
+        default=None, description="Whether this job was acquired with tech intent"
     )
-    acquisition_query: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="The query that acquired this job"
+    acquisition_query: dict[str, Any] | None = Field(
+        default=None, description="The query that acquired this job"
     )
-    acquisition_country: Optional[str] = Field(
-        default=None,
-        description="Country code for acquisition"
+    acquisition_country: str | None = Field(
+        default=None, description="Country code for acquisition"
     )
-    acquisition_mode: Optional[str] = Field(
-        default=None,
-        description="Acquisition mode when acquired"
-    )
-    acquisition_batch: Optional[int] = Field(
-        default=None,
-        description="Batch number when acquired"
-    )
+    acquisition_mode: str | None = Field(default=None, description="Acquisition mode when acquired")
+    acquisition_batch: int | None = Field(default=None, description="Batch number when acquired")
 
     model_config = ConfigDict(from_attributes=True)

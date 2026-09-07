@@ -184,7 +184,7 @@ class JobLoader:
         except (IntegrityError, PendingRollbackError):
             logger.exception("Database error during batch load")
             raise
-        
+
     def _upsert_jobs(self, jobs: list[JobValidated]) -> UpsertResult:
         """
         Upsert jobs via repository.
@@ -213,16 +213,10 @@ class JobLoader:
 
         logger.warning(
             "DEBUG existing_jobs=%s",
-            [
-                (job.source_site, job.source_id, str(job.id))
-                for job in existing_jobs
-            ],
+            [(job.source_site, job.source_id, str(job.id)) for job in existing_jobs],
         )
 
-        existing_keys = {
-            (job.source_site, job.source_id)
-            for job in existing_jobs
-        }
+        existing_keys = {(job.source_site, job.source_id) for job in existing_jobs}
 
         job_repo = JobRepository(self.db_session)
 

@@ -2,7 +2,6 @@
 """Alert components with SVG icons."""
 
 import streamlit as st
-
 from components.icons import get_icon
 
 

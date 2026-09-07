@@ -166,7 +166,8 @@ class TestJobsAPIIntegration:
 
         assert data["total"] >= 1
         assert any(item["id"] == str(job.id) for item in data["data"])
-        
+
+
 class TestJobsAPIFilterIntegration:
     """Integration tests for job filtering against PostgreSQL."""
 

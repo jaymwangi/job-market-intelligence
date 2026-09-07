@@ -1,9 +1,10 @@
 """Job validator - ensures data quality, pure validation."""
 
-from typing import List, Optional, Dict, Any
-from datetime import datetime, UTC
 import logging
+from datetime import UTC, datetime
+
 from pydantic import ValidationError
+
 from app.etl.schemas.enriched import JobEnriched
 from app.etl.schemas.validated import JobValidated
 
@@ -24,7 +25,7 @@ class JobValidator:
         - Currency: 3 characters if present
     """
 
-    def validate(self, job: JobEnriched) -> Optional[JobValidated]:
+    def validate(self, job: JobEnriched) -> JobValidated | None:
         """
         Validate a single job.
 
@@ -104,7 +105,7 @@ class JobValidator:
             )
             return None
 
-    def validate_batch(self, jobs: List[JobEnriched]) -> List[JobValidated]:
+    def validate_batch(self, jobs: list[JobEnriched]) -> list[JobValidated]:
         """
         Validate a batch of jobs.
 

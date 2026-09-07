@@ -2,17 +2,18 @@
 
 """Transform Adzuna API data to normalized internal format."""
 
-from typing import Any, Dict, List, Optional
-from datetime import UTC, datetime
 import logging
-from app.etl.schemas.transformed import JobTransformed
+from datetime import UTC, datetime
+from typing import Any
+
 from app.etl.constants import RAW_SOURCE_COUNTRY_FIELD
+from app.etl.schemas.transformed import JobTransformed
 
 logger = logging.getLogger(__name__)
 
 # Type aliases
-RawJob = Dict[str, Any]
-RawJobs = List[RawJob]
+RawJob = dict[str, Any]
+RawJobs = list[RawJob]
 
 # Employment type mapping
 EMPLOYMENT_TYPES = {
@@ -36,7 +37,7 @@ class JobsTransformer:
 
     SOURCE = "adzuna"
 
-    def transform(self, raw_jobs: RawJobs) -> List[JobTransformed]:
+    def transform(self, raw_jobs: RawJobs) -> list[JobTransformed]:
         """
         Transform a list of raw job listings to JobTransformed objects.
 
@@ -60,7 +61,7 @@ class JobsTransformer:
         )
         return transformed
 
-    def transform_one(self, job: RawJob) -> Optional[JobTransformed]:
+    def transform_one(self, job: RawJob) -> JobTransformed | None:
         """
         Transform a single raw job listing to JobTransformed.
 
@@ -94,28 +95,24 @@ class JobsTransformer:
                 company=self._company(job) or "Unknown",
                 location=self._location(job) or "",
                 description=job.get("description", ""),
-                
                 # Salary
                 salary_min=self._salary(job, "min"),
                 salary_max=self._salary(job, "max"),
                 salary_currency=self._currency(job),
-                
                 # Other fields
                 employment_type=self._parse_employment_type(job),
                 category=category_label,
                 posted_date=posted_date,
                 scraped_date=scraped_date,
                 url=job.get("redirect_url", ""),
-                
                 # Extraction context
                 source_country=source_country,
-                
                 # ✅ Acquisition metadata (preserved from raw job)
-                acquisition_tech_intent=job.get('_acquisition_tech_intent'),
-                acquisition_query=job.get('_acquisition_query'),
-                acquisition_country=job.get('_acquisition_country'),
-                acquisition_mode=job.get('_acquisition_mode'),
-                acquisition_batch=job.get('_acquisition_batch'),
+                acquisition_tech_intent=job.get("_acquisition_tech_intent"),
+                acquisition_query=job.get("_acquisition_query"),
+                acquisition_country=job.get("_acquisition_country"),
+                acquisition_mode=job.get("_acquisition_mode"),
+                acquisition_batch=job.get("_acquisition_batch"),
             )
 
         except Exception:
@@ -125,21 +122,21 @@ class JobsTransformer:
             )
             return None
 
-    def _company(self, job: RawJob) -> Optional[str]:
+    def _company(self, job: RawJob) -> str | None:
         """Extract company name from nested structure."""
         company = job.get("company")
         if isinstance(company, dict):
             return company.get("display_name")
         return company
 
-    def _location(self, job: RawJob) -> Optional[str]:
+    def _location(self, job: RawJob) -> str | None:
         """Extract location from nested structure."""
         location = job.get("location")
         if isinstance(location, dict):
             return location.get("display_name")
         return location
 
-    def _salary(self, job: RawJob, key: str) -> Optional[float]:
+    def _salary(self, job: RawJob, key: str) -> float | None:
         """Extract salary min/max from nested structure."""
         # Try the 'salary' object first (Adzuna format)
         salary = job.get("salary")
@@ -158,14 +155,14 @@ class JobsTransformer:
 
         return None
 
-    def _currency(self, job: RawJob) -> Optional[str]:
+    def _currency(self, job: RawJob) -> str | None:
         """Extract currency from nested structure."""
         # Try the 'salary' object first (Adzuna format)
         salary = job.get("salary")
         if isinstance(salary, dict):
             currency = salary.get("currency")
             if currency:
-                return currency
+                return str(currency) if currency else None
 
         # Fall back to top-level field
         return job.get("salary_currency")
@@ -184,7 +181,7 @@ class JobsTransformer:
 
         return "OTHER"
 
-    def _parse_datetime(self, value: Any) -> Optional[datetime]:
+    def _parse_datetime(self, value: Any) -> datetime | None:
         """Parse datetime using ISO-8601 format."""
         if not value:
             return None
@@ -201,7 +198,7 @@ class JobsTransformer:
 
         return None
 
-    def _to_float(self, value: Any) -> Optional[float]:
+    def _to_float(self, value: Any) -> float | None:
         """Convert value to float, returning None if conversion fails."""
         if value is None:
             return None

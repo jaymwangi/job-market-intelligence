@@ -1,10 +1,11 @@
 """Database composition checker for acquisition strategy."""
 
-from typing import Optional
 import logging
+
 from sqlalchemy.orm import Session
 
 from app.models.job import Job
+
 from .models import DatabaseComposition
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,7 @@ class DatabaseCompositionChecker:
         self.session = db_session
 
     def get_composition(
-        self,
-        country: Optional[str] = None,
-        include_unclassified: bool = True
+        self, country: str | None = None, include_unclassified: bool = True
     ) -> DatabaseComposition:
         """
         Retrieve the current job composition from the database.
@@ -71,10 +70,10 @@ class DatabaseCompositionChecker:
             total_jobs=total,
             tech_count=tech_count,
             non_tech_count=non_tech_count,
-            unclassified_count=unclassified_count
+            unclassified_count=unclassified_count,
         )
 
-    def get_tech_deficit(self, country: Optional[str] = None) -> int:
+    def get_tech_deficit(self, country: str | None = None) -> int:
         """
         Calculate how many tech jobs are needed to reach parity with non‑tech.
 
@@ -84,11 +83,7 @@ class DatabaseCompositionChecker:
         comp = self.get_composition(country)
         return comp.tech_deficit
 
-    def has_reached_parity(
-        self,
-        country: Optional[str] = None,
-        tolerance: float = 0.05
-    ) -> bool:
+    def has_reached_parity(self, country: str | None = None, tolerance: float = 0.05) -> bool:
         """
         Check if the tech ratio is within tolerance of 0.5.
 

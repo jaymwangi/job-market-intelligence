@@ -1,18 +1,17 @@
 """Country normalization - business logic, not configuration."""
 
-from typing import Optional
 from app.etl.enrichment.data.country_map import COUNTRY_MAP, COUNTRY_NAMES
 
 
 class CountryNormalizer:
     """Normalize country codes and names."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Data loaded from data module
         self.country_map = COUNTRY_MAP
         self.country_names = COUNTRY_NAMES
 
-    def normalize(self, country_str: Optional[str]) -> Optional[str]:
+    def normalize(self, country_str: str | None) -> str | None:
         """
         Normalize country to ISO 2-letter format.
 
@@ -42,6 +41,7 @@ class CountryNormalizer:
         # Try to extract from common patterns
         # e.g., "London (UK)" -> "UK"
         import re
+
         patterns = [
             r"\(([a-z]{2})\)",  # (GB)
             r"\[([a-z]{2})\]",  # [GB]

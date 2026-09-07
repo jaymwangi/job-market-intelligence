@@ -178,7 +178,6 @@ class TestSkillRepository:
         create_test_skills(["Python", "JavaScript", "Java"])
 
         assert repository.count(name="Python") == 1
-    
 
     def test_update_skill(self, repository):
         """Test inherited update method."""
@@ -216,4 +215,3 @@ class TestSkillRepository:
         result = repository.delete(uuid4())
 
         assert result is False
-

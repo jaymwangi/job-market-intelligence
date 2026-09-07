@@ -201,4 +201,3 @@ class TestJobListResponse:
         )
 
         assert response.total == -5
-

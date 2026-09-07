@@ -27,32 +27,28 @@ Schemas:
 # ============================================================
 
 # Transformed schema - normalized job data
-from app.etl.schemas.transformed import JobTransformed
-
 # Enriched schema - with intelligence data (Sprint 6.6)
-from app.etl.schemas.enriched import (
-    JobEnriched,
-    TechnologyCategory as EnrichedTechnologyCategory,
-)
-
-# Validated schema - raw job data after validation
-from app.etl.schemas.validated import JobValidated
+from app.etl.schemas.enriched import JobEnriched
+from app.etl.enrichment.data.technology_categories import TechnologyCategory
 
 # Pipeline metrics - execution tracking
 from app.etl.schemas.metrics import PipelineMetrics
+from app.etl.schemas.transformed import JobTransformed
 
+# Validated schema - raw job data after validation
+from app.etl.schemas.validated import JobValidated
 
 # ============================================================
 # __all__ - Public API (Alphabetized)
 # ============================================================
 
 __all__ = [
+    "TechnologyCategory",
     # Core Schemas
     "JobEnriched",
     "JobTransformed",
     "JobValidated",
     "PipelineMetrics",
-    
     # Enriched Types (Sprint 6.6)
     "EnrichedTechnologyCategory",
 ]

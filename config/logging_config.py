@@ -10,7 +10,7 @@ from config.settings import settings
 __all__ = ["logger", "get_logger", "setup_logging"]
 
 
-def _add_defaults(record):
+def _add_defaults(record):  # type: ignore
     """Add default fields to every log record."""
     record["extra"].setdefault("service", settings.app_name)
     record["extra"].setdefault("environment", settings.environment)
@@ -20,7 +20,7 @@ def _add_defaults(record):
     return record
 
 
-def setup_logging():
+def setup_logging() -> None:
     """
     Configure production-ready logging with loguru.
 
@@ -119,7 +119,7 @@ def setup_logging():
     class InterceptHandler(logging.Handler):
         """Forward standard logging records to Loguru."""
 
-        def emit(self, record):
+        def emit(self, record):  # type: ignore
             # Get corresponding Loguru level
             try:
                 level = logger.level(record.levelname).name
@@ -130,7 +130,7 @@ def setup_logging():
             frame = logging.currentframe()
             depth = 2
             while frame and frame.f_code.co_filename == logging.__file__:
-                frame = frame.f_back
+                frame = frame.f_back  # type: ignore
                 depth += 1
 
             logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
@@ -154,7 +154,7 @@ def setup_logging():
     )
 
 
-def get_logger(component: str = "app", request_id: str | None = None):
+def get_logger(component: str = "app", request_id: str | None = None):  # type: ignore
     """
     Get a logger instance with context binding.
 

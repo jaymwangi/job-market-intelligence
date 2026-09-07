@@ -1,8 +1,8 @@
 """Analytics service with full transformation pipeline."""
 
 import logging
-from typing import Any, Optional
 from datetime import datetime
+from typing import Any
 
 from api.client import APIClient
 from mappers.analytics_mapper import AnalyticsMapper
@@ -418,10 +418,7 @@ class AnalyticsService(BaseService):
             List of dicts with skill and count
         """
         try:
-            response = self.api_client.get(
-                "/api/v1/analytics/tech/skills",
-                params={"limit": limit}
-            )
+            response = self.api_client.get("/api/v1/analytics/tech/skills", params={"limit": limit})
             if isinstance(response, list):
                 return response
             if isinstance(response, dict) and "data" in response:
@@ -447,7 +444,7 @@ class AnalyticsService(BaseService):
         except Exception as e:
             logger.error(f"Failed to get tech salary stats: {e}")
             return {}
-        
+
     # ============================================================
     # Sprint 6.6: Enriched Combined Analytics (RESTful Resources)
     # ============================================================
@@ -456,7 +453,7 @@ class AnalyticsService(BaseService):
     def get_enriched_top_skills(
         self,
         limit: int = 20,
-        country_code: Optional[str] = None,
+        country_code: str | None = None,
         tech_only: bool = False,
     ) -> list[dict[str, Any]]:
         """Get top skills with frequency counts from enriched data."""
@@ -507,7 +504,7 @@ class AnalyticsService(BaseService):
     @cached(ttl=900)
     def get_enriched_salary(
         self,
-        country_code: Optional[str] = None,
+        country_code: str | None = None,
         tech_only: bool = False,
     ) -> dict[str, Any]:
         """Get enriched salary statistics with optional filters."""
@@ -538,23 +535,26 @@ class AnalyticsService(BaseService):
         # First try the API endpoint
         try:
             response = self.api_client.get("/api/v1/analytics/etl/last-run")
-            if response and 'last_run' in response:
-                return response['last_run']
+            if response and "last_run" in response:
+                return response["last_run"]
         except Exception as e:
             logger.debug(f"API endpoint /analytics/etl/last-run not available: {e}")
 
         # Fallback: Direct database access via app modules
         try:
-            import sys
             import os
+            import sys
+
             # Add project root to path if needed
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
-            
-            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             from app.database.session import get_db
-            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             db = next(get_db())
             repo = PipelineRunRepository(db)
             return repo.format_last_run_time()
@@ -566,7 +566,7 @@ class AnalyticsService(BaseService):
             return "N/A"
 
     @cached(ttl=60)
-    def get_last_etl_run_time(self) -> Optional[datetime]:
+    def get_last_etl_run_time(self) -> datetime | None:
         """
         Get the actual datetime of the last ETL run.
         Returns datetime or None.
@@ -574,22 +574,25 @@ class AnalyticsService(BaseService):
         # First try the API endpoint
         try:
             response = self.api_client.get("/api/v1/analytics/etl/last-run-time")
-            if response and 'last_run_time' in response and response['last_run_time']:
-                return datetime.fromisoformat(response['last_run_time'])
+            if response and "last_run_time" in response and response["last_run_time"]:
+                return datetime.fromisoformat(response["last_run_time"])
         except Exception as e:
             logger.debug(f"API endpoint not available: {e}")
 
         # Fallback: Direct database access
         try:
-            import sys
             import os
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            import sys
+
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
-            
-            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             from app.database.session import get_db
-            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             db = next(get_db())
             repo = PipelineRunRepository(db)
             return repo.get_last_run_time()
@@ -606,22 +609,25 @@ class AnalyticsService(BaseService):
         # First try the API endpoint
         try:
             response = self.api_client.get("/api/v1/analytics/etl/status")
-            if response and 'status' in response:
-                return response['status']
+            if response and "status" in response:
+                return response["status"]
         except Exception as e:
             logger.debug(f"API endpoint not available: {e}")
 
         # Fallback: Direct database access
         try:
-            import sys
             import os
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            import sys
+
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            )
             if project_root not in sys.path:
                 sys.path.insert(0, project_root)
-            
-            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             from app.database.session import get_db
-            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             db = next(get_db())
             repo = PipelineRunRepository(db)
             running = repo.get_running_run()
@@ -629,7 +635,7 @@ class AnalyticsService(BaseService):
         except Exception as e:
             logger.error(f"Failed to get pipeline status: {e}")
             return "Unknown"
-        
+
     @cached(ttl=60)
     def get_db_status(self) -> str:
         """
@@ -639,15 +645,15 @@ class AnalyticsService(BaseService):
         try:
             # If base_url doesn't include /api/v1, use full path
             response = self.api_client.get("/api/v1/health/db")
-            
+
             if response:
-                status = response.get('status', '')
-                if status.lower() in ['healthy', 'ok']:
+                status = response.get("status", "")
+                if status.lower() in ["healthy", "ok"]:
                     return "Operational"
-                elif status.lower() == 'unhealthy':
+                elif status.lower() == "unhealthy":
                     return "Degraded"
             return "Unknown"
-                
+
         except Exception as e:
             logger.error(f"Failed to fetch DB status from API: {e}")
             return "Unknown"
@@ -659,8 +665,8 @@ class AnalyticsService(BaseService):
         """
         try:
             response = self.api_client.get("/api/v1/analytics/companies/count")
-            if response and 'count' in response:
-                return response.get('count', 0)
+            if response and "count" in response:
+                return response.get("count", 0)
         except Exception as e:
             logger.debug(f"API endpoint not available: {e}")
 
@@ -708,6 +714,7 @@ class AnalyticsService(BaseService):
         """Fetch and normalize salary by location."""
         data = self.api_client.get("/api/v1/analytics/salary-by-location", params={"limit": limit})
         from schemas.analytics import SalaryByLocation
+
         return self._normalize_list(data, SalaryByLocation)
 
     def _fetch_employment_types(self) -> list[EmploymentType]:

@@ -57,7 +57,7 @@ class TestPipelineRunRepository:
             MockPipelineRun.assert_called_once_with(
                 source_site="adzuna", started_at=start_time, status="running", records_processed=0
             )
-    
+
     def test_finish_success(self, repository, mock_db):
         """Test finishing a pipeline run with success."""
         mock_run = Mock()
@@ -79,8 +79,6 @@ class TestPipelineRunRepository:
         assert mock_run.duration_seconds is not None
         assert mock_run.error_message is None
 
-
-
     def test_finish_with_error(self, repository, mock_db):
         """Test finishing a pipeline run with error."""
         mock_run = Mock()
@@ -97,7 +95,7 @@ class TestPipelineRunRepository:
         assert mock_run.records_processed == 50
         assert mock_run.error_message == "Connection error"
         mock_db.flush.assert_called_once()
-    
+
     def test_finish_calculates_duration(self, repository, mock_db):
         """Test finish calculates duration correctly."""
         started = datetime.now(UTC)
@@ -122,4 +120,3 @@ class TestPipelineRunRepository:
             assert result == mock_run
             assert mock_run.duration_seconds == 0.5
             mock_db.flush.assert_called_once()
-

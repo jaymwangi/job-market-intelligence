@@ -1,9 +1,11 @@
 """Analytics service layer for business logic and orchestration."""
 
-from typing import List, Optional
+import logging
 from datetime import datetime
+
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.schemas.analytics import (
+    CountryDistribution,
     DashboardSummaryResponse,
     DatasetSummaryResponse,
     EmploymentDistributionResponse,
@@ -13,16 +15,14 @@ from app.schemas.analytics import (
     SalaryByCompanyResponse,
     SalaryByLocationResponse,
     SalaryDistributionResponse,
+    SalaryStatistics,
     SalaryStatisticsResponse,
-    TopCompanyResponse,
-    TopSkillResponse,
     # Sprint 6.6: New schemas
     SkillCount,
-    CountryDistribution,
     TechnologyDistribution,
-    SalaryStatistics,
+    TopCompanyResponse,
+    TopSkillResponse,
 )
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ class AnalyticsService:
         """Get comprehensive dashboard summary for Streamlit."""
         # Get dataset summary for unique counts
         dataset_summary = self.repo.get_dataset_summary()
-        
+
         # Get recent jobs count
         recent_jobs_count = self.repo.count_recent_jobs(7)
 
@@ -212,23 +212,18 @@ class AnalyticsService:
             # Core metrics
             total_jobs=dataset_summary.get("total_jobs", 0),
             recent_jobs_count=recent_jobs_count,
-            
             # Unique counts from dataset summary
             unique_companies=dataset_summary.get("unique_companies", 0),
             unique_locations=dataset_summary.get("unique_locations", 0),
             unique_skills=dataset_summary.get("unique_skills", 0),
-            
             # Top lists
             top_companies=self.get_top_companies(10),
             top_locations=self.get_jobs_by_location(10),
             top_skills=self.get_top_skills(10),
-            
             # Salary statistics
             salary_statistics=self.get_salary_statistics(),
-            
             # Employment distribution
             employment_types=self.get_employment_types(),
-            
             # Time series
             posting_trend=self.get_posting_trend(30),
         )
@@ -378,9 +373,9 @@ class AnalyticsService:
         Returns string like "2 hours ago" or "No runs yet".
         """
         try:
-            from app.repositories.pipeline_run_repository import PipelineRunRepository
             from app.database.session import get_db
-            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             db = next(get_db())
             repo = PipelineRunRepository(db)
             return repo.format_last_run_time()
@@ -388,15 +383,15 @@ class AnalyticsService:
             logger.error(f"Failed to get last ETL run: {e}")
             return "N/A"
 
-    def get_last_etl_run_time(self) -> Optional[datetime]:
+    def get_last_etl_run_time(self) -> datetime | None:
         """
         Get the actual datetime of the last ETL run.
         Returns datetime or None.
         """
         try:
-            from app.repositories.pipeline_run_repository import PipelineRunRepository
             from app.database.session import get_db
-            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             db = next(get_db())
             repo = PipelineRunRepository(db)
             return repo.get_last_run_time()
@@ -410,9 +405,9 @@ class AnalyticsService:
         Returns "Running", "Idle", or "Unknown".
         """
         try:
-            from app.repositories.pipeline_run_repository import PipelineRunRepository
             from app.database.session import get_db
-            
+            from app.repositories.pipeline_run_repository import PipelineRunRepository
+
             db = next(get_db())
             repo = PipelineRunRepository(db)
             running = repo.get_running_run()
@@ -429,7 +424,7 @@ class AnalyticsService:
         try:
             from app.database.health import check_database_health
             from app.database.session import get_db
-            
+
             db = next(get_db())
             result = check_database_health(db)
             return "Operational" if result.get("healthy") else "Degraded"

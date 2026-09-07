@@ -6,8 +6,8 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
-
 from schemas.jobs import Job, JobFilters, JobListResponse
+
 from dashboard.services.jobs_service import JobsService
 
 

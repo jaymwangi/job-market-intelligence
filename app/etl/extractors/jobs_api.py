@@ -1,7 +1,8 @@
 """Job listing extractor."""
 
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any
+
 from app.etl.clients.http_client import HTTPClient
 
 logger = logging.getLogger(__name__)
@@ -10,8 +11,8 @@ logger = logging.getLogger(__name__)
 RAW_SOURCE_COUNTRY_FIELD = "_source_country"
 
 # Type aliases
-RawJob = Dict[str, Any]
-RawJobs = List[RawJob]
+RawJob = dict[str, Any]
+RawJobs = list[RawJob]
 
 
 def mask_sensitive(value: str, show: int = 4) -> str:
@@ -51,7 +52,7 @@ class JobsExtractor:
         debug: bool = False,
         results_per_page: int = 25,
         max_pages: int = 5,
-        client: Optional[HTTPClient] = None,
+        client: HTTPClient | None = None,
     ):
         """
         Initialize the job extractor.
@@ -116,9 +117,7 @@ class JobsExtractor:
         return all_jobs
 
     def extract_with_params(
-        self,
-        country: str = "gb",
-        search_params: Optional[Dict[str, Any]] = None
+        self, country: str = "gb", search_params: dict[str, Any] | None = None
     ) -> RawJobs:
         """
         Extract jobs with custom search parameters.
@@ -154,23 +153,21 @@ class JobsExtractor:
 
         except Exception:
             logger.exception(
-                "Unexpected error fetching jobs for %s with params %s",
-                country,
-                search_params
+                "Unexpected error fetching jobs for %s with params %s", country, search_params
             )
 
         logger.info(
             "Extracted %d jobs from %s with params %s",
             len(all_jobs),
             country,
-            search_params.get('what', 'all')
+            search_params.get("what", "all"),
         )
         return all_jobs
 
     def fetch_page(
         self,
         page: int,
-        results_per_page: Optional[int] = None,
+        results_per_page: int | None = None,
         country: str = "gb",
     ) -> RawJob:
         """
@@ -182,9 +179,7 @@ class JobsExtractor:
             "app_id": self.app_id,
             "app_key": self.api_key,
             "results_per_page": (
-                results_per_page
-                if results_per_page is not None
-                else self.results_per_page
+                results_per_page if results_per_page is not None else self.results_per_page
             ),
         }
 
@@ -195,7 +190,7 @@ class JobsExtractor:
             logger.debug("📦 Params: %s", mask_params(params))
 
         return self.client.get(url, params=params)
-    
+
     def _fetch_page(self, country: str, page: int) -> tuple[RawJobs, bool]:
         """
         Fetch a single page of results.
@@ -222,16 +217,12 @@ class JobsExtractor:
         response = self.client.get(url, params=params)
 
         # Validate response shape
-        if not isinstance(response, dict):
-            logger.error(
-                "Unexpected API response type: %s",
-                type(response).__name__,
-            )
-            return [], False
-
         jobs = response.get("results", [])
         if not isinstance(jobs, list):
-            logger.error("Unexpected 'results' type: %s", type(jobs).__name__)
+            logger.error(
+                "Unexpected 'results' type: %s",
+                type(jobs).__name__,
+            )
             return [], False
 
         total_results = response.get("count", 0)
@@ -243,10 +234,7 @@ class JobsExtractor:
         return jobs, has_more
 
     def _fetch_page_with_params(
-        self,
-        country: str,
-        page: int,
-        search_params: Dict[str, Any]
+        self, country: str, page: int, search_params: dict[str, Any]
     ) -> tuple[RawJobs, bool]:
         """
         Fetch a single page with custom search parameters.
@@ -263,7 +251,7 @@ class JobsExtractor:
             "app_id": self.app_id,
             "app_key": self.api_key,
             "results_per_page": self.results_per_page,
-            **search_params  # Merge search params
+            **search_params,  # Merge search params
         }
 
         url = f"{self.api_url}/jobs/{country}/search/{page}"
@@ -275,16 +263,12 @@ class JobsExtractor:
         response = self.client.get(url, params=params)
 
         # Validate response shape
-        if not isinstance(response, dict):
-            logger.error(
-                "Unexpected API response type: %s",
-                type(response).__name__,
-            )
-            return [], False
-
         jobs = response.get("results", [])
         if not isinstance(jobs, list):
-            logger.error("Unexpected 'results' type: %s", type(jobs).__name__)
+            logger.error(
+                "Unexpected 'results' type: %s",
+                type(jobs).__name__,
+            )
             return [], False
 
         total_results = response.get("count", 0)

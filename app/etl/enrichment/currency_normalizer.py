@@ -1,6 +1,5 @@
 """Currency normalization - business logic, not configuration."""
 
-from typing import Optional
 from app.etl.enrichment.data.currency_map import CURRENCY_MAP, REFERENCE_RATES
 
 
@@ -15,11 +14,11 @@ class CurrencyNormalizer:
     # Base currency for all conversions
     BASE_CURRENCY = "USD"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.currency_map = CURRENCY_MAP
         self.reference_rates = REFERENCE_RATES
 
-    def normalize(self, currency: Optional[str]) -> Optional[str]:
+    def normalize(self, currency: str | None) -> str | None:
         """Normalize currency to ISO 3-letter format."""
         if not currency:
             return None
@@ -27,13 +26,13 @@ class CurrencyNormalizer:
         normalized = currency.strip().upper()
         return self.currency_map.get(normalized, normalized)
 
-    def infer_currency_from_country(self, country_code: str) -> Optional[str]:
+    def infer_currency_from_country(self, country_code: str) -> str | None:
         """
         Infer currency from country code.
-        
+
         Args:
             country_code: ISO 2-letter country code
-            
+
         Returns:
             ISO 3-letter currency code or None if unknown
         """
@@ -61,7 +60,7 @@ class CurrencyNormalizer:
         amount: float,
         from_currency: str,
         to_currency: str = "USD",
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Convert currency using reference rates.
 
@@ -76,10 +75,7 @@ class CurrencyNormalizer:
         Note: These are static reference rates for normalization purposes.
         For production use, consider integrating a live currency API.
         """
-        if amount is None:
-            return None
-
-        # Normalize currencies
+# Normalize currencies
         from_curr = self.normalize(from_currency)
         to_curr = self.normalize(to_currency)
 
@@ -101,6 +97,6 @@ class CurrencyNormalizer:
         # Convert: amount * (from_rate / to_rate)
         return amount * (from_rate / to_rate)
 
-    def to_usd(self, amount: float, from_currency: str) -> Optional[float]:
+    def to_usd(self, amount: float, from_currency: str) -> float | None:
         """Convenience method - convert to USD."""
         return self.convert(amount, from_currency, "USD")

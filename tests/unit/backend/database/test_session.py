@@ -51,7 +51,7 @@ class TestDatabaseSession:
         session.close()
         # Session should be closed
         assert True
-        
+
     def test_session_transaction_rollback(self, db_session):
         """Test that a database transaction can be rolled back."""
         from app.models.job import Job

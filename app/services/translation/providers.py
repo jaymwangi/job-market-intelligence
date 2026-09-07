@@ -26,31 +26,30 @@ import asyncio
 import logging
 import random
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Protocol, runtime_checkable
+from typing import Any
 
 import aiohttp
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
     wait_random,
-    retry_if_exception_type,
-    before_sleep_log,
 )
 
 from app.services.translation.interface import (
-    TranslationProviderType,
-    TranslationResult,
-    HealthCheckResult,
-    TranslationProvider,
-    TranslationError,
-    TranslationTimeoutError,
-    TranslationProviderError,
-    TranslationRateLimitError,
-    TranslationConfig,
     DEFAULT_LANGUAGE,
+    HealthCheckResult,
+    TranslationConfig,
+    TranslationProvider,
+    TranslationProviderError,
+    TranslationProviderType,
+    TranslationRateLimitError,
+    TranslationResult,
+    TranslationTimeoutError,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,15 +59,16 @@ logger = logging.getLogger(__name__)
 # Retry Policy
 # ============================================================
 
+
 @dataclass(frozen=True, slots=True)
 class RetryPolicy:
     """Retry policy for translation providers."""
-    
+
     attempts: int = 3
     initial_delay: float = 1.0
     backoff: float = 2.0
     jitter: float = 0.1
-    
+
     def __post_init__(self) -> None:
         """Validate retry policy values."""
         if self.attempts < 0:
@@ -85,28 +85,29 @@ class RetryPolicy:
 # Circuit Breaker
 # ============================================================
 
+
 @dataclass
 class CircuitBreaker:
     """Circuit breaker for provider resilience."""
-    
+
     failure_threshold: int = 5
     recovery_timeout: float = 60.0
     half_open_max_attempts: int = 3
-    
+
     _failures: int = 0
     _state: str = "closed"  # closed, open, half_open
     _last_failure_time: float = 0.0
     _half_open_attempts: int = 0
-    
+
     def record_failure(self) -> None:
         """Record a failure."""
         self._failures += 1
         self._last_failure_time = time.time()
-        
+
         if self._failures >= self.failure_threshold:
             self._state = "open"
             logger.warning("Circuit breaker opened after %d failures", self._failures)
-    
+
     def record_success(self) -> None:
         """Record a success."""
         if self._state == "half_open":
@@ -116,12 +117,12 @@ class CircuitBreaker:
                 self._failures = 0
                 self._half_open_attempts = 0
                 logger.info("Circuit breaker closed after successful attempts")
-    
+
     def allow_request(self) -> bool:
         """Check if a request should be allowed."""
         if self._state == "closed":
             return True
-        
+
         if self._state == "open":
             if time.time() - self._last_failure_time > self.recovery_timeout:
                 self._state = "half_open"
@@ -129,18 +130,18 @@ class CircuitBreaker:
                 logger.info("Circuit breaker transitioning to half-open")
                 return True
             return False
-        
+
         # half_open - allow limited requests
         return self._half_open_attempts < self.half_open_max_attempts
-    
+
     @property
     def is_open(self) -> bool:
         return self._state == "open"
-    
+
     @property
     def is_half_open(self) -> bool:
         return self._state == "half_open"
-    
+
     def reset(self) -> None:
         """Reset the circuit breaker."""
         self._failures = 0
@@ -153,16 +154,17 @@ class CircuitBreaker:
 # Base Provider
 # ============================================================
 
+
 class BaseTranslationProvider:
     """Base provider with common functionality."""
 
     def __init__(self, config: TranslationConfig):
         self.config = config
         self._provider_type: TranslationProviderType
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session: aiohttp.ClientSession | None = None
         self._closed = False
         self._circuit_breaker = CircuitBreaker()
-        self._metrics: Dict[str, Any] = {
+        self._metrics: dict[str, Any] = {
             "total_calls": 0,
             "successful_calls": 0,
             "failed_calls": 0,
@@ -190,11 +192,16 @@ class BaseTranslationProvider:
             self._closed = True
             logger.debug("Provider session closed: %s", self._provider_type)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "BaseTranslationProvider":
         """Enter async context manager."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
+    ) -> None:
         """Exit async context manager."""
         await self.close()
 
@@ -235,10 +242,10 @@ class BaseTranslationProvider:
         text: str,
         source_language: str,
         target_language: str = DEFAULT_LANGUAGE,
-        detected_language: Optional[str] = None,
-        duration_ms: Optional[float] = None,
-        char_count: Optional[int] = None,
-        error: Optional[Exception] = None,
+        detected_language: str | None = None,
+        duration_ms: float | None = None,
+        char_count: int | None = None,
+        error: Exception | None = None,
     ) -> TranslationResult:
         """Create a translation result with consistent metadata."""
         return TranslationResult(
@@ -258,13 +265,13 @@ class BaseTranslationProvider:
         self._metrics["total_calls"] += 1
         self._metrics["total_duration_ms"] += duration_ms
         self._metrics["total_characters"] += char_count
-        
+
         if success:
             self._metrics["successful_calls"] += 1
         else:
             self._metrics["failed_calls"] += 1
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get provider metrics."""
         total_calls = self._metrics["total_calls"]
         return {
@@ -278,23 +285,26 @@ class BaseTranslationProvider:
             "circuit_breaker_state": self._circuit_breaker._state,
             "circuit_breaker_failures": self._circuit_breaker._failures,
         }
+
+
 # ============================================================
 # Google Translate Provider (Development/Demo)
 # ============================================================
 
 # Import googletrans with fallback
 try:
-    from googletrans import Translator  # type: ignore
+    from googletrans import Translator
+
     HAS_GOOGLETRANS = True
 except ImportError:
     HAS_GOOGLETRANS = False
-    Translator = None  # type: ignore
+    Translator = None
 
 
 class GoogleTranslateProvider(BaseTranslationProvider):
     """
     Google Translate provider using googletrans.
-    
+
     WARNING: This provider is for development and demonstration only.
     It uses an unofficial API and may break without notice.
     For production, use DeepLProvider or AzureTranslatorProvider.
@@ -315,7 +325,8 @@ class GoogleTranslateProvider(BaseTranslationProvider):
             # Try importing again in case it was installed after module load
             if not HAS_GOOGLETRANS:
                 try:
-                    from googletrans import Translator as _Translator  # type: ignore
+                    from googletrans import Translator as _Translator
+
                     self._translator = _Translator()
                     return self._translator
                 except ImportError:
@@ -325,7 +336,7 @@ class GoogleTranslateProvider(BaseTranslationProvider):
                         provider=self._provider_type,
                     )
             # HAS_GOOGLETRANS is True, but the type checker doesn't know that
-            self._translator = Translator()  # type: ignore
+            self._translator = Translator()
         return self._translator
 
     @retry(
@@ -381,7 +392,7 @@ class GoogleTranslateProvider(BaseTranslationProvider):
             self._record_metrics(duration_ms, char_count, True)
             return translation_result
 
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             duration_ms = (time.perf_counter() - start_time) * 1000
             self._record_metrics(duration_ms, len(text), False)
             raise TranslationTimeoutError(f"Google Translate timeout: {e}") from e
@@ -400,10 +411,10 @@ class GoogleTranslateProvider(BaseTranslationProvider):
 
     async def translate_many(
         self,
-        texts: List[str],
+        texts: list[str],
         source_language: str,
         target_language: str = DEFAULT_LANGUAGE,
-    ) -> List[TranslationResult]:
+    ) -> list[TranslationResult]:
         """Translate multiple texts sequentially."""
         results = []
         for text in texts:
@@ -431,14 +442,16 @@ class GoogleTranslateProvider(BaseTranslationProvider):
                 checked_at=datetime.utcnow().isoformat(),
             )
 
+
 # ============================================================
 # DeepL Provider (Production-Ready)
 # ============================================================
 
+
 class DeepLProvider(BaseTranslationProvider):
     """
     DeepL API provider - Production-ready.
-    
+
     Requires DEEPL_API_KEY environment variable or config.
     Supports:
     - High-quality translations
@@ -450,7 +463,7 @@ class DeepLProvider(BaseTranslationProvider):
     def __init__(
         self,
         config: TranslationConfig,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://api.deepl.com/v2",
     ):
         super().__init__(config)
@@ -460,8 +473,7 @@ class DeepLProvider(BaseTranslationProvider):
 
         if not self.api_key:
             raise TranslationProviderError(
-                "DeepL API key is required. "
-                "Set DEEPL_API_KEY in environment or config.",
+                "DeepL API key is required. " "Set DEEPL_API_KEY in environment or config.",
                 provider=self._provider_type,
             )
 
@@ -540,12 +552,14 @@ class DeepLProvider(BaseTranslationProvider):
                     text=translation["text"],
                     source_language=source_language,
                     target_language=target_language,
-                    detected_language=translation.get("detected_source_language", source_language).lower(),
+                    detected_language=translation.get(
+                        "detected_source_language", source_language
+                    ).lower(),
                     duration_ms=duration_ms,
                     char_count=char_count,
                 )
 
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             duration_ms = (time.perf_counter() - start_time) * 1000
             self._circuit_breaker.record_failure()
             self._record_metrics(duration_ms, len(text), False)
@@ -577,10 +591,10 @@ class DeepLProvider(BaseTranslationProvider):
 
     async def translate_many(
         self,
-        texts: List[str],
+        texts: list[str],
         source_language: str,
         target_language: str = DEFAULT_LANGUAGE,
-    ) -> List[TranslationResult]:
+    ) -> list[TranslationResult]:
         """Translate multiple texts using DeepL batch API."""
         if not texts:
             return []
@@ -588,14 +602,19 @@ class DeepLProvider(BaseTranslationProvider):
         # Filter out empty texts
         valid_texts = [t for t in texts if t and t.strip()]
         if not valid_texts:
-            return [self._create_result(text="", source_language=source_language, target_language=target_language) for _ in texts]
+            return [
+                self._create_result(
+                    text="", source_language=source_language, target_language=target_language
+                )
+                for _ in texts
+            ]
 
         # DeepL supports up to 50 texts per request
-        batch_size = getattr(self.config, 'batch_max_size', 50)
+        batch_size = getattr(self.config, "batch_max_size", 50)
 
         results = []
         for i in range(0, len(valid_texts), batch_size):
-            batch = valid_texts[i:i + batch_size]
+            batch = valid_texts[i : i + batch_size]
             batch_results = await self._translate_batch(
                 batch,
                 source_language,
@@ -623,10 +642,10 @@ class DeepLProvider(BaseTranslationProvider):
 
     async def _translate_batch(
         self,
-        texts: List[str],
+        texts: list[str],
         source_language: str,
         target_language: str,
-    ) -> List[TranslationResult]:
+    ) -> list[TranslationResult]:
         """Translate a batch of texts."""
         if not texts:
             return []
@@ -719,10 +738,11 @@ class DeepLProvider(BaseTranslationProvider):
 # Mock Provider (Testing)
 # ============================================================
 
+
 class MockTranslationProvider(BaseTranslationProvider):
     """
     Mock translation provider for testing.
-    
+
     Simulates translation by adding a prefix and tracking calls.
     Useful for:
     - Unit tests
@@ -811,10 +831,10 @@ class MockTranslationProvider(BaseTranslationProvider):
 
     async def translate_many(
         self,
-        texts: List[str],
+        texts: list[str],
         source_language: str,
         target_language: str = DEFAULT_LANGUAGE,
-    ) -> List[TranslationResult]:
+    ) -> list[TranslationResult]:
         """Mock batch translation."""
         self._batch_call_count += 1
 
@@ -840,7 +860,7 @@ class MockTranslationProvider(BaseTranslationProvider):
             checked_at=datetime.utcnow().isoformat(),
         )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get mock provider statistics."""
         return {
             "call_count": self._call_count,
@@ -855,18 +875,19 @@ class MockTranslationProvider(BaseTranslationProvider):
 # Provider Factory
 # ============================================================
 
+
 def create_translation_provider(
     config: TranslationConfig,
 ) -> TranslationProvider:
     """
     Factory function to create a translation provider.
-    
+
     Args:
         config: Translation configuration
-        
+
     Returns:
         TranslationProvider: The configured provider
-        
+
     Raises:
         TranslationProviderError: If the provider type is unsupported
     """

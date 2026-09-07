@@ -49,6 +49,7 @@ Public API:
 """
 
 import warnings
+from typing import Any
 
 # ============================================================
 # Version & Metadata
@@ -64,59 +65,56 @@ __license__ = "MIT"
 # ============================================================
 
 # Enrichment Orchestrator
-from app.etl.enrichment.enricher import (
-    Enricher,
-    get_enricher,
-    enrich_job,
-    enrich_jobs,
+# ============================================================
+# Advanced/Internal
+# ============================================================
+# Configuration - only expose the functions users need
+from app.etl.enrichment.classification_config import (
+    ConfigurationError,
+    get_config,
+    reload_config,
 )
 
-# Technology Scoring (Sprint 6.6 - Primary)
-from app.etl.enrichment.tech_scorer import (
-    TechnologyScorer,
-    TechScoreResult,
-    MatchSource,
-    Evidence,
-    get_scorer,
-    score_job,
+# Geographic Enrichment
+from app.etl.enrichment.country_normalizer import CountryNormalizer
+from app.etl.enrichment.currency_normalizer import CurrencyNormalizer
+from app.etl.enrichment.enricher import (
+    Enricher,
+    enrich_job,
+    enrich_jobs,
+    get_enricher,
 )
 
 # Language Detection (Sprint 6.6)
 from app.etl.enrichment.language_detector import (
     LanguageDetector,
-    get_detector,
-    detect_language,
-    is_english,
-    detect_language_with_confidence,
     clear_language_cache,
+    detect_language,
+    detect_language_with_confidence,
+    get_detector,
     get_language_cache_stats,
+    is_english,
 )
 
 # Skill Extraction
 from app.etl.enrichment.skill_extractor import SkillExtractor
 
-# Geographic Enrichment
-from app.etl.enrichment.country_normalizer import CountryNormalizer
-from app.etl.enrichment.currency_normalizer import CurrencyNormalizer
-
-
-# ============================================================
-# Advanced/Internal
-# ============================================================
-
-# Configuration - only expose the functions users need
-from app.etl.enrichment.classification_config import (
-    get_config,
-    reload_config,
-    ConfigurationError,
+# Technology Scoring (Sprint 6.6 - Primary)
+from app.etl.enrichment.tech_scorer import (
+    Evidence,
+    MatchSource,
+    TechnologyScorer,
+    TechScoreResult,
+    get_scorer,
+    score_job,
 )
-
 
 # ============================================================
 # Deprecated (Legacy) - with warnings
 # ============================================================
 
-def TechnologyClassifier(*args, **kwargs):
+
+def TechnologyClassifier(*args: Any, **kwargs: Any) -> Any:# noqa: N802
     """Legacy technology classifier - deprecated.
 
     Deprecated:
@@ -140,22 +138,21 @@ def TechnologyClassifier(*args, **kwargs):
     from app.etl.enrichment.technology_classifier import (
         TechnologyClassifier as _TechnologyClassifier,
     )
+
     return _TechnologyClassifier(*args, **kwargs)
 
 
 # TechnologyCategory is re-exported directly from the legacy module
 # without wrapping, to preserve Enum semantics.
 # Deprecated: Use TechScoreResult.primary_category_str instead.
-from app.etl.enrichment.technology_classifier import (
-    TechnologyCategory,
-)
-
+from app.etl.enrichment.data.technology_categories import TechnologyCategory
 
 # ============================================================
 # __all__ - Public API (Fully Alphabetized)
 # ============================================================
 
 __all__ = [
+    "TechnologyCategory",
     # Primary Entry Points
     "clear_language_cache",
     "ConfigurationError",
@@ -180,7 +177,6 @@ __all__ = [
     "SkillExtractor",
     "TechnologyScorer",
     "TechScoreResult",
-    
     # Deprecated
     "TechnologyCategory",
     "TechnologyClassifier",

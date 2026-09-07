@@ -2,7 +2,7 @@
 
 import logging
 from types import TracebackType
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -44,9 +44,9 @@ class APIClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
-        data: Optional[dict[str, Any]] = None,
-        json: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Make HTTP request with retry logic.
@@ -145,7 +145,7 @@ class APIClient:
     def get(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Perform GET request with query parameters."""
         return self._make_request("GET", endpoint, params=params)
@@ -153,12 +153,12 @@ class APIClient:
     def post(
         self,
         endpoint: str,
-        json: Optional[dict[str, Any]] = None,
-        data: Optional[dict[str, Any]] = None,
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Perform POST request.
-        
+
         Note: For query parameters, include them in the endpoint URL.
         """
         return self._make_request("POST", endpoint, json=json, data=data)
@@ -166,12 +166,12 @@ class APIClient:
     def put(
         self,
         endpoint: str,
-        json: Optional[dict[str, Any]] = None,
-        data: Optional[dict[str, Any]] = None,
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Perform PUT request.
-        
+
         Note: For query parameters, include them in the endpoint URL.
         """
         return self._make_request("PUT", endpoint, json=json, data=data)
@@ -186,12 +186,12 @@ class APIClient:
     def patch(
         self,
         endpoint: str,
-        json: Optional[dict[str, Any]] = None,
-        data: Optional[dict[str, Any]] = None,
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Perform PATCH request.
-        
+
         Note: For query parameters, include them in the endpoint URL.
         """
         return self._make_request("PATCH", endpoint, json=json, data=data)
@@ -220,17 +220,17 @@ class APIClient:
         self,
         page: int = 1,
         limit: int = 20,
-        q: Optional[str] = None,
-        company_name: Optional[str] = None,
-        location: Optional[str] = None,
-        source_site: Optional[str] = None,
-        min_salary: Optional[float] = None,
-        max_salary: Optional[float] = None,
-        country_code: Optional[str] = None,
-        technology_category: Optional[str] = None,
-        employment_type: Optional[str] = None,
-        is_tech_role: Optional[bool] = None,
-        language: Optional[str] = None,
+        q: str | None = None,
+        company_name: str | None = None,
+        location: str | None = None,
+        source_site: str | None = None,
+        min_salary: float | None = None,
+        max_salary: float | None = None,
+        country_code: str | None = None,
+        technology_category: str | None = None,
+        employment_type: str | None = None,
+        is_tech_role: bool | None = None,
+        language: str | None = None,
     ) -> dict[str, Any]:
         """
         Get paginated list of jobs with filters.
@@ -425,7 +425,7 @@ class APIClient:
     def get_enriched_skills(
         self,
         limit: int = 20,
-        country_code: Optional[str] = None,
+        country_code: str | None = None,
         tech_only: bool = False,
     ) -> dict[str, Any]:
         """Get enriched skills with filters."""
@@ -446,7 +446,7 @@ class APIClient:
 
     def get_enriched_salary(
         self,
-        country_code: Optional[str] = None,
+        country_code: str | None = None,
         tech_only: bool = False,
     ) -> dict[str, Any]:
         """Get enriched salary statistics with filters."""
@@ -471,9 +471,9 @@ class APIClient:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit context manager and close client."""
         self.close()

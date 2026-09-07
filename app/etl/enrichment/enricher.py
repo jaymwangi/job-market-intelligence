@@ -24,25 +24,22 @@ Design decisions:
 - Batch processing continues on individual failures
 """
 
+import logging
 import time
-from datetime import datetime
-from typing import List, Optional, Dict, Any, Protocol, Tuple, Callable
-
-from config.settings import settings
-
-# 👇 IMPORTANT: Don't import JobEnriched at the top level
-# from app.etl.schemas.enriched import JobEnriched  # ❌ REMOVE THIS
-
-from app.etl.schemas.transformed import JobTransformed
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from app.etl.enrichment.country_normalizer import CountryNormalizer
 from app.etl.enrichment.currency_normalizer import CurrencyNormalizer
 from app.etl.enrichment.language_detector import LanguageDetector, get_detector
 from app.etl.enrichment.skill_extractor import SkillExtractor
-from app.etl.enrichment.tech_scorer import TechnologyScorer, TechScoreResult, get_scorer
-from app.shared.languages import LanguageCode
+from app.etl.enrichment.tech_scorer import TechnologyScorer, get_scorer
 
-import logging
+# 👇 IMPORTANT: Don't import JobEnriched at the top level
+# from app.etl.schemas.enriched import JobEnriched  # ❌ REMOVE THIS
+from app.etl.schemas.transformed import JobTransformed
+from app.shared.languages import LanguageCode
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -50,12 +47,12 @@ logger = logging.getLogger(__name__)
 class EnrichmentStep(Protocol):
     """
     Protocol for enrichment steps.
-    
+
     Each step must implement an `enrich` method that takes
     a job and a context dict, and modifies the context.
     """
-    
-    def enrich(self, job: JobTransformed, context: dict) -> None:
+
+    def enrich(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """Enrich the job and update the context."""
         ...
 
@@ -79,14 +76,14 @@ class Enricher:
 
     def __init__(
         self,
-        language_detector: Optional[LanguageDetector] = None,
-        skill_extractor: Optional[SkillExtractor] = None,
-        tech_scorer: Optional[TechnologyScorer] = None,
-        country_normalizer: Optional[CountryNormalizer] = None,
-        currency_normalizer: Optional[CurrencyNormalizer] = None,
-        normalize_salaries: Optional[bool] = None,
-        language_detection_enabled: Optional[bool] = None,
-    ):
+        language_detector: LanguageDetector | None = None,
+        skill_extractor: SkillExtractor | None = None,
+        tech_scorer: TechnologyScorer | None = None,
+        country_normalizer: CountryNormalizer | None = None,
+        currency_normalizer: CurrencyNormalizer | None = None,
+        normalize_salaries: bool | None = None,
+        language_detection_enabled: bool | None = None,
+    ) -> None:
         """Initialize the enricher with optional dependency injection."""
 
         # Language detection
@@ -94,12 +91,12 @@ class Enricher:
         self.language_detection_enabled = (
             language_detection_enabled
             if language_detection_enabled is not None
-            else getattr(settings, 'language_detection_enabled', True)
+            else getattr(settings, "language_detection_enabled", True)
         )
 
         # Skill extraction - handle missing settings gracefully
         try:
-            skills_data_path = getattr(settings, 'skills_data_path', None)
+            skills_data_path = getattr(settings, "skills_data_path", None)
             self.skill_extractor = skill_extractor or SkillExtractor(
                 keywords=None,
                 data_path=skills_data_path,
@@ -119,11 +116,11 @@ class Enricher:
         self.normalize_salaries = (
             normalize_salaries
             if normalize_salaries is not None
-            else getattr(settings, 'normalize_salaries', False)
+            else getattr(settings, "normalize_salaries", False)
         )
 
         # Timing statistics (running stats - constant memory)
-        self._timing_stats: Dict[str, Dict[str, float]] = {
+        self._timing_stats: dict[str, dict[str, float]] = {
             "language": {"count": 0, "total_ms": 0, "min_ms": float("inf"), "max_ms": 0},
             "skills": {"count": 0, "total_ms": 0, "min_ms": float("inf"), "max_ms": 0},
             "tech_scoring": {"count": 0, "total_ms": 0, "min_ms": float("inf"), "max_ms": 0},
@@ -132,7 +129,7 @@ class Enricher:
             "salary": {"count": 0, "total_ms": 0, "min_ms": float("inf"), "max_ms": 0},
             "total": {"count": 0, "total_ms": 0, "min_ms": float("inf"), "max_ms": 0},
         }
-        
+
         # Enrichment steps (ordered)
         self._steps = self._build_steps()
 
@@ -142,10 +139,10 @@ class Enricher:
             self.normalize_salaries,
         )
 
-    def _build_steps(self) -> List[Tuple[str, Callable[[JobTransformed, dict], None]]]:
+    def _build_steps(self) -> list[tuple[str, Callable[[JobTransformed, dict[str, Any]], None]]]:
         """
         Build the ordered list of enrichment steps.
-        
+
         Returns:
             List of (step_name, step_function) tuples
         """
@@ -173,7 +170,7 @@ class Enricher:
             Exception: If enrichment fails (caller should handle)
         """
         start_time = time.perf_counter()
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "job": job,
             "timings": {},
         }
@@ -186,7 +183,7 @@ class Enricher:
             except Exception as e:
                 logger.error("Step '%s' failed for job %s: %s", step_name, job.source_id, e)
                 raise
-            
+
             # Record timing
             elapsed_ms = (time.perf_counter() - step_start) * 1000
             context["timings"][step_name] = elapsed_ms
@@ -199,7 +196,7 @@ class Enricher:
         # Return the enriched job
         return context["enriched_job"]
 
-    def _enrich_language(self, job: JobTransformed, context: dict) -> None:
+    def _enrich_language(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """Step 1: Detect language."""
         if not self.language_detection_enabled:
             context["language"] = LanguageCode.ENGLISH
@@ -208,13 +205,11 @@ class Enricher:
         text = f"{job.title} {job.description or ''}"
         context["language"] = self.language_detector.detect(text)
 
-    def _enrich_skills(self, job: JobTransformed, context: dict) -> None:
+    def _enrich_skills(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """Step 2: Extract skills."""
-        context["skills"] = self.skill_extractor.extract_skills(
-            job.title, job.description or ""
-        )
+        context["skills"] = self.skill_extractor.extract_skills(job.title, job.description or "")
 
-    def _enrich_tech_scoring(self, job: JobTransformed, context: dict) -> None:
+    def _enrich_tech_scoring(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """Step 3: Score technology role."""
         skills = context.get("skills", [])
         context["tech_decision"] = self.tech_scorer.classify(
@@ -223,10 +218,10 @@ class Enricher:
             skills=skills,
         )
 
-    def _enrich_country(self, job: JobTransformed, context: dict) -> None:
+    def _enrich_country(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """Step 4: Normalize country."""
         country_code = None
-        
+
         if job.source_country:
             normalized = self.country_normalizer.normalize(job.source_country)
             if normalized:
@@ -237,7 +232,7 @@ class Enricher:
 
         context["country_code"] = country_code
 
-    def _enrich_currency(self, job: JobTransformed, context: dict) -> None:
+    def _enrich_currency(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """Step 5: Normalize currency."""
         country_code = context.get("country_code")
         currency = None
@@ -253,7 +248,7 @@ class Enricher:
         # Default to USD
         context["currency"] = currency or "USD"
 
-    def _enrich_salary(self, job: JobTransformed, context: dict) -> None:
+    def _enrich_salary(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """Step 6: Normalize salaries (optional)."""
         if not self.normalize_salaries:
             context["normalized_min"] = None
@@ -285,21 +280,21 @@ class Enricher:
 
         context["normalized_min"] = normalized_min
         context["normalized_max"] = normalized_max
-     
 
-    def _enrich_build_job(self, job: JobTransformed, context: dict) -> None:
+    def _enrich_build_job(self, job: JobTransformed, context: dict[str, Any]) -> None:
         """
         Step 7: Build the enriched job.
-        
+
         Uses model_dump() to avoid manually copying fields.
         Only adds new fields that exist in JobEnriched.
         """
         from app.etl.schemas.enriched import JobEnriched
-        
+
         tech_decision = context.get("tech_decision")
         if tech_decision is None:
             # Create a default decision if tech scoring didn't run
             from app.etl.enrichment.classifier import ClassificationDecision, DecisionReason
+
             tech_decision = ClassificationDecision(
                 is_tech=False,
                 primary_category="other",
@@ -312,48 +307,42 @@ class Enricher:
                 second_best_score=None,
                 ambiguity_score=0.0,
                 explanations=["No tech scoring performed"],
-                thresholds=None
+                thresholds=None,
             )
 
         # Start with transformed job data
         job_data = job.model_dump()
-        
+
         # Add enrichment fields
-        job_data.update({
-            # Sprint 6.6: Language detection
-            "language": context.get("language", LanguageCode.ENGLISH).value,
-            
-            # Sprint 6.6: Skill extraction
-            "skills": context.get("skills", []),
-            
-            # Sprint 6.6: Technology classification
-            "technology_category": (
-                tech_decision.primary_category 
-                if tech_decision and tech_decision.is_tech 
-                else None
-            ),
-            "is_tech_role": tech_decision.is_tech if tech_decision else False,
-            
-            # ✅ FIX: tech_confidence must be None for non-tech jobs
-            "tech_confidence": (
-                tech_decision.confidence 
-                if tech_decision and tech_decision.is_tech 
-                else None
-            ),
-            
-            "matched_tech_terms": context.get("matched_tech_terms", []),
-            
-            # Sprint 6.6: Geographic enrichment
-            "country_code": context.get("country_code"),
-            "currency": context.get("currency"),
-            "normalized_salary_min": context.get("normalized_min"),
-            "normalized_salary_max": context.get("normalized_max"),
-        })
-        
+        job_data.update(
+            {
+                # Sprint 6.6: Language detection
+                "language": context.get("language", LanguageCode.ENGLISH).value,
+                # Sprint 6.6: Skill extraction
+                "skills": context.get("skills", []),
+                # Sprint 6.6: Technology classification
+                "technology_category": (
+                    tech_decision.primary_category
+                    if tech_decision and tech_decision.is_tech
+                    else None
+                ),
+                "is_tech_role": tech_decision.is_tech if tech_decision else False,
+                # ✅ FIX: tech_confidence must be None for non-tech jobs
+                "tech_confidence": (
+                    tech_decision.confidence if tech_decision and tech_decision.is_tech else None
+                ),
+                "matched_tech_terms": context.get("matched_tech_terms", []),
+                # Sprint 6.6: Geographic enrichment
+                "country_code": context.get("country_code"),
+                "currency": context.get("currency"),
+                "normalized_salary_min": context.get("normalized_min"),
+                "normalized_salary_max": context.get("normalized_max"),
+            }
+        )
+
         # Create enriched job
         context["enriched_job"] = JobEnriched(**job_data)
-    
-    
+
     def _record_timing(self, key: str, elapsed_ms: float) -> None:
         """Record a timing measurement (running statistics)."""
         if key not in self._timing_stats:
@@ -365,7 +354,7 @@ class Enricher:
         stats["min_ms"] = min(stats["min_ms"], elapsed_ms)
         stats["max_ms"] = max(stats["max_ms"], elapsed_ms)
 
-    def enrich_batch(self, jobs: List[JobTransformed]) -> List[Any]:
+    def enrich_batch(self, jobs: list[JobTransformed]) -> list[Any]:
         """
         Enrich a batch of jobs.
 
@@ -394,7 +383,7 @@ class Enricher:
         logger.info("Enriched %d/%d jobs successfully", len(enriched), total)
         return enriched
 
-    def get_timing_stats(self) -> Dict[str, Dict[str, float]]:
+    def get_timing_stats(self) -> dict[str, dict[str, float]]:
         """
         Get timing statistics.
 
@@ -415,7 +404,7 @@ class Enricher:
                 stats[key] = {"avg_ms": 0, "min_ms": 0, "max_ms": 0, "count": 0}
         return stats
 
-    def get_pipeline_stats(self) -> dict:
+    def get_pipeline_stats(self) -> dict[str, Any]:
         """
         Get comprehensive pipeline statistics.
 
@@ -446,7 +435,7 @@ class Enricher:
 # Convenience Functions
 # ============================================================
 
-_enricher: Optional[Enricher] = None
+_enricher: Enricher | None = None
 
 
 def get_enricher() -> Enricher:
@@ -462,7 +451,7 @@ def enrich_job(job: JobTransformed) -> Any:
     return get_enricher().enrich(job)
 
 
-def enrich_jobs(jobs: List[JobTransformed]) -> List[Any]:
+def enrich_jobs(jobs: list[JobTransformed]) -> list[Any]:
     """Convenience function to enrich a batch of jobs."""
     return get_enricher().enrich_batch(jobs)
 

@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 """Analytics API routes."""
 
 from fastapi import APIRouter, Depends, Query, status
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.schemas.analytics import (
+    CountryDistribution,
     DashboardSummaryResponse,
     DatasetSummaryResponse,
     EmploymentDistributionResponse,
@@ -15,14 +17,13 @@ from app.schemas.analytics import (
     SalaryByCompanyResponse,
     SalaryByLocationResponse,
     SalaryDistributionResponse,
+    SalaryStatistics,
     SalaryStatisticsResponse,
-    TopCompanyResponse,
-    TopSkillResponse,
     # Sprint 6.6: New schemas
     SkillCount,
-    CountryDistribution,
     TechnologyDistribution,
-    SalaryStatistics,
+    TopCompanyResponse,
+    TopSkillResponse,
 )
 from app.services.analytics_service import AnalyticsService
 from config import get_logger
@@ -51,7 +52,7 @@ def get_service(db: Session = Depends(get_db)) -> AnalyticsService:
 def get_top_skills(
     limit: int = Query(10, ge=1, le=50, description="Number of skills to return"),
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[TopSkillResponse]:
     """Get top skills by job count."""
     logger.debug("Fetching top %d skills", limit)
     return service.get_top_skills(limit)
@@ -67,7 +68,7 @@ def get_top_skills(
 def get_top_companies(
     limit: int = Query(10, ge=1, le=50, description="Number of companies to return"),
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[TopCompanyResponse]:
     """Get top companies by job count."""
     logger.debug("Fetching top %d companies", limit)
     return service.get_top_companies(limit)
@@ -83,7 +84,7 @@ def get_top_companies(
 def get_jobs_by_location(
     limit: int = Query(10, ge=1, le=50, description="Number of locations to return"),
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[LocationResponse]:
     """Get job distribution by location."""
     logger.debug("Fetching jobs by location (limit=%d)", limit)
     return service.get_jobs_by_location(limit)
@@ -98,7 +99,7 @@ def get_jobs_by_location(
 )
 def get_salary_statistics(
     service: AnalyticsService = Depends(get_service),
-):
+) -> SalaryStatisticsResponse:
     """Get salary statistics."""
     logger.debug("Fetching salary statistics")
     return service.get_salary_statistics()
@@ -113,7 +114,7 @@ def get_salary_statistics(
 )
 def get_employment_types(
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[EmploymentDistributionResponse]:
     """Get employment type distribution."""
     logger.debug("Fetching employment type distribution")
     return service.get_employment_types()
@@ -129,7 +130,7 @@ def get_employment_types(
 def get_salary_by_location(
     limit: int = Query(10, ge=1, le=50, description="Number of locations to return"),
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[SalaryByLocationResponse]:
     """Get salary statistics by location."""
     logger.debug("Fetching salary by location (limit=%d)", limit)
     return service.get_salary_by_location(limit)
@@ -145,7 +146,7 @@ def get_salary_by_location(
 def get_salary_by_company(
     limit: int = Query(10, ge=1, le=50, description="Number of companies to return"),
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[SalaryByCompanyResponse]:
     """Get salary statistics by company."""
     logger.debug("Fetching salary by company (limit=%d)", limit)
     return service.get_salary_by_company(limit)
@@ -161,7 +162,7 @@ def get_salary_by_company(
 def get_posting_trend(
     days: int = Query(30, ge=1, le=365, description="Number of days to look back"),
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[PostingTrendResponse]:
     """Get job posting trend over time."""
     logger.debug("Fetching posting trend for last %d days", days)
     return service.get_posting_trend(days)
@@ -177,7 +178,7 @@ def get_posting_trend(
 def get_recent_jobs(
     days: int = Query(7, ge=1, le=30, description="Number of days to look back"),
     service: AnalyticsService = Depends(get_service),
-):
+) -> int:
     """Get count of recently posted jobs."""
     logger.debug("Fetching recent jobs count for last %d days", days)
     return service.get_recent_jobs_count(days)
@@ -192,7 +193,7 @@ def get_recent_jobs(
 )
 def get_salary_distribution(
     service: AnalyticsService = Depends(get_service),
-):
+) -> list[SalaryDistributionResponse]:
     """Get salary distribution."""
     logger.debug("Fetching salary distribution")
     return service.get_salary_distribution()
@@ -207,7 +208,7 @@ def get_salary_distribution(
 )
 def get_dataset_summary(
     service: AnalyticsService = Depends(get_service),
-):
+) -> DatasetSummaryResponse:
     """Get dataset summary."""
     logger.debug("Fetching dataset summary")
     return service.get_dataset_summary()
@@ -222,7 +223,7 @@ def get_dataset_summary(
 )
 def get_overview(
     service: AnalyticsService = Depends(get_service),
-):
+) -> OverviewResponse:
     """Get lightweight overview."""
     logger.debug("Fetching overview")
     return service.get_overview()
@@ -237,7 +238,7 @@ def get_overview(
 )
 def get_dashboard_summary(
     service: AnalyticsService = Depends(get_service),
-):
+) -> DashboardSummaryResponse:
     """Get complete dashboard summary."""
     logger.debug("Fetching dashboard summary")
     return service.get_dashboard_summary()

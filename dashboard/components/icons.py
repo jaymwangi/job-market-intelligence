@@ -1,17 +1,17 @@
 """Professional SVG icon system with rendering helpers."""
 
 import streamlit as st
-from typing import Optional
+
 
 # Color constants for consistent theming
 class IconColor:
-    PRIMARY = "#6366f1"      # Indigo
-    SUCCESS = "#10b981"      # Emerald
-    WARNING = "#f59e0b"      # Amber
-    DANGER = "#ef4444"       # Red
-    INFO = "#3b82f6"         # Blue
-    GRAY = "#6b7280"         # Gray
-    DARK = "#1f2937"         # Dark
+    PRIMARY = "#6366f1"  # Indigo
+    SUCCESS = "#10b981"  # Emerald
+    WARNING = "#f59e0b"  # Amber
+    DANGER = "#ef4444"  # Red
+    INFO = "#3b82f6"  # Blue
+    GRAY = "#6b7280"  # Gray
+    DARK = "#1f2937"  # Dark
 
 
 # Base icon definitions - using multiline strings properly
@@ -33,7 +33,6 @@ ICONS = {
         "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
         "label": "Info",
     },
-    
     # Job listing icons
     "company": {
         "svg": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>',
@@ -51,7 +50,6 @@ ICONS = {
         "svg": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="9" y2="15"/><line x1="12" y1="12" x2="15" y2="15"/></svg>',
         "label": "Salary",
     },
-    
     # Navigation
     "overview": {
         "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
@@ -69,7 +67,6 @@ ICONS = {
         "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
         "label": "About",
     },
-    
     # Metrics
     "jobs_metric": {
         "svg": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20V14"/><rect x="2" y="2" width="20" height="20" rx="2"/></svg>',
@@ -87,7 +84,6 @@ ICONS = {
         "svg": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="9" y2="15"/><line x1="12" y1="12" x2="15" y2="15"/></svg>',
         "label": "Salary",
     },
-    
     # Charts / Analytics
     "location": {
         "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
@@ -101,13 +97,11 @@ ICONS = {
         "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
         "label": "Employment",
     },
-    
     # Actions
     "refresh": {
         "svg": '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
         "label": "Refresh",
     },
-    
     # Tech & Scoring icons (replacing emojis)
     "tech": {
         "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6L2 12L8 18"/><path d="M16 6L22 12L16 18"/><path d="M14 4L10 20"/></svg>',
@@ -170,11 +164,14 @@ def icon_html(name: str, size: int = 20, color: str = "currentColor") -> str:
     svg = get_icon(name, size, color)
     if not svg:
         return ""
-    return f'<span style="display:inline-flex;align-items:center;justify-content:center;">{svg}</span>'
+    return (
+        f'<span style="display:inline-flex;align-items:center;justify-content:center;">{svg}</span>'
+    )
 
 
-def icon_with_text(name: str, text: str, size: int = 16, 
-                   color: str = "currentColor", gap: str = "6px") -> str:
+def icon_with_text(
+    name: str, text: str, size: int = 16, color: str = "currentColor", gap: str = "6px"
+) -> str:
     """Get HTML for icon with text next to it."""
     icon_svg = get_icon(name, size, color)
     if not icon_svg:
@@ -241,12 +238,17 @@ def salary_icon(size: int = 20, color: str = "currentColor") -> str:
     return get_icon("salary", size, color)
 
 
-def icon_button(text: str, icon_name: str, key: Optional[str] = None, 
-                color: str = IconColor.PRIMARY, size: int = 16,
-                use_container_width: bool = False) -> bool:
+def icon_button(
+    text: str,
+    icon_name: str,
+    key: str | None = None,
+    color: str = IconColor.PRIMARY,
+    size: int = 16,
+    use_container_width: bool = False,
+) -> bool:
     """
     Create a button with an SVG icon inside it.
-    
+
     Args:
         text: Button text
         icon_name: Name of the icon from ICONS dictionary
@@ -254,12 +256,12 @@ def icon_button(text: str, icon_name: str, key: Optional[str] = None,
         color: Color of the icon
         size: Size of the icon in pixels
         use_container_width: Whether to use full container width
-        
+
     Returns:
         bool: True if button was clicked
     """
     icon_svg = get_icon(icon_name, size, color)
-    
+
     # Use a container with flex to position icon and button
     container = st.container()
     with container:
@@ -267,7 +269,7 @@ def icon_button(text: str, icon_name: str, key: Optional[str] = None,
         with cols[0]:
             st.markdown(
                 f'<div style="display:flex;align-items:center;justify-content:center;height:38px;margin-top:2px;">{icon_svg}</div>',
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
         with cols[1]:
             # Only pass key if it's provided
@@ -275,5 +277,5 @@ def icon_button(text: str, icon_name: str, key: Optional[str] = None,
                 clicked = st.button(text, key=key, use_container_width=use_container_width)
             else:
                 clicked = st.button(text, use_container_width=use_container_width)
-    
+
     return clicked

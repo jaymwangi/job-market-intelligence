@@ -69,12 +69,7 @@ class TestBaseRepository:
     def test_find_paginated(self, db_session):
         repository = BaseRepository(Skill, db_session)
 
-        repository.bulk_create(
-            [
-                {"name": f"Pagination-{uuid4().hex[:8]}"}
-                for _ in range(5)
-            ]
-        )
+        repository.bulk_create([{"name": f"Pagination-{uuid4().hex[:8]}"} for _ in range(5)])
 
         results = repository.find_paginated(
             skip=0,
@@ -251,12 +246,7 @@ class TestSkillRepository:
     def test_skill_repository_pagination(self, db_session):
         repository = SkillRepository(db_session)
 
-        repository.bulk_create(
-            [
-                {"name": f"SkillPage-{uuid4().hex[:8]}"}
-                for _ in range(4)
-            ]
-        )
+        repository.bulk_create([{"name": f"SkillPage-{uuid4().hex[:8]}"} for _ in range(4)])
 
         results = repository.find_paginated(
             skip=0,
@@ -447,10 +437,7 @@ class TestJobRepository:
         )
 
         assert any(result.id == job.id for result in results)
-        assert all(
-            result.technology_category == "backend"
-            for result in results
-        )
+        assert all(result.technology_category == "backend" for result in results)
 
     def test_get_jobs_with_tech_role_filter(self, db_session):
         repository = JobRepository(db_session)
@@ -548,10 +535,7 @@ class TestJobRepository:
 
         results = repository.get_country_distribution()
 
-        kenya = next(
-            row for row in results
-            if row["country"] == "KE"
-        )
+        kenya = next(row for row in results if row["country"] == "KE")
 
         assert kenya["count"] >= 2
 
@@ -565,10 +549,7 @@ class TestJobRepository:
 
         results = repository.get_technology_distribution()
 
-        assert any(
-            row["category"] == "backend"
-            for row in results
-        )
+        assert any(row["category"] == "backend" for row in results)
 
     def test_get_top_skills(self, db_session):
         repository = JobRepository(db_session)
@@ -592,10 +573,7 @@ class TestJobRepository:
 
         results = repository.get_top_skills()
 
-        assert any(
-            row["skill"] == skill.name
-            for row in results
-        )
+        assert any(row["skill"] == skill.name for row in results)
 
     def test_get_top_skills_with_country_filter(self, db_session):
         repository = JobRepository(db_session)
@@ -636,10 +614,7 @@ class TestJobRepository:
             country_code="KE",
         )
 
-        assert any(
-            row["skill"] == skill.name
-            for row in results
-        )
+        assert any(row["skill"] == skill.name for row in results)
 
     def test_get_stats(self, db_session):
         repository = JobRepository(db_session)
@@ -654,15 +629,9 @@ class TestJobRepository:
         assert stats["total_skills"] >= 0
         assert stats["tech_roles"] >= 1
 
-        assert (
-            stats["average_salary_min"] is None
-            or isinstance(stats["average_salary_min"], float)
-        )
+        assert stats["average_salary_min"] is None or isinstance(stats["average_salary_min"], float)
 
-        assert (
-            stats["average_salary_max"] is None
-            or isinstance(stats["average_salary_max"], float)
-        )
+        assert stats["average_salary_max"] is None or isinstance(stats["average_salary_max"], float)
 
     def test_delete_jobs_older_than(self, db_session):
         repository = JobRepository(db_session)
@@ -687,19 +656,9 @@ class TestJobRepository:
 
         assert deleted_count >= 1
 
-        assert (
-            db_session.query(Job)
-            .filter(Job.id == old_job.id)
-            .first()
-            is None
-        )
+        assert db_session.query(Job).filter(Job.id == old_job.id).first() is None
 
-        assert (
-            db_session.query(Job)
-            .filter(Job.id == recent_job.id)
-            .first()
-            is not None
-        )
+        assert db_session.query(Job).filter(Job.id == recent_job.id).first() is not None
 
 
 class TestAnalyticsRepository:
@@ -763,10 +722,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_top_companies(limit=10)
 
-        assert any(
-            row["company"] == company
-            for row in results
-        )
+        assert any(row["company"] == company for row in results)
 
     def test_get_jobs_by_location(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -775,10 +731,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_jobs_by_location(limit=10)
 
-        assert any(
-            row["location"] == "Nairobi"
-            for row in results
-        )
+        assert any(row["location"] == "Nairobi" for row in results)
 
     def test_get_salary_statistics(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -800,10 +753,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_employment_type_distribution()
 
-        assert any(
-            row["employment_type"] == "full-time"
-            for row in results
-        )
+        assert any(row["employment_type"] == "full-time" for row in results)
 
     def test_get_salary_by_location(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -812,10 +762,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_salary_by_location(limit=10)
 
-        assert any(
-            row["location"] == "Nairobi"
-            for row in results
-        )
+        assert any(row["location"] == "Nairobi" for row in results)
 
     def test_get_salary_by_company(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -829,10 +776,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_salary_by_company(limit=10)
 
-        assert any(
-            row["company"] == company
-            for row in results
-        )
+        assert any(row["company"] == company for row in results)
 
     def test_get_jobs_posted_by_date(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -853,10 +797,7 @@ class TestAnalyticsRepository:
             limit=20,
         )
 
-        assert any(
-            result.id == job.id
-            for result in results
-        )
+        assert any(result.id == job.id for result in results)
 
     def test_get_salary_distribution(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -866,10 +807,7 @@ class TestAnalyticsRepository:
         results = repository.get_salary_distribution()
 
         assert len(results) == 8
-        assert all(
-            "range" in row and "count" in row
-            for row in results
-        )
+        assert all("range" in row and "count" in row for row in results)
 
     def test_get_language_distribution(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -881,10 +819,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_language_distribution()
 
-        assert any(
-            row["language"] == "en"
-            for row in results
-        )
+        assert any(row["language"] == "en" for row in results)
 
     def test_get_language_by_country(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -897,11 +832,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_language_by_country()
 
-        assert any(
-            row["country"] == "KE"
-            and row["language"] == "en"
-            for row in results
-        )
+        assert any(row["country"] == "KE" and row["language"] == "en" for row in results)
 
     def test_get_english_vs_non_english(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -933,10 +864,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_language_salary_stats()
 
-        assert any(
-            row["language"] == "en"
-            for row in results
-        )
+        assert any(row["language"] == "en" for row in results)
 
     def test_get_tech_vs_non_tech(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -970,10 +898,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_technology_category_distribution()
 
-        assert any(
-            row["category"] == "backend"
-            for row in results
-        )
+        assert any(row["category"] == "backend" for row in results)
 
     def test_get_tech_by_country(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -986,11 +911,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_tech_by_country()
 
-        assert any(
-            row["country"] == "KE"
-            and row["tech_count"] >= 1
-            for row in results
-        )
+        assert any(row["country"] == "KE" and row["tech_count"] >= 1 for row in results)
 
     def test_get_tech_skills(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -1018,10 +939,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_tech_skills()
 
-        assert any(
-            row["skill"] == skill.name
-            for row in results
-        )
+        assert any(row["skill"] == skill.name for row in results)
 
     def test_get_tech_salary_stats(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -1070,10 +988,7 @@ class TestAnalyticsRepository:
             tech_only=True,
         )
 
-        assert any(
-            row["skill"] == skill.name
-            for row in results
-        )
+        assert any(row["skill"] == skill.name for row in results)
 
     def test_get_country_distribution(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -1085,10 +1000,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_country_distribution()
 
-        assert any(
-            row["country"] == "KE"
-            for row in results
-        )
+        assert any(row["country"] == "KE" for row in results)
 
     def test_get_enriched_salary_statistics(self, db_session):
         repository = AnalyticsRepository(db_session)
@@ -1122,10 +1034,7 @@ class TestAnalyticsRepository:
 
         results = repository.get_technology_distribution()
 
-        assert any(
-            row["category"] == "backend"
-            for row in results
-        )
+        assert any(row["category"] == "backend" for row in results)
 
 
 class TestPipelineRunRepository:

@@ -1,5 +1,4 @@
 import streamlit as st
-
 from schemas.jobs import Job
 
 

@@ -2,22 +2,21 @@
 
 """ETL Pipeline - orchestrates the complete extract-transform-enrich-validate-load flow."""
 
-from typing import Optional, List, Dict, Any
 import logging
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.etl.extractors.jobs_api import JobsExtractor
-from app.etl.transformers.jobs_transformer import JobsTransformer
+from app.database.session import SessionLocal
 from app.etl.enrichment import Enricher
-from app.etl.validators.job_schema import JobValidator
+from app.etl.extractors.jobs_api import JobsExtractor
 from app.etl.loaders.job_loader import JobLoader
 from app.etl.schemas.metrics import PipelineMetrics
 from app.etl.schemas.validated import JobValidated
-from app.database.session import SessionLocal
+from app.etl.transformers.jobs_transformer import JobsTransformer
+from app.etl.validators.job_schema import JobValidator
 from config.settings import settings
-
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +54,13 @@ class ETLPipeline:
         self.enricher = Enricher()
         self.validator = JobValidator()
 
-        self._acquisition_controllers: Dict[str, Any] = {}
-        self._acquisition_metrics: Dict[str, Any] = {}
+        self._acquisition_controllers: dict[str, Any] = {}
+        self._acquisition_metrics: dict[str, Any] = {}
 
     def run(
         self,
-        countries: Optional[list[str]] = None,
-        use_acquisition: Optional[bool] = None,
+        countries: list[str] | None = None,
+        use_acquisition: bool | None = None,
     ) -> PipelineMetrics:
         """
         Run the full ETL pipeline with optional adaptive acquisition.
@@ -133,9 +132,7 @@ class ETLPipeline:
         # ------------------------------------------------------------
         # Pipeline Complete
         # ------------------------------------------------------------
-        duration = (
-            datetime.now(UTC) - start_time
-        ).total_seconds()
+        duration = (datetime.now(UTC) - start_time).total_seconds()
 
         metrics.duration_seconds = duration
 
@@ -160,9 +157,9 @@ class ETLPipeline:
 
     def _run_adaptive_acquisition(
         self,
-        countries: List[str],
+        countries: list[str],
         metrics: PipelineMetrics,
-    ) -> List[JobValidated]:
+    ) -> list[JobValidated]:
         """
         Run adaptive acquisition with batch-level classification feedback.
 
@@ -175,7 +172,7 @@ class ETLPipeline:
         """
         from app.etl.acquisition import AcquisitionController
 
-        all_validated_jobs: List[JobValidated] = []
+        all_validated_jobs: list[JobValidated] = []
 
         session = SessionLocal()
 
@@ -222,9 +219,7 @@ class ETLPipeline:
                         break
 
                     logger.info(f"\n{'─' * 40}")
-                    logger.info(
-                        f"Batch {batch_number + 1}: {query.get('what')}"
-                    )
+                    logger.info(f"Batch {batch_number + 1}: {query.get('what')}")
                     logger.info(f"{'─' * 40}")
 
                     # 2. Extract raw jobs from Adzuna (may return many)
@@ -234,25 +229,17 @@ class ETLPipeline:
                     )
 
                     if not raw_jobs:
-                        logger.warning(
-                            f"No jobs found for query: {query.get('what')}"
-                        )
+                        logger.warning(f"No jobs found for query: {query.get('what')}")
                         batch_number += 1
                         continue
 
-                    logger.info(
-                        f"Extracted {len(raw_jobs)} raw jobs from query"
-                    )
+                    logger.info(f"Extracted {len(raw_jobs)} raw jobs from query")
 
                     # 3. CRITICAL: Limit to batch_size
                     # Calculate how many jobs we can still acquire this run
-                    current_total = (
-                        controller.get_stats().jobs_acquired_this_run
-                    )
+                    current_total = controller.get_stats().jobs_acquired_this_run
 
-                    remaining_capacity = (
-                        controller.max_jobs_per_run - current_total
-                    )
+                    remaining_capacity = controller.max_jobs_per_run - current_total
 
                     # Take only up to batch_size, but don't exceed remaining capacity
                     batch_limit = min(
@@ -269,8 +256,7 @@ class ETLPipeline:
                     batch_raw_jobs = raw_jobs[:batch_limit]
 
                     logger.info(
-                        f"Processing {len(batch_raw_jobs)} jobs "
-                        f"(batch limit: {batch_limit})"
+                        f"Processing {len(batch_raw_jobs)} jobs " f"(batch limit: {batch_limit})"
                     )
 
                     # 4. Add to controller (tracking intent)
@@ -280,9 +266,7 @@ class ETLPipeline:
                         country,
                     )
 
-                    logger.info(
-                        f"Added {added} new jobs, {duplicates} duplicates"
-                    )
+                    logger.info(f"Added {added} new jobs, {duplicates} duplicates")
 
                     metrics.extracted += added
 
@@ -293,9 +277,7 @@ class ETLPipeline:
                     # 5. Transform
                     logger.info("Transforming jobs...")
 
-                    transformed_jobs = self.transformer.transform(
-                        batch_raw_jobs
-                    )
+                    transformed_jobs = self.transformer.transform(batch_raw_jobs)
 
                     metrics.transformed += len(transformed_jobs)
 
@@ -306,9 +288,7 @@ class ETLPipeline:
                     # 6. Enrich (including classification)
                     logger.info("Enriching and classifying jobs...")
 
-                    enriched_jobs = self.enricher.enrich_batch(
-                        transformed_jobs
-                    )
+                    enriched_jobs = self.enricher.enrich_batch(transformed_jobs)
 
                     metrics.enriched += len(enriched_jobs)
 
@@ -317,20 +297,14 @@ class ETLPipeline:
                         continue
 
                     # 7. Update controller with classification results
-                    logger.info(
-                        "Updating controller with classification results..."
-                    )
+                    logger.info("Updating controller with classification results...")
 
-                    controller.update_classification(
-                        enriched_jobs
-                    )
+                    controller.update_classification(enriched_jobs)
 
                     # 8. Validate
                     logger.info("Validating jobs...")
 
-                    validated_jobs = self.validator.validate_batch(
-                        enriched_jobs
-                    )
+                    validated_jobs = self.validator.validate_batch(enriched_jobs)
 
                     metrics.validated += len(validated_jobs)
 
@@ -351,13 +325,8 @@ class ETLPipeline:
                     )
 
                     # 10. Check if we've reached max jobs
-                    if (
-                        controller.get_stats().jobs_acquired_this_run
-                        >= controller.max_jobs_per_run
-                    ):
-                        logger.info(
-                            f"Reached max jobs per run for {country}"
-                        )
+                    if controller.get_stats().jobs_acquired_this_run >= controller.max_jobs_per_run:
+                        logger.info(f"Reached max jobs per run for {country}")
                         break
 
                     batch_number += 1
@@ -383,9 +352,7 @@ class ETLPipeline:
                 )
 
             # Store aggregated metrics for reporting
-            self._acquisition_metrics = (
-                self._aggregate_acquisition_metrics()
-            )
+            self._acquisition_metrics = self._aggregate_acquisition_metrics()
 
             return all_validated_jobs
 
@@ -394,7 +361,7 @@ class ETLPipeline:
 
     def _aggregate_acquisition_metrics(
         self,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Aggregate metrics from all country controllers."""
         if not self._acquisition_controllers:
             return {}
@@ -409,38 +376,26 @@ class ETLPipeline:
         total_batches = 0
         reached_parity_all = True
 
-        for country, controller in (
-            self._acquisition_controllers.items()
-        ):
+        for country, controller in self._acquisition_controllers.items():
             result = controller.get_result()
 
             total_unique += result.unique_count
             total_tech_classified += result.tech_classified_count
-            total_non_tech_classified += (
-                result.non_tech_classified_count
-            )
+            total_non_tech_classified += result.non_tech_classified_count
             total_unclassified += result.unclassified_count
             total_duplicates += result.duplicate_count
             total_broad_queries += result.broad_queries_used
             total_tech_queries += result.tech_queries_used
 
-            total_batches += (
-                result.batch_count
-                if hasattr(result, "batch_count")
-                else 0
-            )
+            total_batches += result.batch_count if hasattr(result, "batch_count") else 0
 
             if not result.reached_parity:
                 reached_parity_all = False
 
-        total_classified = (
-            total_tech_classified + total_non_tech_classified
-        )
+        total_classified = total_tech_classified + total_non_tech_classified
 
         actual_tech_ratio = (
-            total_tech_classified / total_classified
-            if total_classified > 0
-            else 0.0
+            total_tech_classified / total_classified if total_classified > 0 else 0.0
         )
 
         return {
@@ -455,9 +410,7 @@ class ETLPipeline:
             "tech_queries_used": total_tech_queries,
             "total_batches": total_batches,
             "reached_parity_all": reached_parity_all,
-            "countries": list(
-                self._acquisition_controllers.keys()
-            ),
+            "countries": list(self._acquisition_controllers.keys()),
         }
 
     # ------------------------------------------------------------------
@@ -466,16 +419,14 @@ class ETLPipeline:
 
     def _extract_legacy(
         self,
-        countries: List[str],
-    ) -> List[Dict]:
+        countries: list[str],
+    ) -> list[dict[str, Any]]:
         """Legacy extraction without acquisition strategy."""
         all_jobs = []
 
         for country in countries:
             try:
-                country_jobs = self.extractor.extract(
-                    country=country
-                )
+                country_jobs = self.extractor.extract(country=country)
 
                 all_jobs.extend(country_jobs)
 
@@ -501,17 +452,15 @@ class ETLPipeline:
 
     def _process_jobs(
         self,
-        raw_jobs: List[Dict],
+        raw_jobs: list[dict[str, Any]],
         metrics: PipelineMetrics,
-    ) -> List[JobValidated]:
+    ) -> list[JobValidated]:
         """Apply transform, enrich, and validate to a batch of raw jobs."""
 
         # Transform
         logger.info("Transforming jobs...")
 
-        transformed_jobs = self.transformer.transform(
-            raw_jobs
-        )
+        transformed_jobs = self.transformer.transform(raw_jobs)
 
         metrics.transformed = len(transformed_jobs)
 
@@ -522,9 +471,7 @@ class ETLPipeline:
         # Enrich
         logger.info("Enriching jobs...")
 
-        enriched_jobs = self.enricher.enrich_batch(
-            transformed_jobs
-        )
+        enriched_jobs = self.enricher.enrich_batch(transformed_jobs)
 
         metrics.enriched = len(enriched_jobs)
 
@@ -535,9 +482,7 @@ class ETLPipeline:
         # Validate
         logger.info("Validating jobs...")
 
-        validated_jobs = self.validator.validate_batch(
-            enriched_jobs
-        )
+        validated_jobs = self.validator.validate_batch(enriched_jobs)
 
         metrics.validated = len(validated_jobs)
 
@@ -549,7 +494,7 @@ class ETLPipeline:
 
     def _load_jobs(
         self,
-        jobs: List[JobValidated],
+        jobs: list[JobValidated],
         metrics: PipelineMetrics,
     ) -> PipelineMetrics:
         """Load validated jobs to database using bounded batches."""
@@ -580,7 +525,7 @@ class ETLPipeline:
     def _load_jobs_with_session(
         self,
         session: Session,
-        jobs: List[JobValidated],
+        jobs: list[JobValidated],
         metrics: PipelineMetrics,
         commit: bool,
     ) -> PipelineMetrics:
@@ -592,24 +537,19 @@ class ETLPipeline:
             batch_size=100,
         )
 
-        load_metrics = loader.to_metrics(
-            load_result
-        )
+        load_metrics = loader.to_metrics(load_result)
 
         metrics.inserted = load_metrics.inserted
         metrics.updated = load_metrics.updated
         metrics.purged = load_metrics.purged
         metrics.skills_added = load_metrics.skills_added
-        metrics.relationships_added = (
-            load_metrics.relationships_added
-        )
+        metrics.relationships_added = load_metrics.relationships_added
 
         if commit:
             session.commit()
 
         logger.info(
-            "Load complete: inserted=%d, updated=%d, "
-            "skills=%d, relationships=%d",
+            "Load complete: inserted=%d, updated=%d, " "skills=%d, relationships=%d",
             metrics.inserted,
             metrics.updated,
             metrics.skills_added,
@@ -624,16 +564,12 @@ class ETLPipeline:
 
     def get_acquisition_metrics(
         self,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Get aggregated acquisition metrics from the last pipeline run."""
-        return (
-            self._acquisition_metrics
-            if self._acquisition_metrics
-            else None
-        )
+        return self._acquisition_metrics if self._acquisition_metrics else None
 
     def get_acquisition_controllers(
         self,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get the acquisition controllers for each country."""
         return self._acquisition_controllers

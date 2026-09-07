@@ -281,8 +281,7 @@ class Job(Base):
         ),
         # Check constraints for data integrity
         CheckConstraint(
-            "tech_confidence IS NULL OR "
-            "(tech_confidence >= 0.0 AND tech_confidence <= 1.0)",
+            "tech_confidence IS NULL OR " "(tech_confidence >= 0.0 AND tech_confidence <= 1.0)",
             name="ck_job_tech_confidence",
         ),
         CheckConstraint(

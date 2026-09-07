@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 import time
 from uuid import uuid4
 
@@ -16,10 +17,10 @@ try:
 except ImportError:
     # Fallback if metrics module doesn't exist yet
     class DummyMetricsCollector:
-        def record_request(self, endpoint, status_code, duration_ms):
+        def record_request(self, endpoint, status_code, duration_ms):  # type: ignore
             pass
 
-    metrics_collector = DummyMetricsCollector()
+    metrics_collector = DummyMetricsCollector()  # type: ignore[assignment]
 
 
 # Module-level constants (safe access with getattr)
@@ -44,7 +45,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         app.add_middleware(RequestLoggingMiddleware)
     """
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):  # type: ignore
         # Use existing X-Request-ID or generate a new one
         request_id = request.headers.get("X-Request-ID", str(uuid4()))
 
@@ -249,7 +250,7 @@ def get_request_context(request: Request) -> dict[str, str]:
     }
 
 
-def get_task_logger(request: Request, task_name: str):
+def get_task_logger(request: Request, task_name: str):  # type: ignore
     """
     Create a logger for background tasks with request context.
 
@@ -271,7 +272,7 @@ def get_task_logger(request: Request, task_name: str):
     ).bind(task=task_name)
 
 
-def log_elapsed_time(request: Request, operation: str, start_time: float):
+def log_elapsed_time(request: Request, operation: str, start_time: float):  # type: ignore
     """
     Log elapsed time for an operation within a request.
 

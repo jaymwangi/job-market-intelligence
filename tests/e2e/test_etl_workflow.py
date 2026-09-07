@@ -15,10 +15,7 @@ def e2e_raw_jobs():
         {
             "id": "e2e-etl-001",
             "title": "Senior Python Backend Engineer",
-            "description": (
-                "Build APIs using Python, FastAPI, PostgreSQL, Docker, "
-                "and AWS."
-            ),
+            "description": ("Build APIs using Python, FastAPI, PostgreSQL, Docker, " "and AWS."),
             "company": {"display_name": "E2E Tech"},
             "location": {"display_name": "Nairobi, Kenya"},
             "created": "2026-09-04T06:00:00Z",
@@ -35,8 +32,7 @@ def e2e_raw_jobs():
             "id": "e2e-etl-002",
             "title": "Business Operations Coordinator",
             "description": (
-                "Coordinate business operations, reporting, and "
-                "administrative activities."
+                "Coordinate business operations, reporting, and " "administrative activities."
             ),
             "company": {"display_name": "E2E Operations"},
             "location": {"display_name": "Nairobi, Kenya"},
@@ -67,13 +63,11 @@ def _delete_e2e_jobs(db_session, source_ids: list[str]) -> None:
     job_ids = [job.id for job in jobs]
 
     if job_ids:
-        db_session.query(JobSkill).filter(
-            JobSkill.job_id.in_(job_ids)
-        ).delete(synchronize_session=False)
+        db_session.query(JobSkill).filter(JobSkill.job_id.in_(job_ids)).delete(
+            synchronize_session=False
+        )
 
-        db_session.query(Job).filter(
-            Job.id.in_(job_ids)
-        ).delete(synchronize_session=False)
+        db_session.query(Job).filter(Job.id.in_(job_ids)).delete(synchronize_session=False)
 
     db_session.flush()
 
@@ -119,17 +113,9 @@ def test_etl_to_database_persists_complete_job_data(
 
         assert len(jobs) == 2
 
-        tech_job = next(
-            job
-            for job in jobs
-            if job.source_id == "e2e-etl-001"
-        )
+        tech_job = next(job for job in jobs if job.source_id == "e2e-etl-001")
 
-        non_tech_job = next(
-            job
-            for job in jobs
-            if job.source_id == "e2e-etl-002"
-        )
+        non_tech_job = next(job for job in jobs if job.source_id == "e2e-etl-002")
 
         # Core fields persisted.
         assert tech_job.title == "Senior Python Backend Engineer"
@@ -149,17 +135,12 @@ def test_etl_to_database_persists_complete_job_data(
         assert non_tech_job.technology_category is None
 
         # Skills persisted through job-skill relationships.
-        skill_names = {
-            skill.name.lower()
-            for skill in db_session.query(Skill).all()
-        }
+        skill_names = {skill.name.lower() for skill in db_session.query(Skill).all()}
 
         assert "python" in skill_names
 
         relationship_count = (
-            db_session.query(JobSkill)
-            .filter(JobSkill.job_id == tech_job.id)
-            .count()
+            db_session.query(JobSkill).filter(JobSkill.job_id == tech_job.id).count()
         )
 
         assert relationship_count > 0
@@ -192,11 +173,7 @@ def test_etl_database_state_is_queryable(
             use_acquisition=False,
         )
 
-        total = (
-            db_session.query(Job)
-            .filter(Job.source_id.in_(source_ids))
-            .count()
-        )
+        total = db_session.query(Job).filter(Job.source_id.in_(source_ids)).count()
 
         tech_total = (
             db_session.query(Job)

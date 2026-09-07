@@ -17,21 +17,24 @@ The configuration is loaded once and cached for performance.
 
 import re
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Tuple
+from typing import Any
+
 import yaml
 from packaging.version import Version
-
 
 # ============================================================
 # Custom Exceptions
 # ============================================================
 
+
 class ConfigurationError(Exception):
     """Raised when configuration is invalid."""
+
     pass
 
 
@@ -39,9 +42,11 @@ class ConfigurationError(Exception):
 # Enums
 # ============================================================
 
-class CategoryRole(str, Enum):
+
+class CategoryRole(StrEnum):
     """Role of a category in the hierarchy."""
-    PARENT = "parent"          # Top-level parent category
+
+    PARENT = "parent"  # Top-level parent category
     SPECIALIZATION = "specialization"  # Child of a parent
     STANDALONE = "standalone"  # Independent category
 
@@ -49,6 +54,7 @@ class CategoryRole(str, Enum):
 # ============================================================
 # Data Classes
 # ============================================================
+
 
 @dataclass(frozen=True, slots=True)
 class CategoryConfig:
@@ -63,55 +69,57 @@ class CategoryConfig:
     is_tech: bool
     weight: float
     keywords: Mapping[str, int] = field(default_factory=dict)
-    negative_keywords: List[str] = field(default_factory=list)
-    regex: List[str] = field(default_factory=list)
-    
+    negative_keywords: list[str] = field(default_factory=list)
+    regex: list[str] = field(default_factory=list)
+
     # Hierarchy metadata
-    parent: Optional[str] = None
+    parent: str | None = None
     role: CategoryRole = CategoryRole.STANDALONE
-    
+
     # Title pattern metadata
     strength: str = "potential"  # strong, potential, adjacent, ambiguous
-    specificity: str = "medium"   # high, medium, low
+    specificity: str = "medium"  # high, medium, low
 
 
 @dataclass(frozen=True, slots=True)
 class TitlePatternConfig:
     """Configuration for a title pattern with strength metadata."""
-    
+
     pattern: str
-    categories: Tuple[str, ...] = field(default_factory=tuple)
+    categories: tuple[str, ...] = field(default_factory=tuple)
     weight: float = 8.0
     strength: str = "potential"
     specificity: str = "medium"
-    
-    def __post_init__(self):
+
+    def __post_init__(self) -> None:
         """Validate pattern and compile regex."""
         if not self.pattern or not isinstance(self.pattern, str):
-            raise ConfigurationError(f"Title pattern must be a non-empty string, got {type(self.pattern)}")
-        if isinstance(self.categories, list):
-            object.__setattr__(self, 'categories', tuple(self.categories))
+            raise ConfigurationError(
+                f"Title pattern must be a non-empty string, got {type(self.pattern)}"
+            )
+        if isinstance(self.categories, list):  # type: ignore[unreachable]  # type: ignore[unreachable]
+            object.__setattr__(self, "categories", tuple(self.categories))  # type: ignore[unreachable]  # type: ignore[unreachable]
         try:
             re.compile(self.pattern, re.IGNORECASE)
         except re.error as e:
             raise ConfigurationError(f"Invalid regex pattern '{self.pattern}': {e}")
-    
+
     @property
     def is_strong(self) -> bool:
         return self.strength == "strong"
-    
+
     @property
     def is_potential(self) -> bool:
         return self.strength == "potential"
-    
+
     @property
     def is_adjacent(self) -> bool:
         return self.strength == "adjacent"
-    
+
     @property
     def is_ambiguous(self) -> bool:
         return self.strength == "ambiguous"
-    
+
     @property
     def strength_priority(self) -> int:
         priorities = {"strong": 4, "potential": 3, "adjacent": 2, "ambiguous": 1}
@@ -129,23 +137,23 @@ class ClassificationConfig:
     weights: Mapping[str, float]
     thresholds: Mapping[str, float]
     boosts: Mapping[str, float]
-    category_priority: List[str]
+    category_priority: list[str]
 
     # Matching
     matching: Mapping[str, float]
 
     # Aliases and stopwords
     aliases: Mapping[str, str]
-    stopwords: Set[str]
+    stopwords: set[str]
 
     # Categories
     categories: Mapping[str, CategoryConfig]
 
     # Category-specific thresholds (single source of truth)
     category_thresholds: Mapping[str, Mapping[str, float]]
-    
+
     # Title patterns with strength metadata
-    tech_title_patterns: List[TitlePatternConfig] = field(default_factory=list)
+    tech_title_patterns: list[TitlePatternConfig] = field(default_factory=list)
 
     # Classification policy settings
     classification: Mapping[str, Any] = field(default_factory=dict)
@@ -153,10 +161,10 @@ class ClassificationConfig:
 
     # Precomputed display name lookup (O(1))
     _display_name_lookup: Mapping[str, str] = field(default_factory=dict, repr=False)
-    
+
     # Precomputed taxonomy structures (O(1) lookups)
-    _children: Mapping[str, Set[str]] = field(default_factory=dict, repr=False)
-    _parents: Mapping[str, Optional[str]] = field(default_factory=dict, repr=False)
+    _children: Mapping[str, set[str]] = field(default_factory=dict, repr=False)
+    _parents: Mapping[str, str | None] = field(default_factory=dict, repr=False)
     _roles: Mapping[str, CategoryRole] = field(default_factory=dict, repr=False)
 
 
@@ -164,15 +172,16 @@ class ClassificationConfig:
 # Configuration Loader
 # ============================================================
 
+
 class ClassificationConfigLoader:
     """Load and cache classification configuration from YAML."""
 
-    _config: Optional[ClassificationConfig] = None
-    _config_path: Optional[Path] = None
+    _config: ClassificationConfig | None = None
+    _config_path: Path | None = None
 
     # Compiled regex patterns cache
-    _compiled_regex: Dict[str, List[re.Pattern]] = {}
-    _compiled_title_patterns: Dict[str, re.Pattern] = {}
+    _compiled_regex: dict[str, list[re.Pattern[str]]] = {}
+    _compiled_title_patterns: dict[str, re.Pattern[str]] = {}
 
     # Supported major version
     SUPPORTED_MAJOR_VERSION = 3
@@ -219,7 +228,7 @@ class ClassificationConfigLoader:
     }
 
     @classmethod
-    def load(cls, config_path: Optional[Path] = None) -> ClassificationConfig:
+    def load(cls, config_path: Path | None = None) -> ClassificationConfig:
         """Load configuration from YAML file.
 
         Args:
@@ -262,7 +271,7 @@ class ClassificationConfigLoader:
         # Parse and validate
         config = cls._parse_config(raw_data)
         cls._validate_config(config)
-        
+
         # Build taxonomy structures
         config = cls._build_taxonomy(config)
 
@@ -294,48 +303,46 @@ class ClassificationConfigLoader:
         return Path(__file__).resolve().parents[3] / "config" / "tech_classification.yaml"
 
     @classmethod
-    def _validate_required_sections(cls, raw_data: Dict[str, Any]) -> None:
+    def _validate_required_sections(cls, raw_data: dict[str, Any]) -> None:
         """Validate all required sections exist in raw data."""
         missing = cls.REQUIRED_SECTIONS - set(raw_data.keys())
         if missing:
-            raise ConfigurationError(
-                f"Missing required sections: {', '.join(sorted(missing))}"
-            )
+            raise ConfigurationError(f"Missing required sections: {', '.join(sorted(missing))}")
 
     @classmethod
-    def _normalize_alias_table(cls, raw_aliases: Dict[str, str]) -> Dict[str, str]:
+    def _normalize_alias_table(cls, raw_aliases: dict[str, str]) -> dict[str, str]:
         """Normalize aliases: strip, lowercase, and detect duplicate keys."""
-        normalized: Dict[str, str] = {}
-        
+        normalized: dict[str, str] = {}
+
         for alias, target in raw_aliases.items():
             normalized_alias = alias.strip().lower()
             normalized_target = target.strip().lower()
-            
+
             if not normalized_alias:
                 raise ConfigurationError(f"Empty alias key: '{alias}'")
             if not normalized_target:
                 raise ConfigurationError(f"Empty alias target: '{target}'")
-            
+
             # Check for duplicate alias key only (allow many-to-one mappings)
             if normalized_alias in normalized:
                 raise ConfigurationError(
                     f"Duplicate alias key: '{alias}' and '{normalized_alias}' both map to "
                     f"'{normalized_target}' (previous target: '{normalized[normalized_alias]}')"
                 )
-            
+
             normalized[normalized_alias] = normalized_target
-        
+
         return normalized
 
     @classmethod
     def _normalize_keywords(
         cls,
-        raw_keywords: Dict[str, int],
-        aliases: Dict[str, str],
+        raw_keywords: dict[str, int],
+        aliases: dict[str, str],
         category_id: str,
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """Normalize keywords using aliases, handling collisions."""
-        normalized: Dict[str, int] = {}
+        normalized: dict[str, int] = {}
 
         for raw_kw, weight in raw_keywords.items():
             # Validate weight
@@ -363,38 +370,40 @@ class ClassificationConfigLoader:
         return normalized
 
     @classmethod
-    def _parse_title_patterns(cls, raw_patterns: List[Any]) -> List[TitlePatternConfig]:
+    def _parse_title_patterns(cls, raw_patterns: list[Any]) -> list[TitlePatternConfig]:
         """Parse title patterns from raw configuration."""
-        patterns: List[TitlePatternConfig] = []
-        
+        patterns: list[TitlePatternConfig] = []
+
         for pattern_config in raw_patterns:
             if isinstance(pattern_config, str):
                 # Simple string pattern
-                patterns.append(TitlePatternConfig(
-                    pattern=pattern_config,
-                    categories=(),
-                    weight=8.0,
-                    strength="potential",
-                    specificity="medium"
-                ))
+                patterns.append(
+                    TitlePatternConfig(
+                        pattern=pattern_config,
+                        categories=(),
+                        weight=8.0,
+                        strength="potential",
+                        specificity="medium",
+                    )
+                )
             elif isinstance(pattern_config, dict):
                 # Full pattern configuration
-                patterns.append(TitlePatternConfig(
-                    pattern=pattern_config.get('pattern', ''),
-                    categories=tuple(pattern_config.get('categories', [])),
-                    weight=float(pattern_config.get('weight', 8.0)),
-                    strength=pattern_config.get('strength', 'potential'),
-                    specificity=pattern_config.get('specificity', 'medium')
-                ))
-            else:
-                raise ConfigurationError(
-                    f"Invalid title pattern type: {type(pattern_config)}"
+                patterns.append(
+                    TitlePatternConfig(
+                        pattern=pattern_config.get("pattern", ""),
+                        categories=tuple(pattern_config.get("categories", [])),
+                        weight=float(pattern_config.get("weight", 8.0)),
+                        strength=pattern_config.get("strength", "potential"),
+                        specificity=pattern_config.get("specificity", "medium"),
+                    )
                 )
-        
+            else:
+                raise ConfigurationError(f"Invalid title pattern type: {type(pattern_config)}")
+
         return patterns
 
     @classmethod
-    def _parse_config(cls, raw_data: Dict[str, Any]) -> ClassificationConfig:
+    def _parse_config(cls, raw_data: dict[str, Any]) -> ClassificationConfig:
         """Parse raw YAML data into a ClassificationConfig."""
 
         # Normalize aliases first (they're used in keyword normalization)
@@ -402,8 +411,8 @@ class ClassificationConfigLoader:
         aliases = cls._normalize_alias_table(raw_aliases)
 
         # Parse categories with normalized keywords
-        categories: Dict[str, CategoryConfig] = {}
-        display_name_lookup: Dict[str, str] = {}
+        categories: dict[str, CategoryConfig] = {}
+        display_name_lookup: dict[str, str] = {}
 
         for cat_id, cat_data in raw_data.get("categories", {}).items():
             raw_keywords = cat_data.get("keywords", {})
@@ -476,14 +485,14 @@ class ClassificationConfigLoader:
     @classmethod
     def _build_taxonomy(cls, config: ClassificationConfig) -> ClassificationConfig:
         """Build taxonomy structures for O(1) lookups."""
-        children: Dict[str, Set[str]] = defaultdict(set)
-        parents: Dict[str, Optional[str]] = {}
-        roles: Dict[str, CategoryRole] = {}
+        children: dict[str, set[str]] = defaultdict(set)
+        parents: dict[str, str | None] = {}
+        roles: dict[str, CategoryRole] = {}
 
         for cat_id, cat in config.categories.items():
             parents[cat_id] = cat.parent
             roles[cat_id] = cat.role
-            
+
             if cat.parent:
                 # Validate parent exists
                 if cat.parent not in config.categories:
@@ -558,7 +567,7 @@ class ClassificationConfigLoader:
         return isinstance(value, (int, float)) and not isinstance(value, bool)
 
     @classmethod
-    def _validate_version(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_version(cls, config: ClassificationConfig) -> list[str]:
         """Validate version compatibility."""
         errors = []
         version_str = config.version
@@ -576,7 +585,7 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_weights(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_weights(cls, config: ClassificationConfig) -> list[str]:
         """Validate weights section."""
         errors = []
         weights = config.weights
@@ -601,7 +610,7 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_thresholds(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_thresholds(cls, config: ClassificationConfig) -> list[str]:
         """Validate thresholds section."""
         errors = []
         thresholds = config.thresholds
@@ -619,7 +628,7 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_boosts(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_boosts(cls, config: ClassificationConfig) -> list[str]:
         """Validate boosts section."""
         errors = []
         boosts = config.boosts
@@ -637,7 +646,7 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_matching(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_matching(cls, config: ClassificationConfig) -> list[str]:
         """Validate matching section."""
         errors = []
         matching = config.matching
@@ -655,7 +664,7 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_priority(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_priority(cls, config: ClassificationConfig) -> list[str]:
         """Validate category priority."""
         errors = []
         for cat_id in config.category_priority:
@@ -664,7 +673,7 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_categories(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_categories(cls, config: ClassificationConfig) -> list[str]:
         """Validate category definitions."""
         errors = []
         seen_ids = set()
@@ -691,16 +700,13 @@ class ClassificationConfigLoader:
                 try:
                     re.compile(pattern, re.IGNORECASE)
                 except re.error as e:
-                    errors.append(
-                        f"Invalid regex in category '{cat_id}': '{pattern}' - {e}"
-                    )
+                    errors.append(f"Invalid regex in category '{cat_id}': '{pattern}' - {e}")
 
             # Validate keywords (already validated during parsing, but double-check)
             for kw, weight in cat.keywords.items():
                 if not cls._is_numeric(weight) or weight <= 0:
                     errors.append(
-                        f"Keyword '{kw}' in category '{cat_id}' "
-                        f"has invalid weight: {weight}"
+                        f"Keyword '{kw}' in category '{cat_id}' " f"has invalid weight: {weight}"
                     )
 
             # Validate strength value
@@ -722,7 +728,7 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_aliases(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_aliases(cls, config: ClassificationConfig) -> list[str]:
         """Validate aliases."""
         errors = []
 
@@ -733,16 +739,14 @@ class ClassificationConfigLoader:
                 errors.append(f"Empty alias target: '{alias}' -> '{target}'")
 
         return errors
-    
+
     @classmethod
-    def _validate_category_thresholds(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_category_thresholds(cls, config: ClassificationConfig) -> list[str]:
         """Validate category-specific thresholds reference existing categories."""
         errors = []
         for cat_id in config.category_thresholds:
             if cat_id not in config.categories:
-                errors.append(
-                    f"Category '{cat_id}' in category_thresholds not found in categories"
-                )
+                errors.append(f"Category '{cat_id}' in category_thresholds not found in categories")
             else:
                 # Validate threshold values
                 for key, value in config.category_thresholds[cat_id].items():
@@ -759,12 +763,12 @@ class ClassificationConfigLoader:
         return errors
 
     @classmethod
-    def _validate_title_patterns(cls, config: ClassificationConfig) -> List[str]:
+    def _validate_title_patterns(cls, config: ClassificationConfig) -> list[str]:
         """Validate title patterns."""
         errors = []
         valid_strengths = {"strong", "potential", "adjacent", "ambiguous"}
         valid_specificities = {"high", "medium", "low"}
-        
+
         for idx, pattern in enumerate(config.tech_title_patterns):
             # Validate strength
             if pattern.strength not in valid_strengths:
@@ -772,28 +776,26 @@ class ClassificationConfigLoader:
                     f"Title pattern #{idx} has invalid strength '{pattern.strength}'. "
                     f"Must be one of: {valid_strengths}"
                 )
-            
+
             # Validate specificity
             if pattern.specificity not in valid_specificities:
                 errors.append(
                     f"Title pattern #{idx} has invalid specificity '{pattern.specificity}'. "
                     f"Must be one of: {valid_specificities}"
                 )
-            
+
             # Validate weight
             if not cls._is_numeric(pattern.weight) or pattern.weight <= 0:
                 errors.append(
                     f"Title pattern #{idx} has invalid weight '{pattern.weight}'. "
                     f"Must be positive numeric value"
                 )
-            
+
             # Validate categories exist
             for cat_id in pattern.categories:
                 if cat_id not in config.categories:
-                    errors.append(
-                        f"Title pattern #{idx} references unknown category '{cat_id}'"
-                    )
-        
+                    errors.append(f"Title pattern #{idx} references unknown category '{cat_id}'")
+
         return errors
 
     @classmethod
@@ -804,19 +806,19 @@ class ClassificationConfigLoader:
         return cls._config
 
     @classmethod
-    def get_category(cls, category_id: str) -> Optional[CategoryConfig]:
+    def get_category(cls, category_id: str) -> CategoryConfig | None:
         """Get configuration for a specific category."""
         config = cls.get_config()
         return config.categories.get(category_id)
 
     @classmethod
-    def get_tech_categories(cls) -> List[str]:
+    def get_tech_categories(cls) -> list[str]:
         """Get all tech category IDs."""
         config = cls.get_config()
         return [cat_id for cat_id, cat in config.categories.items() if cat.is_tech]
 
     @classmethod
-    def get_non_tech_categories(cls) -> List[str]:
+    def get_non_tech_categories(cls) -> list[str]:
         """Get all non-tech category IDs."""
         config = cls.get_config()
         return [cat_id for cat_id, cat in config.categories.items() if not cat.is_tech]
@@ -835,7 +837,7 @@ class ClassificationConfigLoader:
         return word.strip().lower() in config.stopwords
 
     @classmethod
-    def get_compiled_regex(cls, category_id: str) -> List[re.Pattern]:
+    def get_compiled_regex(cls, category_id: str) -> list[re.Pattern[str]]:
         """Get compiled regex patterns for a category."""
         config = cls.get_config()
         category = config.categories.get(category_id)
@@ -857,16 +859,16 @@ class ClassificationConfigLoader:
         return patterns
 
     @classmethod
-    def get_compiled_title_patterns(cls) -> Dict[str, List[re.Pattern]]:
+    def get_compiled_title_patterns(cls) -> dict[str, list[re.Pattern[str]]]:
         """Get compiled title patterns grouped by strength."""
         config = cls.get_config()
-        patterns_by_strength: Dict[str, List[re.Pattern]] = {
+        patterns_by_strength: dict[str, list[re.Pattern[str]]] = {
             "strong": [],
             "potential": [],
             "adjacent": [],
             "ambiguous": [],
         }
-        
+
         for pattern_config in config.tech_title_patterns:
             try:
                 compiled = re.compile(pattern_config.pattern, re.IGNORECASE)
@@ -874,11 +876,11 @@ class ClassificationConfigLoader:
             except re.error:
                 # Should have been caught during validation
                 continue
-        
+
         return patterns_by_strength
 
     @classmethod
-    def get_effective_thresholds(cls, category_id: str) -> Dict[str, float]:
+    def get_effective_thresholds(cls, category_id: str) -> dict[str, float]:
         """Get effective thresholds for a category (global + category-specific)."""
         config = cls.get_config()
 
@@ -901,8 +903,8 @@ class ClassificationConfigLoader:
     def get_effective_thresholds_with_defaults(
         cls,
         category_id: str,
-        defaults: Optional[Dict[str, float]] = None,
-    ) -> Dict[str, float]:
+        defaults: dict[str, float] | None = None,
+    ) -> dict[str, float]:
         """
         Get effective thresholds with custom defaults.
 
@@ -927,7 +929,9 @@ class ClassificationConfigLoader:
         config = cls.get_config()
 
         # Apply global thresholds from config
-        thresholds["tech_minimum"] = config.thresholds.get("tech_minimum", thresholds["tech_minimum"])
+        thresholds["tech_minimum"] = config.thresholds.get(
+            "tech_minimum", thresholds["tech_minimum"]
+        )
         thresholds["high_confidence"] = config.thresholds.get("high_confidence", 70.0)
         thresholds["medium_confidence"] = config.thresholds.get("medium_confidence", 50.0)
         thresholds["low_confidence"] = config.thresholds.get("low_confidence", 30.0)
@@ -942,19 +946,19 @@ class ClassificationConfigLoader:
         return thresholds
 
     @classmethod
-    def get_classification_settings(cls) -> Dict[str, Any]:
+    def get_classification_settings(cls) -> dict[str, Any]:
         """Get classification policy settings from configuration."""
         config = cls.get_config()
         return dict(config.classification) if config.classification else {}
 
     @classmethod
-    def get_tech_title_patterns(cls) -> List[TitlePatternConfig]:
+    def get_tech_title_patterns(cls) -> list[TitlePatternConfig]:
         """Get tech title patterns from configuration."""
         config = cls.get_config()
         return config.tech_title_patterns
 
     @classmethod
-    def get_category_families(cls) -> Dict[str, List[str]]:
+    def get_category_families(cls) -> dict[str, list[str]]:
         """Get categories grouped by family."""
         config = cls.get_config()
         families = defaultdict(list)
@@ -963,7 +967,7 @@ class ClassificationConfigLoader:
         return dict(families)
 
     @classmethod
-    def get_category_by_id_or_display_name(cls, name: str) -> Optional[CategoryConfig]:
+    def get_category_by_id_or_display_name(cls, name: str) -> CategoryConfig | None:
         """Get category by either ID or display name (O(1) lookup)."""
         config = cls.get_config()
 
@@ -980,7 +984,7 @@ class ClassificationConfigLoader:
         return None
 
     @classmethod
-    def get_category_by_display_name(cls, display_name: str) -> Optional[CategoryConfig]:
+    def get_category_by_display_name(cls, display_name: str) -> CategoryConfig | None:
         """Get category by display name (O(1) lookup)."""
         config = cls.get_config()
         name_lower = display_name.lower()
@@ -1015,7 +1019,7 @@ class ClassificationConfigLoader:
             return False
 
         config = cls.get_config()
-        
+
         # Check if second is the parent of first
         if config._parents.get(first) == second:
             return False
@@ -1030,8 +1034,8 @@ class ClassificationConfigLoader:
     def get_competing_categories(
         cls,
         primary_category: str,
-        sorted_categories: List[Any],
-    ) -> List[Any]:
+        sorted_categories: list[Any],
+    ) -> list[Any]:
         """
         Get categories that should legitimately compete with the primary.
 
@@ -1043,14 +1047,11 @@ class ClassificationConfigLoader:
             List of (category_id, score) tuples that should compete
         """
         config = cls.get_config()
-        
+
         if primary_category not in config.categories:
             return sorted_categories[1:]
 
-        return [
-            item for item in sorted_categories[1:]
-            if cls.competes(primary_category, item[0])
-        ]
+        return [item for item in sorted_categories[1:] if cls.competes(primary_category, item[0])]
 
     @classmethod
     def is_parent(cls, category_id: str) -> bool:
@@ -1065,45 +1066,42 @@ class ClassificationConfigLoader:
         return config._roles.get(category_id) == CategoryRole.SPECIALIZATION
 
     @classmethod
-    def get_children(cls, category_id: str) -> List[str]:
+    def get_children(cls, category_id: str) -> list[str]:
         """Get all children of a category."""
         config = cls.get_config()
         return list(config._children.get(category_id, set()))
 
     @classmethod
-    def get_parent(cls, category_id: str) -> Optional[str]:
+    def get_parent(cls, category_id: str) -> str | None:
         """Get the parent of a category."""
         config = cls.get_config()
         return config._parents.get(category_id)
 
     @classmethod
-    def get_role(cls, category_id: str) -> Optional[CategoryRole]:
+    def get_role(cls, category_id: str) -> CategoryRole | None:
         """Get the role of a category."""
         config = cls.get_config()
         return config._roles.get(category_id)
 
     @classmethod
-    def get_all_parents(cls) -> List[str]:
+    def get_all_parents(cls) -> list[str]:
         """Get all parent category IDs."""
         config = cls.get_config()
-        return [
-            cat_id for cat_id, role in config._roles.items()
-            if role == CategoryRole.PARENT
-        ]
+        return [cat_id for cat_id, role in config._roles.items() if role == CategoryRole.PARENT]
 
     @classmethod
-    def get_all_specializations(cls) -> List[str]:
+    def get_all_specializations(cls) -> list[str]:
         """Get all specialization category IDs."""
         config = cls.get_config()
         return [
-            cat_id for cat_id, role in config._roles.items()
-            if role == CategoryRole.SPECIALIZATION
+            cat_id for cat_id, role in config._roles.items() if role == CategoryRole.SPECIALIZATION
         ]
 
 
 # ============================================================
 # Convenience Functions
 # ============================================================
+
 
 @lru_cache(maxsize=1)
 def get_config() -> ClassificationConfig:
@@ -1112,7 +1110,7 @@ def get_config() -> ClassificationConfig:
 
 
 @lru_cache(maxsize=128)
-def get_category_config(category_id: str) -> Optional[CategoryConfig]:
+def get_category_config(category_id: str) -> CategoryConfig | None:
     """Get configuration for a specific category (cached)."""
     return ClassificationConfigLoader.get_category(category_id)
 
@@ -1132,34 +1130,33 @@ def reload_config() -> ClassificationConfig:
     return ClassificationConfigLoader.reload()
 
 
-def get_classification_settings() -> Dict[str, Any]:
+def get_classification_settings() -> dict[str, Any]:
     """Get classification policy settings from configuration."""
     return ClassificationConfigLoader.get_classification_settings()
 
 
-def get_tech_title_patterns() -> List[TitlePatternConfig]:
+def get_tech_title_patterns() -> list[TitlePatternConfig]:
     """Get tech title patterns from configuration."""
     return ClassificationConfigLoader.get_tech_title_patterns()
 
 
-def get_compiled_title_patterns() -> Dict[str, List[re.Pattern]]:
+def get_compiled_title_patterns() -> dict[str, list[re.Pattern[str]]]:
     """Get compiled title patterns grouped by strength."""
     return ClassificationConfigLoader.get_compiled_title_patterns()
 
 
 def get_effective_thresholds(
     category_id: str,
-    defaults: Optional[Dict[str, float]] = None,
-) -> Dict[str, float]:
+    defaults: dict[str, float] | None = None,
+) -> dict[str, float]:
     """Get effective thresholds with custom defaults."""
-    return ClassificationConfigLoader.get_effective_thresholds_with_defaults(
-        category_id, defaults
-    )
+    return ClassificationConfigLoader.get_effective_thresholds_with_defaults(category_id, defaults)
 
 
 # ============================================================
 # Taxonomy Convenience Functions
 # ============================================================
+
 
 def competes(first: str, second: str) -> bool:
     """Determine if two categories should compete."""
@@ -1168,12 +1165,10 @@ def competes(first: str, second: str) -> bool:
 
 def get_competing_categories(
     primary_category: str,
-    sorted_categories: List[Any],
-) -> List[Any]:
+    sorted_categories: list[Any],
+) -> list[Any]:
     """Get categories that should compete with the primary."""
-    return ClassificationConfigLoader.get_competing_categories(
-        primary_category, sorted_categories
-    )
+    return ClassificationConfigLoader.get_competing_categories(primary_category, sorted_categories)
 
 
 def is_parent(category_id: str) -> bool:
@@ -1186,27 +1181,27 @@ def is_specialization(category_id: str) -> bool:
     return ClassificationConfigLoader.is_specialization(category_id)
 
 
-def get_children(category_id: str) -> List[str]:
+def get_children(category_id: str) -> list[str]:
     """Get all children of a category."""
     return ClassificationConfigLoader.get_children(category_id)
 
 
-def get_parent(category_id: str) -> Optional[str]:
+def get_parent(category_id: str) -> str | None:
     """Get the parent of a category."""
     return ClassificationConfigLoader.get_parent(category_id)
 
 
-def get_role(category_id: str) -> Optional[CategoryRole]:
+def get_role(category_id: str) -> CategoryRole | None:
     """Get the role of a category."""
     return ClassificationConfigLoader.get_role(category_id)
 
 
-def get_all_parents() -> List[str]:
+def get_all_parents() -> list[str]:
     """Get all parent category IDs."""
     return ClassificationConfigLoader.get_all_parents()
 
 
-def get_all_specializations() -> List[str]:
+def get_all_specializations() -> list[str]:
     """Get all specialization category IDs."""
     return ClassificationConfigLoader.get_all_specializations()
 

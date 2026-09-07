@@ -2,7 +2,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-
 # ============================================================
 # Existing Schemas (unchanged)
 # ============================================================
@@ -111,7 +110,7 @@ class OverviewResponse(BaseModel):
 class DashboardSummaryResponse(BaseModel):
     """
     Dashboard-oriented response for Streamlit frontend.
-    
+
     Contains all metrics needed for the main dashboard view.
     """
 

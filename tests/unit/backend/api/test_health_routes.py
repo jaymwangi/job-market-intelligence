@@ -3,7 +3,7 @@ Unit tests for health check API routes.
 """
 
 from datetime import datetime
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -51,7 +51,9 @@ class TestHealthRoutes:
         mock_log = MagicMock()
         mock_db.execute.side_effect = AttributeError("No such attribute")
 
-        with patch("app.api.routes.health.check_db_health", side_effect=Exception("Unexpected error")):
+        with patch(
+            "app.api.routes.health.check_db_health", side_effect=Exception("Unexpected error")
+        ):
             is_healthy, response_ms = check_database_connection_with_timing(mock_db, mock_log)
             assert is_healthy is False
             assert response_ms == 0
@@ -62,8 +64,7 @@ class TestHealthRoutes:
         mock_db = Mock()
         mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
         mocker.patch(
-            "app.api.routes.health.check_database_connection_with_timing",
-            return_value=(True, 10.5)
+            "app.api.routes.health.check_database_connection_with_timing", return_value=(True, 10.5)
         )
 
         response = client.get("/api/v1/health")
@@ -80,8 +81,7 @@ class TestHealthRoutes:
         mock_db = Mock()
         mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
         mocker.patch(
-            "app.api.routes.health.check_database_connection_with_timing",
-            return_value=(False, 0)
+            "app.api.routes.health.check_database_connection_with_timing", return_value=(False, 0)
         )
 
         response = client.get("/api/v1/health")
@@ -97,8 +97,7 @@ class TestHealthRoutes:
         mock_db = Mock()
         mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
         mocker.patch(
-            "app.api.routes.health.check_database_connection_with_timing",
-            return_value=(True, 10.0)
+            "app.api.routes.health.check_database_connection_with_timing", return_value=(True, 10.0)
         )
 
         response = client.get("/api/v1/health")
@@ -112,8 +111,7 @@ class TestHealthRoutes:
         mock_db = Mock()
         mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
         mocker.patch(
-            "app.api.routes.health.check_database_connection_with_timing",
-            return_value=(True, 10.0)
+            "app.api.routes.health.check_database_connection_with_timing", return_value=(True, 10.0)
         )
 
         response = client.get("/api/v1/health")
@@ -130,16 +128,20 @@ class TestHealthRoutes:
         mock_db = Mock()
         mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
         mocker.patch(
-            "app.api.routes.health.check_database_connection_with_timing",
-            return_value=(True, 10.0)
+            "app.api.routes.health.check_database_connection_with_timing", return_value=(True, 10.0)
         )
 
         response = client.get("/api/v1/health")
         data = response.json()
 
         expected_fields = {
-            "status", "database", "database_response_ms", 
-            "environment", "version", "uptime_seconds", "timestamp"
+            "status",
+            "database",
+            "database_response_ms",
+            "environment",
+            "version",
+            "uptime_seconds",
+            "timestamp",
         }
         assert set(data.keys()) == expected_fields
 
@@ -156,8 +158,7 @@ class TestHealthRoutes:
         mock_db = Mock()
         mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
         mocker.patch(
-            "app.api.routes.health.check_database_connection_with_timing",
-            return_value=(True, 5.0)
+            "app.api.routes.health.check_database_connection_with_timing", return_value=(True, 5.0)
         )
 
         response = client.get("/api/v1/health/ready")
@@ -171,8 +172,7 @@ class TestHealthRoutes:
         mock_db = Mock()
         mocker.patch("app.api.routes.health.get_db", return_value=mock_db)
         mocker.patch(
-            "app.api.routes.health.check_database_connection_with_timing",
-            return_value=(False, 0)
+            "app.api.routes.health.check_database_connection_with_timing", return_value=(False, 0)
         )
 
         response = client.get("/api/v1/health/ready")
@@ -205,7 +205,7 @@ class TestHealthRoutes:
         assert data["database"] == "PostgreSQL"
         assert "response_time_ms" in data
         assert "connection_pool_size" in data
-    
+
     def test_database_health_endpoint_failure(self, client):
         """Test database health endpoint when database is unhealthy using dependency_overrides."""
         # Create a mock session that raises an exception

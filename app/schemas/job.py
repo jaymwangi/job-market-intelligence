@@ -1,9 +1,9 @@
 """Job API schemas."""
 
 from datetime import datetime
-from uuid import UUID
-from typing import TYPE_CHECKING
 from decimal import Decimal
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,10 +14,10 @@ if TYPE_CHECKING:
 def _to_float(value: Decimal | float | None) -> float | None:
     """
     Convert Decimal to float, return None if value is None.
-    
+
     Args:
         value: Decimal, float, or None
-        
+
     Returns:
         float or None
     """

@@ -2,6 +2,7 @@ import os
 import platform
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI, Request
 from starlette.routing import Route, WebSocketRoute
@@ -82,7 +83,7 @@ def validate_configuration() -> None:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Application lifecycle management.
 
@@ -211,7 +212,7 @@ app = create_app()
 
 
 @app.get("/", include_in_schema=False)
-async def root() -> dict:
+async def root() -> dict[str, Any]:
     """
     Root endpoint with API information.
 
@@ -221,7 +222,7 @@ async def root() -> dict:
     is_production = settings.is_production  # FIXED
     docs_enabled = not is_production
 
-    response: dict = {
+    response: dict[str, Any] = {
         "name": settings.api_title,
         "version": settings.api_version,
         "environment": settings.environment,
@@ -252,18 +253,18 @@ if settings.debug:
     from fastapi import Request
 
     @app.get("/debug/headers", include_in_schema=False)
-    async def debug_headers(request: Request):
+    async def debug_headers(request: Request) -> dict[str, str]:
         """
         Debug endpoint to inspect request headers.
         Only available in debug mode.
         """
         return {
-            "headers": dict(request.headers),
+            "headers": dict(request.headers),  # type: ignore[dict-item]
             "request_id": getattr(request.state, "request_id", "-"),
         }
 
     @app.get("/debug/time", include_in_schema=False)
-    async def debug_time():
+    async def debug_time() -> dict[str, str]:
         """
         Debug endpoint to check server time.
         Only available in debug mode.
@@ -274,7 +275,7 @@ if settings.debug:
         }
 
     @app.get("/debug/ping", include_in_schema=False)
-    async def debug_ping():
+    async def debug_ping() -> dict[str, Any]:
         """
         Simple ping endpoint for connectivity testing.
         Only available in debug mode.
@@ -282,14 +283,14 @@ if settings.debug:
         return {"pong": True, "timestamp": datetime.now(UTC).isoformat()}
 
     @app.get("/debug/routes", include_in_schema=False)
-    async def debug_routes():
+    async def debug_routes() -> dict[str, Any]:
         """
         Debug endpoint to list all registered routes.
         Only available in debug mode.
         """
         routes = []
         for route in app.routes:
-            route_info: dict = {
+            route_info: dict[str, Any] = {
                 "type": type(route).__name__,
             }
 
@@ -306,7 +307,7 @@ if settings.debug:
             else:
                 route_info["path"] = getattr(route, "path", None)
                 route_info["name"] = getattr(route, "name", None)
-                methods = getattr(route, "methods", set())
+                methods: set[str] = getattr(route, "methods", set())
                 route_info["methods"] = sorted(methods or [])
 
             routes.append(route_info)

@@ -5,16 +5,15 @@ Revises: 7ca651aafbc6
 Create Date: 2026-08-21 10:59:42.769797
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "3182e514fa7d"
-down_revision: Union[str, Sequence[str], None] = "7ca651aafbc6"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "7ca651aafbc6"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -25,14 +24,12 @@ def upgrade() -> None:
     # ================================================================
 
     # Migrate existing currency data before removing the legacy column.
-    op.execute(
-        """
+    op.execute("""
         UPDATE jobs
         SET salary_currency = currency
         WHERE salary_currency IS NULL
           AND currency IS NOT NULL
-        """
-    )
+        """)
 
     # Previous: VARCHAR(10)
     # Current:  VARCHAR(3)
@@ -180,7 +177,6 @@ def upgrade() -> None:
     #
     # These match the current PipelineRun model.
 
-
     # ================================================================
     # skills
     # ================================================================
@@ -214,13 +210,11 @@ def downgrade() -> None:
     )
 
     # Restore currency values.
-    op.execute(
-        """
+    op.execute("""
         UPDATE jobs
         SET currency = salary_currency
         WHERE salary_currency IS NOT NULL
-        """
-    )
+        """)
 
     # Remove indexes introduced by this migration.
     op.drop_index(

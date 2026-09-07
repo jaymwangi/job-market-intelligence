@@ -1,30 +1,29 @@
 """Enriched job schema - adds intelligence data."""
 
-from enum import StrEnum
 from typing import Annotated, Self
 
 from annotated_types import MaxLen
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
-from app.etl.schemas.transformed import JobTransformed
 from app.etl.enrichment.data.technology_categories import (
     TechnologyCategory,
     get_skill_display_name,
     normalize_skills_list,
 )
+from app.etl.schemas.transformed import JobTransformed
 
 
 class JobEnriched(JobTransformed):
     """
     Enriched job schema with intelligence data.
-    
+
     This schema represents a job after the enrichment layer has added:
     - Language detection
     - Skill extraction
     - Technology classification
     - Geographic enrichment
     - Salary normalization
-    
+
     Validation rules:
     - Tech roles must have a technology_category and tech_confidence
     - Non-tech roles cannot have tech classification fields set
@@ -90,13 +89,13 @@ class JobEnriched(JobTransformed):
         min_length=3,
         max_length=3,
     )
-    
+
     normalized_salary_min: float | None = Field(
         default=None,
         description="Normalized minimum salary (USD if normalization enabled)",
         ge=0.0,
     )
-    
+
     normalized_salary_max: float | None = Field(
         default=None,
         description="Normalized maximum salary (USD if normalization enabled)",
@@ -137,22 +136,22 @@ class JobEnriched(JobTransformed):
         """Normalize matched_tech_terms, deduplicate, and sort."""
         if not v:
             return []
-        
+
         # Strip whitespace and convert to lowercase for matching
         normalized = []
         seen = set()
-        
+
         for term in v:
             if not term or not term.strip():
                 continue
-            
+
             display = get_skill_display_name(term)
             key = display.lower()
-            
+
             if key not in seen:
                 seen.add(key)
                 normalized.append(display)
-        
+
         return sorted(normalized)
 
     @field_validator("tech_confidence")
@@ -189,13 +188,13 @@ class JobEnriched(JobTransformed):
     def validate_consistency(self) -> Self:
         """
         Enforce consistency between tech classification fields.
-        
+
         Rules:
         - Tech roles (is_tech_role=True):
             - Must have technology_category set
             - Must have tech_confidence set
             - Should have matched_tech_terms (but not required)
-        
+
         - Non-tech roles (is_tech_role=False):
             - Must NOT have technology_category set
             - Must NOT have tech_confidence set
@@ -204,17 +203,13 @@ class JobEnriched(JobTransformed):
         if self.is_tech_role:
             # Tech role validation
             if self.technology_category is None:
-                raise ValueError(
-                    "technology_category is required when is_tech_role is True"
-                )
+                raise ValueError("technology_category is required when is_tech_role is True")
             if self.tech_confidence is None:
-                raise ValueError(
-                    "tech_confidence is required when is_tech_role is True"
-                )
+                raise ValueError("tech_confidence is required when is_tech_role is True")
         else:
             # Non-tech role validation - fail fast on inconsistent data
             errors = []
-            
+
             if self.technology_category is not None:
                 errors.append(
                     f"technology_category must be None for non-tech jobs "
@@ -230,10 +225,10 @@ class JobEnriched(JobTransformed):
                     f"matched_tech_terms must be empty for non-tech jobs "
                     f"(got: {self.matched_tech_terms})"
                 )
-            
+
             if errors:
                 raise ValueError("; ".join(errors))
-        
+
         return self
 
     # ============================================================

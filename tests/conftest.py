@@ -46,7 +46,7 @@ def test_db_engine():
 
 
 @pytest.fixture
-def db_session(test_db_engine) -> Generator[Session, None, None]:
+def db_session(test_db_engine) -> Generator[Session]:
     """Create an isolated PostgreSQL session for each test."""
     connection = test_db_engine.connect()
     transaction = connection.begin()
@@ -62,7 +62,7 @@ def db_session(test_db_engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def api_client(db_session) -> Generator[TestClient, None, None]:
+def api_client(db_session) -> Generator[TestClient]:
     """Create a FastAPI test client using the test database session."""
 
     def override_get_db():
@@ -87,8 +87,7 @@ def sample_jobs_data() -> list[dict[str, Any]]:
             "company_name": "TechCorp Inc",
             "location": "San Francisco, CA",
             "description": (
-                "Looking for an experienced Python developer "
-                "with FastAPI and PostgreSQL skills."
+                "Looking for an experienced Python developer " "with FastAPI and PostgreSQL skills."
             ),
             "requirements": ["Python", "FastAPI", "PostgreSQL", "Docker"],
             "salary_min": 120000,
@@ -104,16 +103,12 @@ def sample_jobs_data() -> list[dict[str, Any]]:
             "title": "Data Engineer",
             "company_name": "DataInc",
             "location": "New York, NY",
-            "description": (
-                "Build and maintain data pipelines using Python and Spark."
-            ),
+            "description": ("Build and maintain data pipelines using Python and Spark."),
             "requirements": ["Python", "Spark", "AWS", "SQL"],
             "salary_min": 130000,
             "salary_max": 190000,
             "salary_currency": "USD",
-            "posted_date": (
-                datetime.now() - timedelta(days=5)
-            ).isoformat(),
+            "posted_date": (datetime.now() - timedelta(days=5)).isoformat(),
             "source_site": "Indeed",
             "source_url": "https://indeed.com/jobs/2",
             "is_active": True,
@@ -123,16 +118,12 @@ def sample_jobs_data() -> list[dict[str, Any]]:
             "title": "DevOps Engineer",
             "company_name": "CloudCo",
             "location": "Remote",
-            "description": (
-                "Manage cloud infrastructure and CI/CD pipelines."
-            ),
+            "description": ("Manage cloud infrastructure and CI/CD pipelines."),
             "requirements": ["AWS", "Docker", "Kubernetes", "Terraform"],
             "salary_min": 110000,
             "salary_max": 170000,
             "salary_currency": "USD",
-            "posted_date": (
-                datetime.now() - timedelta(days=2)
-            ).isoformat(),
+            "posted_date": (datetime.now() - timedelta(days=2)).isoformat(),
             "source_site": "LinkedIn",
             "source_url": "https://linkedin.com/jobs/3",
             "is_active": True,
@@ -281,10 +272,7 @@ def create_test_pipeline_runs(db_session):
             run = PipelineRun(
                 status="completed" if i % 5 != 0 else "failed",
                 started_at=datetime.now() - timedelta(days=i),
-                completed_at=(
-                    datetime.now()
-                    - timedelta(days=i, hours=1)
-                ),
+                completed_at=(datetime.now() - timedelta(days=i, hours=1)),
                 records_processed=100 + i * 10,
                 source_site="test_source",
                 duration_seconds=30 + i * 5,
@@ -344,15 +332,9 @@ def sample_analytics_data() -> dict[str, Any]:
         },
         "trends": {
             "dates": [
-                (
-                    datetime.now() - timedelta(days=i)
-                ).strftime("%Y-%m-%d")
-                for i in range(30, -1, -1)
+                (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30, -1, -1)
             ],
-            "counts": [
-                100 + i * 10
-                for i in range(31)
-            ],
+            "counts": [100 + i * 10 for i in range(31)],
             "growth_rate": 0.15,
         },
         "pipeline_stats": {

@@ -19,7 +19,7 @@ class BaseRepository[ModelType: Base]:
         self.model = model
         self.db = db
 
-    def _build_query(self, **filters) -> Query:
+    def _build_query(self, **filters: Any) -> Query[ModelType]:
         """Build a query with filters applied"""
         query = self.db.query(self.model)
         for key, value in filters.items():
@@ -27,7 +27,7 @@ class BaseRepository[ModelType: Base]:
                 query = query.filter(getattr(self.model, key) == value)
         return query
 
-    def create(self, **kwargs) -> ModelType:
+    def create(self, **kwargs: Any) -> ModelType:
         """Create a new record"""
         instance = self.model(**kwargs)
         self.db.add(instance)
@@ -41,7 +41,7 @@ class BaseRepository[ModelType: Base]:
         self.db.flush()
         return instances
 
-    def get(self, **filters) -> ModelType | None:
+    def get(self, **filters: Any) -> ModelType | None:
         """Get single record by filters"""
         return self._build_query(**filters).first()
 
@@ -49,9 +49,7 @@ class BaseRepository[ModelType: Base]:
         """Get record by primary key"""
         return self._build_query(id=id).first()
 
-    def find_all(
-        self, order_by: str | None = None, descending: bool = False, **filters
-    ) -> list[ModelType]:
+    def find_all(self, order_by: str | None = None, descending: bool = False, **filters: Any) -> list[ModelType]:
         """Find all records matching filters, with optional ordering"""
         query = self._build_query(**filters)
 
@@ -61,14 +59,7 @@ class BaseRepository[ModelType: Base]:
 
         return query.all()
 
-    def find_paginated(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        order_by: str | None = None,
-        descending: bool = False,
-        **filters,
-    ) -> list[ModelType]:
+    def find_paginated(self, page: int = 1, per_page: int = 20, skip: int = 0, limit: int = 100, order_by: str | None = None, descending: bool = False, **filters: Any) -> list[ModelType]:
         """Find records with pagination"""
         query = self._build_query(**filters)
 
@@ -78,7 +69,7 @@ class BaseRepository[ModelType: Base]:
 
         return query.offset(skip).limit(limit).all()
 
-    def update(self, id: UUID, **kwargs) -> ModelType | None:
+    def update(self, id: UUID, **kwargs: Any) -> ModelType | None:
         """Update a record by ID"""
         instance = self.get_by_id(id)
         if instance:
@@ -96,10 +87,10 @@ class BaseRepository[ModelType: Base]:
             return True
         return False
 
-    def exists(self, **filters) -> bool:
+    def exists(self, **filters: Any) -> bool:
         """Check if any record exists matching filters"""
-        return self.db.query(self._build_query(**filters).exists()).scalar()
+        return bool(self.db.query(self._build_query(**filters).exists()).scalar())
 
-    def count(self, **filters) -> int:
+    def count(self, **filters: Any) -> int:
         """Count records matching filters"""
         return self._build_query(**filters).count()

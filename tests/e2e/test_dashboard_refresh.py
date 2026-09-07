@@ -1,8 +1,8 @@
 """End-to-end ETL → API → dashboard refresh workflow tests."""
 
 import pytest
-
 from api.client import APIClient
+
 from app.etl import ETLPipeline
 from dashboard.schemas.jobs import JobFilters
 from dashboard.services.jobs_service import JobsService
@@ -21,8 +21,7 @@ def test_etl_to_api_to_dashboard_refresh(
             "id": "e2e-dashboard-001",
             "title": "Python Backend Engineer",
             "description": (
-                "Build backend services using Python FastAPI PostgreSQL "
-                "and Docker."
+                "Build backend services using Python FastAPI PostgreSQL " "and Docker."
             ),
             "company": {
                 "display_name": "E2E Technology Ltd",
@@ -131,4 +130,3 @@ def test_etl_to_api_to_dashboard_refresh(
 
     finally:
         dashboard_api_client.close()
-

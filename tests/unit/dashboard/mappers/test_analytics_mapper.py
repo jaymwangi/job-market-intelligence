@@ -3,8 +3,6 @@ Unit tests for dashboard analytics mapper.
 """
 
 import pytest
-
-from dashboard.mappers.analytics_mapper import AnalyticsMapper
 from schemas.analytics import (
     DashboardSummary,
     EmploymentType,
@@ -23,6 +21,8 @@ from schemas.chart_data import (
     MetricCardData,
     PieChartData,
 )
+
+from dashboard.mappers.analytics_mapper import AnalyticsMapper
 
 
 class TestAnalyticsMapper:
