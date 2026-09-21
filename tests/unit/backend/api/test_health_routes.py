@@ -4,12 +4,17 @@ Unit tests for health check API routes.
 
 from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
+import importlib
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.routes.health import check_database_connection_with_timing
+from app.api.routes.health import (
+    check_database_connection_with_timing,
+    db_health_check,
+    get_metrics,
+)
 from app.database.session import get_db
 from app.main import app
 
@@ -228,3 +233,111 @@ class TestHealthRoutes:
         data = response.json()
         assert data["detail"]["status"] == "unhealthy"
         assert data["detail"]["database"] == "PostgreSQL"
+
+
+    @pytest.mark.asyncio
+    async def test_get_metrics(self):
+        """Test metrics endpoint returns collected metrics."""
+        mock_logger = MagicMock()
+        mock_request = MagicMock()
+        mock_request.state.logger = mock_logger
+
+        expected_metrics = {
+            "requests": 10,
+            "errors": 2,
+        }
+
+        with patch(
+            "app.api.routes.health.metrics_collector.get_metrics",
+            return_value=expected_metrics,
+        ) as mock_get_metrics:
+            result = await get_metrics(mock_request)
+
+        mock_logger.info.assert_called_once_with("Metrics requested")
+        mock_get_metrics.assert_called_once()
+        assert result == expected_metrics
+
+    @pytest.mark.asyncio
+    async def test_db_health_check_healthy(self):
+        """Test database health check when database is healthy."""
+        mock_logger = MagicMock()
+        mock_request = MagicMock()
+        mock_request.state.logger = mock_logger
+        mock_db = Mock()
+
+        with patch(
+            "app.database.health.check_database_health",
+            return_value={"healthy": True},
+        ):
+            result = await db_health_check(mock_request, mock_db)
+
+        assert result["status"] == "healthy"
+        assert result["database"] == "PostgreSQL"
+        assert result["message"] == "Database connection is healthy"
+        assert "timestamp" in result
+
+    @pytest.mark.asyncio
+    async def test_db_health_check_exception(self):
+        """Test database health check when the health check raises an exception."""
+        mock_logger = MagicMock()
+        mock_request = MagicMock()
+        mock_request.state.logger = mock_logger
+        mock_db = Mock()
+
+        with patch(
+            "app.database.health.check_database_health",
+            side_effect=RuntimeError("Database unavailable"),
+        ):
+            result = await db_health_check(mock_request, mock_db)
+
+        assert result["status"] == "unhealthy"
+        assert result["database"] == "PostgreSQL"
+        assert result["message"] == "Database unavailable"
+        assert "timestamp" in result
+        mock_logger.exception.assert_called_once_with(
+            "Database health check failed: RuntimeError"
+        )
+
+
+
+    @pytest.mark.asyncio
+    async def test_db_health_check_unhealthy_without_message(self):
+        """Test unhealthy database result uses the default message."""
+        mock_logger = MagicMock()
+        mock_request = MagicMock()
+        mock_request.state.logger = mock_logger
+        mock_db = Mock()
+
+        with patch(
+            "app.database.health.check_database_health",
+            return_value={"healthy": False},
+        ):
+            result = await db_health_check(mock_request, mock_db)
+
+        assert result["status"] == "unhealthy"
+        assert result["database"] == "PostgreSQL"
+        assert result["message"] == "Database connection failed"
+        assert "timestamp" in result
+
+    def test_metrics_collector_import_fallback(self):
+        """Test fallback collector when metrics collector import fails."""
+        import app.api.routes.health as health_module
+
+        original_import = __import__
+
+        def failing_import(name, *args, **kwargs):
+            if name == "app.core.metrics":
+                raise ImportError("Metrics collector unavailable")
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=failing_import):
+            reloaded_module = importlib.reload(health_module)
+
+        try:
+            collector = reloaded_module.metrics_collector
+
+            assert collector.get_metrics() == {
+                "error": "Metrics collector not available"
+            }
+        finally:
+            importlib.reload(health_module)

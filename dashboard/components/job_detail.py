@@ -267,7 +267,6 @@ def is_job_translated(job_id: str) -> bool:
     """
     return st.session_state.get(f"translated_{job_id}", False)
 
-
 def toggle_translation(job_id: str) -> None:
     """
     Toggle translation for a job.
@@ -277,6 +276,7 @@ def toggle_translation(job_id: str) -> None:
     """
     current = st.session_state.get(f"translated_{job_id}", False)
     st.session_state[f"translated_{job_id}"] = not current
-    if not current:
+
+    if current:
         # Clear translation text when hiding
         st.session_state[f"translation_text_{job_id}"] = ""

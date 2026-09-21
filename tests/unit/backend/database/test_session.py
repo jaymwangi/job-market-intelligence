@@ -4,7 +4,13 @@ Unit tests for database session management.
 
 import pytest
 
-from app.database.session import SessionLocal, engine, get_db
+from app.database.session import (
+    SessionLocal,
+    _get_connect_args,
+    engine,
+    get_db,
+    get_db_session,
+)
 
 
 class TestDatabaseSession:
@@ -76,3 +82,80 @@ class TestDatabaseSession:
         db_session.rollback()
 
         assert db_session.get(Job, job_id) is None
+    def test_get_connect_args_sqlite(self, monkeypatch):
+        """Test SQLite-specific connection arguments."""
+        from app.database import session
+
+        monkeypatch.setattr(
+            type(session.settings),
+            "sqlalchemy_database_url",
+            property(lambda self: "sqlite:///test.db"),
+        )
+
+        assert _get_connect_args() == {"check_same_thread": False}
+
+    def test_get_db_session_rolls_back_and_closes(self, monkeypatch):
+        """Test rollback and close when get_db_session raises."""
+        from app.database import session
+
+        mock_db = session.SessionLocal()
+        rollback_called = False
+        close_called = False
+
+        original_rollback = mock_db.rollback
+        original_close = mock_db.close
+
+        def rollback():
+            nonlocal rollback_called
+            rollback_called = True
+            original_rollback()
+
+        def close():
+            nonlocal close_called
+            close_called = True
+            original_close()
+
+        monkeypatch.setattr(mock_db, "rollback", rollback)
+        monkeypatch.setattr(mock_db, "close", close)
+        monkeypatch.setattr(session, "SessionLocal", lambda: mock_db)
+
+        with pytest.raises(RuntimeError, match="test error"):
+            with get_db_session():
+                raise RuntimeError("test error")
+
+        assert rollback_called is True
+        assert close_called is True
+
+    def test_get_db_rolls_back_on_exception(self, monkeypatch):
+        """Test that get_db rolls back and closes on exception."""
+        from app.database import session
+
+        mock_db = session.SessionLocal()
+        rollback_called = False
+        close_called = False
+
+        original_rollback = mock_db.rollback
+        original_close = mock_db.close
+
+        def rollback():
+            nonlocal rollback_called
+            rollback_called = True
+            original_rollback()
+
+        def close():
+            nonlocal close_called
+            close_called = True
+            original_close()
+
+        monkeypatch.setattr(mock_db, "rollback", rollback)
+        monkeypatch.setattr(mock_db, "close", close)
+        monkeypatch.setattr(session, "SessionLocal", lambda: mock_db)
+
+        db_gen = get_db()
+        next(db_gen)
+
+        with pytest.raises(RuntimeError, match="test error"):
+            db_gen.throw(RuntimeError("test error"))
+
+        assert rollback_called is True
+        assert close_called is True

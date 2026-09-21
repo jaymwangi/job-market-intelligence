@@ -28,7 +28,7 @@ import logging
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from app.services.translation.interface import (
@@ -99,7 +99,7 @@ class TranslationCache:
         """Check if a cache entry is expired."""
         if self.ttl_seconds is None:
             return False
-        return (datetime.utcnow().timestamp() - timestamp) > self.ttl_seconds
+        return (datetime.now(UTC).timestamp() - timestamp) > self.ttl_seconds
 
     async def get(self, text: str, source: str, target: str) -> TranslationResult | None:
         """Get a translation from cache (thread-safe)."""
@@ -132,7 +132,7 @@ class TranslationCache:
             if len(self._cache) >= self.max_size:
                 self._cache.popitem(last=False)
 
-            self._cache[key] = (result, datetime.utcnow().timestamp())
+            self._cache[key] = (result, datetime.now(UTC).timestamp())
 
     async def clear(self) -> None:
         """Clear the cache (thread-safe)."""
@@ -316,7 +316,7 @@ class TranslationService:
         self._provider = provider
         self._cache = cache
         self._metrics = metrics or TranslationMetrics()
-        self._clock = clock or datetime.utcnow
+        self._clock = clock or (lambda: datetime.now(UTC))
 
         # Service state
         self._closed = False

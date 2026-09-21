@@ -1,349 +1,635 @@
-"""
-Unit tests for state management utilities.
-"""
+from datetime import datetime
+from unittest.mock import MagicMock, patch
 
-from unittest.mock import patch
+from utils.state import (
+    ServiceFactory,
+    StateManager,
+    get_analytics_service,
+    get_etl_status,
+    get_health_service,
+    get_jobs_service,
+    get_last_etl_run,
+    get_pipeline_status,
+    get_service_factory,
+    refresh_dashboard,
+)
 
-from dashboard.utils.state import StateManager
 
-
-class MockSessionState(dict):
-    """
-    Mock for st.session_state that supports both attribute and dict-style access.
-    Inherits from dict to get dict behavior for free.
-    """
-
-    def __init__(self, initial_data=None):
-        super().__init__(initial_data or {})
+class SessionState(dict):
+    """Dict with attribute access like Streamlit session state."""
 
     def __getattr__(self, name):
-        """Support attribute-style access."""
-        if name in self:
+        try:
             return self[name]
-        # For methods like .get() that might be called
-        if name == "get":
-            return self.get
-        # Return None for missing attributes (like Streamlit's behavior)
-        return None
+        except KeyError as exc:
+            raise AttributeError(name) from exc
 
     def __setattr__(self, name, value):
-        """Support attribute-style assignment."""
-        # Allow setting internal attributes (like __dict__)
-        if name.startswith("_"):
-            super().__setattr__(name, value)
-        else:
-            self[name] = value
-
-    def __getitem__(self, key):
-        """Support dict-style access."""
-        return super().__getitem__(key)
-
-    def __setitem__(self, key, value):
-        """Support dict-style assignment."""
-        super().__setitem__(key, value)
-
-    def __contains__(self, key):
-        """Support 'in' operator."""
-        return super().__contains__(key)
-
-    def get(self, key, default=None):
-        """Support .get() method."""
-        return super().get(key, default)
-
-
-class TestStateManager:
-    """Test suite for StateManager."""
-
-    def test_init_sets_session_state(self):
-        """Test initialization sets session state."""
-        # Start with empty session state (simulates first visit)
-        # IMPORTANT: Do NOT include "initialized" key in initial data
-        # The implementation checks if the key exists, not its value
-        initial_data = {
-            "current_page": "overview",
-            "job_filters": {},
-            "jobs_page": 1,
-            "jobs_page_size": 10,
-            "selected_job_id": None,
-            "services": {},
-        }
-
-        session_state = MockSessionState(initial_data)
-
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            # Reset StateManager state
-            StateManager._api_client = None
-            StateManager._cache_manager = None
-            StateManager._services = {}
-
-            # Verify "initialized" key doesn't exist initially
-            assert "initialized" not in session_state
-
-            StateManager.init()
-
-            # Verify state was set
-            assert session_state["initialized"] is True
-            assert session_state["current_page"] == "overview"
-            assert session_state["job_filters"] == {}
-            assert session_state["jobs_page"] == 1
-            assert session_state["jobs_page_size"] == 10
-            assert session_state["selected_job_id"] is None
-            assert session_state["services"] == {}
-
-    def test_init_does_not_reset(self):
-        """Test init doesn't reset existing state."""
-        # Simulate an already initialized session
-        initial_data = {
-            "initialized": True,
-            "current_page": "jobs",
-            "job_filters": {"location": "SF"},
-            "jobs_page": 5,
-            "jobs_page_size": 20,
-            "selected_job_id": "job_123",
-            "services": {},
-        }
-
-        session_state = MockSessionState(initial_data)
-
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
-            # Should not override existing state
-            assert session_state["initialized"] is True
-            assert session_state["current_page"] == "jobs"
-            assert session_state["job_filters"] == {"location": "SF"}
-
-    def test_get_api_client(self):
-        """Test getting API client singleton."""
-        session_state = MockSessionState({})
-
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager._api_client = None
-            client1 = StateManager.get_api_client()
-            client2 = StateManager.get_api_client()
-            assert client1 is client2  # Same instance
-
-    def test_get_cache_manager(self):
-        """Test getting cache manager singleton."""
-        session_state = MockSessionState({})
-
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager._cache_manager = None
-            cache1 = StateManager.get_cache_manager()
-            cache2 = StateManager.get_cache_manager()
-            assert cache1 is cache2  # Same instance
+        self[name] = value
 
-    def test_get_service(self):
-        """Test getting service instance."""
-        session_state = MockSessionState({"services": {}})
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager._api_client = None
-            StateManager._cache_manager = None
-            StateManager._services = {}
+def reset_state_manager():
+    StateManager._services = {}
+    StateManager._api_client = None
+    StateManager._cache_manager = None
+    StateManager._etl_status_cache = None
+    StateManager._etl_cache_timestamp = None
 
-            # Create a mock service class that accepts api_client and cache_manager
-            class MockService:
-                def __init__(self, api_client=None, cache_manager=None):
-                    self.api_client = api_client
-                    self.cache_manager = cache_manager
 
-            service1 = StateManager.get_service(MockService)
-            service2 = StateManager.get_service(MockService)
-            assert service1 is service2  # Same instance
-            assert service1.api_client is not None
-            assert service1.cache_manager is not None
+def setup_function():
+    reset_state_manager()
+    getattr(StateManager.get_etl_status, "clear")()
 
-    def test_clear_cache(self):
-        """Test clearing all caches."""
-        session_state = MockSessionState(
-            {"initialized": True, "job_filters": {"location": "SF"}, "services": {}}
-        )
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager._api_client = None
-            StateManager._cache_manager = None
-            StateManager._services = {}
+def test_init_sets_default_session_state():
+    session = SessionState()
 
-            StateManager.init()
+    with patch("utils.state.st.session_state", session):
+        StateManager.init()
 
-            # Set some state
-            StateManager.set_jobs_filters({"location": "SF"})
-            assert StateManager.get_jobs_filters() == {"location": "SF"}
+    assert session["initialized"] is True
+    assert session["current_page"] == "overview"
+    assert session["job_filters"] == {}
+    assert session["jobs_page"] == 1
+    assert session["jobs_page_size"] == 10
+    assert session["selected_job_id"] is None
+    assert session["services"] == {}
 
-            # Clear cache
-            StateManager.clear_cache()
 
-            # Services should be reset
-            assert StateManager._services == {}
+def test_init_does_nothing_when_already_initialized():
+    session = SessionState(
+        initialized=True,
+        current_page="jobs",
+        jobs_page=5,
+    )
 
-    def test_page_navigation(self):
-        """Test page navigation methods."""
-        session_state = MockSessionState({})
+    with patch("utils.state.st.session_state", session):
+        StateManager.init()
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
+    assert session["current_page"] == "jobs"
+    assert session["jobs_page"] == 5
 
-            StateManager.set_current_page("jobs")
-            assert StateManager.get_current_page() == "jobs"
 
-            StateManager.set_current_page("analytics")
-            assert StateManager.get_current_page() == "analytics"
 
-    def test_job_filters(self):
-        """Test job filters methods."""
-        session_state = MockSessionState({})
+def test_get_cache_manager_creates_and_reuses_singleton():
+    manager = MagicMock()
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
+    with patch(
+        "utils.state.CacheManager",
+        return_value=manager,
+    ) as mock_manager:
+        result_one = StateManager.get_cache_manager()
+        result_two = StateManager.get_cache_manager()
 
-            filters = {"location": "SF", "min_salary": 100000}
-            StateManager.set_jobs_filters(filters)
-            assert StateManager.get_jobs_filters() == filters
+    assert result_one is manager
+    assert result_two is manager
+    mock_manager.assert_called_once_with()
 
-            # Test updating filters
-            new_filters = {"location": "NY", "max_salary": 200000}
-            StateManager.set_jobs_filters(new_filters)
-            assert StateManager.get_jobs_filters() == new_filters
 
-    def test_job_pagination(self):
-        """Test job pagination methods."""
-        session_state = MockSessionState({})
+def test_get_service_returns_class_cached_service():
+    session = SessionState()
+    existing = object()
+    StateManager._services["FakeService"] = existing
+
+    class FakeService:
+        pass
+
+    with patch("utils.state.st.session_state", session):
+        result = StateManager.get_service(FakeService)
+
+    assert result is existing
+
+
+def test_get_service_restores_service_from_session_state():
+    session_service = object()
+    session = SessionState(
+        services={"FakeService": session_service},
+    )
+
+    class FakeService:
+        pass
+
+    with patch("utils.state.st.session_state", session):
+        result = StateManager.get_service(FakeService)
+
+    assert result is session_service
+    assert StateManager._services["FakeService"] is session_service
+
+
+def test_get_service_creates_and_caches_new_service():
+    session = SessionState()
+    api_client = object()
+    cache_manager = object()
+
+    class FakeService:
+        def __init__(self, api_client, cache_manager):
+            self.api_client = api_client
+            self.cache_manager = cache_manager
+
+    with patch("utils.state.st.session_state", session), patch.object(
+        StateManager,
+        "get_api_client",
+        return_value=api_client,
+    ), patch.object(
+        StateManager,
+        "get_cache_manager",
+        return_value=cache_manager,
+    ):
+        result = StateManager.get_service(FakeService)
+
+    assert result.api_client is api_client
+    assert result.cache_manager is cache_manager
+    assert StateManager._services["FakeService"] is result
+    assert session.services["FakeService"] is result
+
+
+def test_get_service_creates_services_dict_if_missing():
+    session = SessionState()
+    api_client = object()
+    cache_manager = object()
+
+    class FakeService:
+        def __init__(self, api_client, cache_manager):
+            self.api_client = api_client
+            self.cache_manager = cache_manager
+
+    with patch("utils.state.st.session_state", session), patch.object(
+        StateManager,
+        "get_api_client",
+        return_value=api_client,
+    ), patch.object(
+        StateManager,
+        "get_cache_manager",
+        return_value=cache_manager,
+    ):
+        result = StateManager.get_service(FakeService)
+
+    assert result.api_client is api_client
+    assert result.cache_manager is cache_manager
+    assert session.services["FakeService"] is result
+
+
+def test_service_getters_delegate_to_get_service():
+    analytics = object()
+    jobs = object()
+    health = object()
+
+    with patch(
+        "services.analytics_service.AnalyticsService",
+        return_value=analytics,
+    ) as analytics_class, patch(
+        "services.jobs_service.JobsService",
+        return_value=jobs,
+    ) as jobs_class, patch(
+        "services.health.HealthService",
+        return_value=health,
+    ) as health_class:
+        with patch.object(
+            StateManager,
+            "get_service",
+            side_effect=[analytics, jobs, health],
+        ) as mock_get:
+            assert StateManager.get_analytics_service() is analytics
+            assert StateManager.get_jobs_service() is jobs
+            assert StateManager.get_health_service() is health
+
+    assert mock_get.call_count == 3
+    analytics_class.assert_not_called()
+    jobs_class.assert_not_called()
+    health_class.assert_not_called()
+
+
+def test_clear_cache_clears_cache_manager_and_services():
+    session = SessionState(
+        services={"old": object()},
+    )
+    cache_manager = MagicMock()
+
+    refreshable = MagicMock()
+    non_refreshable = object()
+
+    StateManager._cache_manager = cache_manager
+    StateManager._services = {
+        "refreshable": refreshable,
+        "other": non_refreshable,
+    }
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
+    with patch("utils.state.st.session_state", session):
+        StateManager.clear_cache()
 
-            assert StateManager.get_jobs_page() == 1
+    cache_manager.clear.assert_called_once_with()
+    refreshable.refresh.assert_called_once_with()
+    assert session.services == {}
+    assert StateManager._etl_status_cache is None
+    assert StateManager._etl_cache_timestamp is None
 
-            StateManager.set_jobs_page(5)
-            assert StateManager.get_jobs_page() == 5
 
-            # Negative values should be clamped
-            StateManager.set_jobs_page(-1)
-            assert StateManager.get_jobs_page() == 1
+def test_clear_cache_logs_refresh_error():
+    session = SessionState(services={})
+    service = MagicMock()
+    service.refresh.side_effect = RuntimeError("refresh failed")
+    StateManager._services = {"broken": service}
 
-    def test_jobs_page_size(self):
-        """Test page size methods."""
-        session_state = MockSessionState({})
+    with patch("utils.state.st.session_state", session), patch(
+        "utils.state.logger.error"
+    ) as mock_error:
+        StateManager.clear_cache()
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
+    mock_error.assert_called_once()
+    assert "refresh failed" in mock_error.call_args.args[0]
 
-            assert StateManager.get_jobs_page_size() == 10
 
-            StateManager.set_jobs_page_size(50)
-            assert StateManager.get_jobs_page_size() == 50
+def test_clear_cache_handles_no_cache_manager_and_no_session_services():
+    session = SessionState()
+    StateManager._cache_manager = None
+    StateManager._services = {}
 
-            # Clamping
-            StateManager.set_jobs_page_size(200)
-            assert StateManager.get_jobs_page_size() == 100
+    with patch("utils.state.st.session_state", session):
+        StateManager.clear_cache()
 
-            StateManager.set_jobs_page_size(0)
-            assert StateManager.get_jobs_page_size() == 1
+    assert StateManager._etl_status_cache is None
+    assert StateManager._etl_cache_timestamp is None
 
-    def test_job_selection(self):
-        """Test job selection methods."""
-        session_state = MockSessionState({})
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
+def test_page_methods():
+    session = SessionState()
 
-            assert StateManager.get_selected_job_id() is None
+    with patch("utils.state.st.session_state", session):
+        assert StateManager.get_current_page() == "overview"
 
-            StateManager.set_selected_job_id("job_123")
-            assert StateManager.get_selected_job_id() == "job_123"
+        StateManager.set_current_page("jobs")
+        assert StateManager.get_current_page() == "jobs"
 
-            StateManager.set_selected_job_id("job_456")
-            assert StateManager.get_selected_job_id() == "job_456"
+        session["current_page"] = "analytics"
+        assert StateManager.get_current_page() == "analytics"
 
-    def test_reset_jobs_context(self):
-        """Test resetting jobs context."""
-        session_state = MockSessionState({})
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
+def test_filter_methods():
+    session = SessionState()
+
+    with patch("utils.state.st.session_state", session):
+        assert StateManager.get_jobs_filters() == {}
 
-            # Set some values
-            StateManager.set_jobs_filters({"location": "SF"})
-            StateManager.set_jobs_page(5)
-            StateManager.set_selected_job_id("job_123")
+        filters = {"country": "Kenya"}
+        StateManager.set_jobs_filters(filters)
+        assert StateManager.get_jobs_filters() == filters
 
-            # Reset
-            StateManager.reset_jobs_context()
+        assert StateManager.get_job_filters() == filters
 
-            assert StateManager.get_jobs_filters() == {}
-            assert StateManager.get_jobs_page() == 1
-            assert StateManager.get_selected_job_id() is None
+        StateManager.set_job_filters({"role": "Data Scientist"})
+        assert StateManager.get_jobs_filters() == {"role": "Data Scientist"}
+
 
-    def test_backward_compatibility(self):
-        """Test backward compatibility methods."""
-        session_state = MockSessionState({})
+def test_reset_jobs_context():
+    session = SessionState(
+        job_filters={"country": "Kenya"},
+        jobs_page=8,
+        selected_job_id="123",
+    )
+
+    with patch("utils.state.st.session_state", session):
+        StateManager.reset_jobs_context()
 
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
+    assert session.job_filters == {}
+    assert session.jobs_page == 1
+    assert session.selected_job_id is None
+
+
+def test_pagination_methods():
+    session = SessionState()
+
+    with patch("utils.state.st.session_state", session):
+        assert StateManager.get_jobs_page() == 1
+        assert StateManager.get_jobs_page_size() == 20
+
+        StateManager.set_jobs_page(5)
+        assert StateManager.get_jobs_page() == 5
+
+        StateManager.set_jobs_page(0)
+        assert StateManager.get_jobs_page() == 1
+
+        StateManager.set_jobs_page_size(50)
+        assert StateManager.get_jobs_page_size() == 50
+
+        StateManager.set_jobs_page_size(0)
+        assert StateManager.get_jobs_page_size() == 1
 
-            # Test aliases
-            StateManager.set_job_filters({"location": "SF"})
-            assert StateManager.get_job_filters() == {"location": "SF"}
-
-            StateManager.set_page(3)
-            assert StateManager.get_page() == 3
-
-    def test_refresh_dashboard(self):
-        """Test dashboard refresh."""
-        session_state = MockSessionState({})
-
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager.init()
-
-            # Set some values
-            StateManager.set_jobs_page(5)
-            StateManager.set_selected_job_id("job_123")
-            StateManager.set_jobs_filters({"location": "SF"})
-
-            # Refresh
-            StateManager.refresh_dashboard()
-
-            assert StateManager.get_jobs_page() == 1
-            assert StateManager.get_selected_job_id() is None
-            # Filters should NOT be reset by refresh
-            assert StateManager.get_jobs_filters() == {"location": "SF"}
-
-    def test_service_factory_backward_compat(self):
-        """Test ServiceFactory backward compatibility."""
-        session_state = MockSessionState({})
-
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager._api_client = None
-            StateManager._cache_manager = None
-            StateManager._services = {}
-
-            # Test ServiceFactory wrapper
-            from dashboard.utils.state import ServiceFactory
-
-            factory = ServiceFactory()
-
-            # Should not raise errors
-            assert factory is not None
-
-    def test_convenience_functions(self):
-        """Test convenience functions."""
-        session_state = MockSessionState({})
-
-        with patch("dashboard.utils.state.st.session_state", session_state):
-            StateManager._api_client = None
-            StateManager._cache_manager = None
-            StateManager._services = {}
-
-            # Import convenience functions
-            from dashboard.utils.state import (
-                get_analytics_service,
-                get_health_service,
-                get_jobs_service,
-            )
-
-            # Should not raise errors (services will be created)
-            # Note: These will fail if the actual service classes require complex setup
-            # For now, we just test that the functions exist and can be called
-            assert callable(get_analytics_service)
-            assert callable(get_jobs_service)
-            assert callable(get_health_service)
+        StateManager.set_jobs_page_size(500)
+        assert StateManager.get_jobs_page_size() == 100
+
+        assert StateManager.get_page() == 1
+        StateManager.set_page(7)
+        assert StateManager.get_page() == 7
+
+
+def test_pagination_getters_use_existing_values():
+    session = SessionState(
+        jobs_page=4,
+        jobs_page_size=25,
+    )
+
+    with patch("utils.state.st.session_state", session):
+        assert StateManager.get_jobs_page() == 4
+        assert StateManager.get_jobs_page_size() == 25
+
+
+def test_selected_job_methods():
+    session = SessionState()
+
+    with patch("utils.state.st.session_state", session):
+        assert StateManager.get_selected_job_id() is None
+
+        StateManager.set_selected_job_id("job-123")
+        assert StateManager.get_selected_job_id() == "job-123"
+
+        StateManager.set_selected_job_id(None)
+        assert StateManager.get_selected_job_id() is None
+
+
+def test_get_etl_status_logs_api_warning():
+    api_client = MagicMock()
+    api_client.get.side_effect = RuntimeError("API unavailable")
+    analytics = MagicMock()
+    analytics.get_pipeline_status.return_value = "idle"
+    analytics.get_last_etl_run.return_value = "N/A"
+    analytics.get_last_etl_run_time.return_value = None
+    analytics.get_db_status.return_value = "healthy"
+
+    with patch.object(
+        StateManager,
+        "get_api_client",
+        return_value=api_client,
+    ), patch.object(
+        StateManager,
+        "get_analytics_service",
+        return_value=analytics,
+    ), patch(
+        "utils.state.logger.warning"
+    ) as mock_warning:
+        StateManager.get_etl_status()
+
+    mock_warning.assert_called_once()
+    assert "API unavailable" in mock_warning.call_args.args[0]
+
+
+def test_etl_status_convenience_methods():
+    status = {
+        "status": "running",
+        "last_run": "2026-09-15 12:00",
+        "db_status": "healthy",
+    }
+
+    with patch.object(
+        StateManager,
+        "get_etl_status",
+        return_value=status,
+    ):
+        assert StateManager.get_last_etl_run() == "2026-09-15 12:00"
+        assert StateManager.get_pipeline_status() == "running"
+        assert StateManager.get_db_status() == "healthy"
+
+
+def test_etl_status_convenience_methods_use_defaults():
+    with patch.object(
+        StateManager,
+        "get_etl_status",
+        return_value={},
+    ):
+        assert StateManager.get_last_etl_run() == "No runs yet"
+        assert StateManager.get_pipeline_status() == "Unknown"
+        assert StateManager.get_db_status() == "Unknown"
+
+
+def test_refresh_etl_status():
+    StateManager._etl_status_cache = {"status": "old"}
+    StateManager._etl_cache_timestamp = datetime.now()
+
+    with patch("utils.state.st.cache_data.clear") as mock_clear:
+        StateManager.refresh_etl_status()
+
+    assert StateManager._etl_status_cache is None
+    assert StateManager._etl_cache_timestamp is None
+    mock_clear.assert_called_once_with()
+
+
+def test_refresh_dashboard():
+    with patch.object(StateManager, "clear_cache") as mock_clear, patch.object(
+        StateManager,
+        "refresh_etl_status",
+    ) as mock_refresh, patch.object(
+        StateManager,
+        "set_jobs_page",
+    ) as mock_page, patch.object(
+        StateManager,
+        "set_selected_job_id",
+    ) as mock_selected:
+        StateManager.refresh_dashboard()
+
+    mock_clear.assert_called_once_with()
+    mock_refresh.assert_called_once_with()
+    mock_page.assert_called_once_with(1)
+    mock_selected.assert_called_once_with(None)
+
+
+def test_module_level_service_functions():
+    analytics = object()
+    jobs = object()
+    health = object()
+
+    with patch.object(
+        StateManager,
+        "get_analytics_service",
+        return_value=analytics,
+    ), patch.object(
+        StateManager,
+        "get_jobs_service",
+        return_value=jobs,
+    ), patch.object(
+        StateManager,
+        "get_health_service",
+        return_value=health,
+    ):
+        assert get_analytics_service() is analytics
+        assert get_jobs_service() is jobs
+        assert get_health_service() is health
+
+
+def test_module_level_etl_functions():
+    status = {"status": "running"}
+
+    with patch.object(
+        StateManager,
+        "get_etl_status",
+        return_value=status,
+    ), patch.object(
+        StateManager,
+        "get_last_etl_run",
+        return_value="today",
+    ), patch.object(
+        StateManager,
+        "get_pipeline_status",
+        return_value="running",
+    ):
+        assert get_etl_status() is status
+        assert get_last_etl_run() == "today"
+        assert get_pipeline_status() == "running"
+
+
+def test_module_level_refresh_dashboard():
+    with patch.object(StateManager, "refresh_dashboard") as mock_refresh:
+        refresh_dashboard()
+
+    mock_refresh.assert_called_once_with()
+
+
+def test_get_service_factory_returns_state_manager():
+    assert get_service_factory() is StateManager
+
+
+def test_service_factory_is_singleton():
+    first = ServiceFactory()
+    second = ServiceFactory()
+
+    assert first is second
+
+
+def test_service_factory_delegates_service_methods():
+    factory = ServiceFactory()
+    analytics = object()
+    jobs = object()
+    health = object()
+
+    with patch.object(
+        StateManager,
+        "get_analytics_service",
+        return_value=analytics,
+    ), patch.object(
+        StateManager,
+        "get_jobs_service",
+        return_value=jobs,
+    ), patch.object(
+        StateManager,
+        "get_health_service",
+        return_value=health,
+    ):
+        assert factory.get_analytics_service() is analytics
+        assert factory.get_jobs_service() is jobs
+        assert factory.get_health_service() is health
+
+
+def test_service_factory_refresh_all():
+    factory = ServiceFactory()
+
+    with patch.object(StateManager, "clear_cache") as mock_clear:
+        result = factory.refresh_all()
+
+    mock_clear.assert_called_once_with()
+    assert result is None
+
+
+def test_service_factory_etl_methods():
+    factory = ServiceFactory()
+
+    with patch.object(
+        StateManager,
+        "get_etl_status",
+        return_value={"status": "running"},
+    ), patch.object(
+        StateManager,
+        "get_last_etl_run",
+        return_value="today",
+    ), patch.object(
+        StateManager,
+        "get_pipeline_status",
+        return_value="running",
+    ):
+        assert factory.get_etl_status() == {"status": "running"}
+        assert factory.get_last_etl_run() == "today"
+        assert factory.get_pipeline_status() == "running"
+
+
+def test_get_api_client_creates_and_reuses_singleton():
+    first = MagicMock()
+
+    with patch(
+        "utils.state.APIClient",
+        return_value=first,
+    ) as mock_client:
+        result_one = StateManager.get_api_client()
+        result_two = StateManager.get_api_client()
+
+    assert result_one is first
+    assert result_two is first
+    mock_client.assert_called_once()
+
+
+def test_get_etl_status_returns_api_response():
+    response = {
+        "status": "completed",
+        "last_run": "2026-09-15",
+        "db_status": "healthy",
+    }
+
+    api_client = MagicMock()
+    api_client.get.return_value = response
+
+    with patch.object(
+        StateManager,
+        "get_api_client",
+        return_value=api_client,
+    ):
+        result = StateManager.get_etl_status()
+
+    assert result == response
+    api_client.get.assert_called_once_with("/analytics/etl/status")
+
+
+def test_get_etl_status_falls_back_to_analytics_service():
+    api_client = MagicMock()
+    api_client.get.side_effect = RuntimeError("API unavailable")
+
+    analytics_service = MagicMock()
+    analytics_service.get_pipeline_status.return_value = "running"
+    analytics_service.get_last_etl_run.return_value = "2026-09-15"
+    analytics_service.get_last_etl_run_time.return_value = "12:00"
+    analytics_service.get_db_status.return_value = "healthy"
+
+    with patch.object(
+        StateManager,
+        "get_api_client",
+        return_value=api_client,
+    ), patch.object(
+        StateManager,
+        "get_analytics_service",
+        return_value=analytics_service,
+    ):
+        result = StateManager.get_etl_status()
+
+    assert result == {
+        "status": "running",
+        "last_run": "2026-09-15",
+        "last_run_time": "12:00",
+        "db_status": "healthy",
+    }
+
+
+def test_get_etl_status_returns_unknown_when_fallback_fails():
+    api_client = MagicMock()
+    api_client.get.side_effect = RuntimeError("API unavailable")
+
+    with patch.object(
+        StateManager,
+        "get_api_client",
+        return_value=api_client,
+    ), patch.object(
+        StateManager,
+        "get_analytics_service",
+        side_effect=RuntimeError("database unavailable"),
+    ):
+        result = StateManager.get_etl_status()
+
+    assert result == {
+        "status": "unknown",
+        "last_run": "N/A",
+        "error": "database unavailable",
+    }

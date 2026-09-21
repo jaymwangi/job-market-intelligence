@@ -170,6 +170,19 @@ class TestAnalyticsMapper:
         assert chart.labels == []
         assert chart.values == []
 
+    def test_to_donut_chart_empty(self, mapper):
+        """Test donut chart mapping with no data."""
+        result = mapper.to_donut_chart(
+            data=[],
+            title="Skills",
+            label_field="label",
+            value_field="value",
+        )
+
+        assert result.title == "Skills"
+        assert result.labels == []
+        assert result.values == []
+
     def test_to_donut_chart(self, mapper, sample_dashboard_summary):
         """Test converting to donut chart."""
         chart = mapper.to_donut_chart(

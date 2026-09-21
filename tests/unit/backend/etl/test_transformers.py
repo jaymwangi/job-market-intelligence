@@ -2,7 +2,8 @@
 Unit tests for ETL transformers.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 
@@ -193,3 +194,77 @@ class TestJobsTransformer:
         assert result.source == "adzuna"
         assert result.url == ""
         assert result.posted_date is None
+
+    def test_non_dict_category(self, transformer):
+        """Test category extraction when category is not a dict."""
+        job = {
+            "id": "1",
+            "title": "Test",
+            "category": "Engineering",
+        }
+
+        result = transformer.transform_one(job)
+
+        assert result.category == "Engineering"
+
+    def test_transform_one_handles_exception(self, transformer):
+        """Return None when an unexpected transformation error occurs."""
+        job = {
+            "id": "broken",
+            "title": "Test",
+        }
+
+        with patch.object(
+            transformer,
+            "_company",
+            side_effect=RuntimeError("test failure"),
+        ):
+            result = transformer.transform_one(job)
+
+        assert result is None
+
+    def test_parse_datetime_with_datetime(self, transformer):
+        """Return datetime unchanged when input is already a datetime."""
+        value = datetime.now(UTC)
+
+        result = transformer._parse_datetime(value)
+
+        assert result is value
+
+    def test_parse_datetime_invalid_string(self, transformer):
+        """Return None for an invalid datetime string."""
+        result = transformer._parse_datetime("not-a-date")
+
+        assert result is None
+
+    def test_parse_datetime_unsupported_type(self, transformer):
+        """Return None for unsupported datetime input types."""
+        result = transformer._parse_datetime(12345)
+
+        assert result is None
+
+    def test_to_float_none(self, transformer):
+        """Return None when converting None."""
+        assert transformer._to_float(None) is None
+
+    def test_to_float_invalid_value(self, transformer):
+        """Return None when a value cannot be converted to float."""
+        result = transformer._to_float("not-a-number")
+
+        assert result is None
+
+    def test_salary_extraction_from_top_level_field(self, transformer):
+        """Use top-level salary fields when nested salary data is absent."""
+        job = {
+            "salary_min": "75000",
+            "salary_max": "100000",
+        }
+
+        assert transformer._salary(job, "min") == 75000.0
+        assert transformer._salary(job, "max") == 100000.0
+
+    def test_parse_employment_type_matching_keyword(self, transformer):
+        """Return the mapped employment type when a keyword matches."""
+        assert transformer._parse_employment_type(
+            {"contract_type": "full-time"}
+        ) == "FULL_TIME"

@@ -1,8 +1,9 @@
 """
 Unit tests for ETL validators.
 """
-
+from typing import cast
 from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
@@ -164,6 +165,112 @@ class TestJobValidated:
         assert job.country_code == "KE"
         assert job.currency == "USD"
 
+
+    def test_invalid_language(self):
+        """Test that invalid language codes are rejected."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(language="english")
+
+    def test_country_code_none(self):
+        """Test that country_code accepts None."""
+        job = make_enriched_job(country_code=None)
+
+        assert job.country_code is None
+
+    def test_blank_matched_tech_terms_are_ignored(self):
+        """Test that blank matched technology terms are ignored."""
+        job = make_enriched_job(
+            matched_tech_terms=["Python", " ", "", "  "],
+        )
+
+        assert job.matched_tech_terms == ["Python"]
+
+    def test_currency_none(self):
+        """Test that currency accepts None."""
+        job = make_enriched_job(currency=None)
+
+        assert job.currency is None
+
+    def test_negative_normalized_salary(self):
+        """Test that negative normalized salary is rejected."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(normalized_salary_min=-1.0)
+
+    def test_non_tech_role_rejects_matched_terms(self):
+        """Test that non-tech roles cannot have matched technology terms."""
+        with pytest.raises(ValidationError):
+            make_enriched_job(
+                is_tech_role=False,
+                technology_category=None,
+                tech_confidence=None,
+                matched_tech_terms=["Python"],
+            )
+
+    def test_validate_language_rejects_non_alpha(self):
+        """Test the custom language validator rejects non-alphabetic codes."""
+        with pytest.raises(ValueError, match="2-letter ISO 639-1 code"):
+            JobEnriched.validate_language("1@")
+
+
+    def test_validate_country_code_rejects_non_alpha(self):
+        """Test the custom country code validator rejects non-alphabetic codes."""
+        with pytest.raises(
+            ValueError,
+            match="2-letter ISO 3166-1 alpha-2 code",
+        ):
+            JobEnriched.validate_country_code("K1")
+
+
+    def test_validate_tech_confidence_rejects_out_of_range(self):
+        """Test the custom confidence validator rejects out-of-range values."""
+        with pytest.raises(
+            ValueError,
+            match="tech_confidence must be between 0.0 and 1.0",
+        ):
+            JobEnriched.validate_tech_confidence(1.5)
+
+
+    def test_validate_currency_rejects_non_alpha(self):
+        """Test the custom currency validator rejects non-alphabetic codes."""
+        with pytest.raises(
+            ValueError,
+            match="3-letter ISO 4217 code",
+        ):
+            JobEnriched.validate_currency("US1")
+
+
+    def test_validate_normalized_salary_rejects_negative(self):
+        """Test the custom salary validator rejects negative values."""
+        with pytest.raises(
+            ValueError,
+            match="normalized_salary must be >= 0",
+        ):
+            JobEnriched.validate_normalized_salary(-1.0)
+
+    def test_validate_returns_none_when_pydantic_validation_fails(self):
+        """Test that a Pydantic validation error is caught and logged."""
+        validator = JobValidator()
+        job = make_enriched_job()
+
+        with pytest.raises(ValidationError) as exc_info:
+            JobValidated(
+                source_id="12345",
+                title=cast(str, None),
+                company="TechCorp",
+                location="Nairobi, Kenya",
+            )
+
+        with patch(
+            "app.etl.validators.job_schema.JobValidated",
+            side_effect=exc_info.value,
+        ), patch(
+            "app.etl.validators.job_schema.logger.warning",
+        ) as warning_mock:
+            validated = validator.validate(job)
+
+        assert validated is None
+        warning_mock.assert_called_once()
+        assert "Pydantic validation failed" in warning_mock.call_args.args[0]
 
 class TestJobValidator:
     """Test suite for JobValidator."""

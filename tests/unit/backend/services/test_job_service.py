@@ -13,21 +13,22 @@ from app.schemas.job import JobFilters
 from app.services.job_service import JobService
 
 
+
+@pytest.fixture
+def mock_repo():
+    """Create a mock repository."""
+    repo = Mock()
+    repo.get_jobs.return_value = []
+    repo.count_jobs.return_value = 0
+    repo.get_by_id.return_value = None
+    return repo
+
+@pytest.fixture
+def service(mock_repo):
+    return JobService(mock_repo)
+
 class TestJobService:
     """Test suite for JobService."""
-
-    @pytest.fixture
-    def mock_repo(self):
-        """Create a mock repository."""
-        repo = Mock()
-        repo.get_jobs.return_value = []
-        repo.count_jobs.return_value = 0
-        repo.get_by_id.return_value = None
-        return repo
-
-    @pytest.fixture
-    def service(self, mock_repo):
-        return JobService(mock_repo)
 
     def test_get_jobs_success(self, service, mock_repo):
         """Test getting jobs successfully."""
@@ -131,3 +132,92 @@ class TestJobService:
         # Page 3 with limit 10 should have offset 20
         service.get_jobs(page=3, limit=10, filters=JobFilters())
         mock_repo.get_jobs.assert_called_with(JobFilters(), 20, 10, None)
+
+
+class TestJobServiceAnalytics:
+    """Test analytics methods in JobService."""
+
+    def test_get_top_skills_success(self, service, mock_repo):
+        expected = [
+            {"skill": "Python", "count": 50},
+            {"skill": "SQL", "count": 40},
+        ]
+        mock_repo.get_top_skills.return_value = expected
+
+        result = service.get_top_skills(limit=10, country_code="KE")
+
+        assert result == expected
+        mock_repo.get_top_skills.assert_called_once_with(10, "KE")
+
+    def test_get_top_skills_repository_error(self, service, mock_repo):
+        mock_repo.get_top_skills.side_effect = Exception("Database error")
+
+        with pytest.raises(HTTPException) as exc_info:
+            service.get_top_skills()
+
+        assert exc_info.value.status_code == 500
+        assert "Failed to retrieve top skills" in str(exc_info.value.detail)
+
+    def test_get_country_distribution_success(self, service, mock_repo):
+        expected = [
+            {"country": "KE", "count": 100},
+            {"country": "DE", "count": 80},
+        ]
+        mock_repo.get_country_distribution.return_value = expected
+
+        result = service.get_country_distribution()
+
+        assert result == expected
+        mock_repo.get_country_distribution.assert_called_once_with()
+
+    def test_get_country_distribution_repository_error(self, service, mock_repo):
+        mock_repo.get_country_distribution.side_effect = Exception("Database error")
+
+        with pytest.raises(HTTPException) as exc_info:
+            service.get_country_distribution()
+
+        assert exc_info.value.status_code == 500
+        assert "Failed to retrieve country distribution" in str(exc_info.value.detail)
+
+    def test_get_technology_distribution_success(self, service, mock_repo):
+        expected = [
+            {"category": "backend", "count": 75},
+            {"category": "data_science", "count": 50},
+        ]
+        mock_repo.get_technology_distribution.return_value = expected
+
+        result = service.get_technology_distribution()
+
+        assert result == expected
+        mock_repo.get_technology_distribution.assert_called_once_with()
+
+    def test_get_technology_distribution_repository_error(self, service, mock_repo):
+        mock_repo.get_technology_distribution.side_effect = Exception("Database error")
+
+        with pytest.raises(HTTPException) as exc_info:
+            service.get_technology_distribution()
+
+        assert exc_info.value.status_code == 500
+        assert "Failed to retrieve technology distribution" in str(exc_info.value.detail)
+
+    def test_get_stats_success(self, service, mock_repo):
+        expected = {
+            "total_jobs": 1000,
+            "total_companies": 200,
+            "total_countries": 10,
+        }
+        mock_repo.get_stats.return_value = expected
+
+        result = service.get_stats()
+
+        assert result == expected
+        mock_repo.get_stats.assert_called_once_with()
+
+    def test_get_stats_repository_error(self, service, mock_repo):
+        mock_repo.get_stats.side_effect = Exception("Database error")
+
+        with pytest.raises(HTTPException) as exc_info:
+            service.get_stats()
+
+        assert exc_info.value.status_code == 500
+        assert "Failed to retrieve job statistics" in str(exc_info.value.detail)

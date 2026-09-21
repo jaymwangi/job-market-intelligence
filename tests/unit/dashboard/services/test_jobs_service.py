@@ -6,6 +6,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
+from api import JOBS
 from schemas.jobs import Job, JobFilters, JobListResponse
 
 from dashboard.services.jobs_service import JobsService
@@ -234,3 +235,82 @@ class TestJobsService:
         """Test refreshing service."""
         service.refresh()
         # Should not raise errors
+
+    def test_build_params_with_language_and_tech_role(self, service):
+        """Test building parameters for language and tech-role filters."""
+        filters = JobFilters(
+            language="en",
+            is_tech_role=True,
+        )
+
+        params = service._build_params(filters, page=2, page_size=10)
+
+        assert params["page"] == 2
+        assert params["limit"] == 10
+        assert params["language"] == "en"
+        assert params["is_tech_role"] is True
+
+    def test_parse_datetime_with_datetime_value(self, service):
+        """Test that an existing datetime is returned unchanged."""
+        value = datetime(2026, 9, 19, 12, 30)
+
+        result = service._parse_datetime(value)
+
+        assert result is value
+
+    def test_parse_datetime_with_fallback_parser(self, service):
+        """Test fallback parsing when ISO parsing fails."""
+        result = service._parse_datetime("September 19, 2026 12:30 PM")
+
+        assert result.year == 2026
+        assert result.month == 9
+        assert result.day == 19
+        assert result.hour == 12
+        assert result.minute == 30
+
+    def test_parse_datetime_with_invalid_value(self, service):
+        """Test fallback to current time when parsing fails."""
+        before = datetime.now()
+
+        result = service._parse_datetime("not-a-valid-date")
+
+        after = datetime.now()
+
+        assert before <= result <= after
+
+
+    def test_fetch_jobs_cached_success(self):
+        """Test the cached jobs API call."""
+        expected = {
+            "data": [],
+            "total": 0,
+            "page": 1,
+            "limit": 20,
+        }
+
+        mock_client = Mock()
+        mock_client.get.return_value = expected
+
+        with patch("api.client.APIClient", return_value=mock_client):
+            result = getattr(JobsService._fetch_jobs_cached, "__wrapped__")(
+                "https://example.com",
+                {"page": 1, "limit": 20},
+            )
+
+        assert result == expected
+        mock_client.get.assert_called_once_with(
+            JOBS,
+            params={"page": 1, "limit": 20},
+        )
+
+    def test_fetch_jobs_cached_reraises_api_error(self):
+        """Test that cached API errors are logged and re-raised."""
+        mock_client = Mock()
+        mock_client.get.side_effect = RuntimeError("API error")
+
+        with patch("api.client.APIClient", return_value=mock_client):
+            with pytest.raises(RuntimeError, match="API error"):
+                getattr(JobsService._fetch_jobs_cached, "__wrapped__")(
+                    "https://example.com",
+                    {"page": 1, "limit": 20},
+                )

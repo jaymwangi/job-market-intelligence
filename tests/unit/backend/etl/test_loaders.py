@@ -3,7 +3,9 @@ Unit tests for ETL job loader.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch,MagicMock
+
+from sqlalchemy.exc import IntegrityError
 
 import pytest
 
@@ -13,8 +15,16 @@ from app.etl.loaders.job_loader import (
     SkillResult,
     UpsertResult,
 )
+from app.etl.loaders.job_loader import (
+    JobLoader,
+    LoadResult,
+    SkillResult,
+    UpsertResult,
+)
 from app.etl.schemas.validated import JobValidated
-
+from app.models.job import Job
+from app.models.job_skill import JobSkill
+from app.models.skill import Skill
 
 class TestJobLoader:
     """Test suite for JobLoader."""
@@ -297,6 +307,54 @@ class TestJobLoader:
         assert result.updated == 0
         assert mock_job_repo.upsert_from_validated.call_count == 2
 
+    def test_upsert_batch_empty(self, loader):
+        """Test that an empty batch returns an empty result."""
+        result = loader._upsert_batch([])
+
+        assert result.processed == 0
+        assert result.inserted == 0
+        assert result.updated == 0
+        assert result.skills_added == 0
+        assert result.relationships_added == 0
+
+    def test_upsert_jobs_empty(self, loader):
+        """Test that an empty job list returns an empty upsert result."""
+        result = loader._upsert_jobs([])
+
+        assert result.inserted == 0
+        assert result.updated == 0
+
+    def test_upsert_batch_integrity_error_is_reraised(self, loader, valid_jobs):
+        """Test that IntegrityError is logged and re-raised."""
+        error = IntegrityError("INSERT", {}, Exception("duplicate"))
+
+        with patch.object(loader, "_upsert_jobs", side_effect=error):
+            with pytest.raises(IntegrityError):
+                loader._upsert_batch(valid_jobs)
+
+    def test_upsert_purges_old_jobs(
+        self,
+        loader,
+        valid_jobs,
+        no_existing_jobs,
+        mock_job_repo,
+    ):
+        """Test purging old jobs when retention is enabled."""
+        mock_job_repo.delete_jobs_older_than.return_value = 7
+
+        with patch(
+            "app.etl.loaders.job_loader.JobRepository",
+            return_value=mock_job_repo,
+        ):
+            with patch(
+                "app.etl.loaders.job_loader.settings.pipeline_retention_days",
+                30,
+            ):
+                result = loader.upsert_in_batches(valid_jobs)
+
+        assert result.purged == 7
+        mock_job_repo.delete_jobs_older_than.assert_called_once()
+
     def test_upsert_database_error_propagates(
         self,
         loader,
@@ -358,3 +416,310 @@ class TestJobLoader:
         assert metrics.purged == 0
         assert metrics.skills_added == 0
         assert metrics.relationships_added == 0
+
+
+    def test_process_skills_empty_and_blank_skills(self, loader):
+        """Test that missing and blank skills produce no work."""
+        jobs = [
+            Mock(skills=None),
+            Mock(skills=[]),
+            Mock(skills=["", "   "]),
+        ]
+
+        result = loader._process_skills(jobs)
+
+        assert result.skills_added == 0
+        assert result.relationships_added == 0
+        loader.db_session.query.assert_not_called()
+
+
+    def test_process_skills_adds_new_skills_and_relationships(self, loader):
+        """Test creating new skills and their job relationships."""
+        job = Mock(
+            source="test_source",
+            source_id="job_1",
+            skills=["Python", " SQL ", "Python"],
+        )
+
+        python_skill = Mock()
+        python_skill.name = "python"
+        python_skill.id = "skill-python"
+
+        sql_skill = Mock()
+        sql_skill.name = "sql"
+        sql_skill.id = "skill-sql"
+
+        db_job = Mock()
+        db_job.source_site = "test_source"
+        db_job.source_id = "job_1"
+        db_job.id = "job-1"
+
+        skill_query = MagicMock()
+        skill_query.filter.return_value.all.side_effect = [
+            [],
+            [python_skill, sql_skill],
+        ]
+
+        job_query = MagicMock()
+        job_query.filter.return_value.all.return_value = [db_job]
+
+        relationship_query = MagicMock()
+        relationship_query.filter.return_value.all.return_value = []
+
+        def query_side_effect(model):
+            if model is Skill:
+                return skill_query
+            if model is Job:
+                return job_query
+            if model is JobSkill:
+                return relationship_query
+            raise AssertionError(f"Unexpected model: {model}")
+
+        loader.db_session.query.side_effect = query_side_effect
+        loader.db_session.begin_nested.return_value = MagicMock()
+
+        result = loader._process_skills([job])
+
+        assert result.skills_added == 2
+        assert result.relationships_added == 2
+
+
+    def test_process_skills_returns_skills_when_no_matching_jobs(
+        self,
+        loader,
+    ):
+        """Test the branch where skills exist but no database jobs match."""
+        job = Mock(
+            source="test_source",
+            source_id="job_1",
+            skills=["Python"],
+        )
+
+        python_skill = Mock()
+        python_skill.name = "python"
+        python_skill.id = "skill-python"
+
+        skill_query = MagicMock()
+        skill_query.filter.return_value.all.side_effect = [
+            [],
+            [python_skill],
+        ]
+
+        job_query = MagicMock()
+        job_query.filter.return_value.all.return_value = []
+
+        def query_side_effect(model):
+            if model is Skill:
+                return skill_query
+            if model is Job:
+                return job_query
+            raise AssertionError(f"Unexpected model: {model}")
+
+        loader.db_session.query.side_effect = query_side_effect
+
+        result = loader._process_skills([job])
+
+        assert result.skills_added == 1
+        assert result.relationships_added == 0
+
+
+    def test_process_skills_skips_duplicate_and_existing_relationships(
+        self,
+        loader,
+    ):
+        """Test duplicate pairs and already-existing relationships."""
+        job = Mock(
+            source="test_source",
+            source_id="job_1",
+            skills=["Python", "Python", "SQL"],
+        )
+
+        python_skill = Mock()
+        python_skill.name = "python"
+        python_skill.id = "skill-python"
+
+        sql_skill = Mock()
+        sql_skill.name = "sql"
+        sql_skill.id = "skill-sql"
+
+        db_job = Mock()
+        db_job.source_site = "test_source"
+        db_job.source_id = "job_1"
+        db_job.id = "job-1"
+
+        existing_relationship = Mock()
+        existing_relationship.job_id = "job-1"
+        existing_relationship.skill_id = "skill-sql"
+
+        skill_query = MagicMock()
+        skill_query.filter.return_value.all.side_effect = [
+            [python_skill, sql_skill],
+            [python_skill, sql_skill],
+        ]
+
+        job_query = MagicMock()
+        job_query.filter.return_value.all.return_value = [db_job]
+
+        relationship_query = MagicMock()
+        relationship_query.filter.return_value.all.return_value = [
+            existing_relationship
+        ]
+
+        def query_side_effect(model):
+            if model is Skill:
+                return skill_query
+            if model is Job:
+                return job_query
+            if model is JobSkill:
+                return relationship_query
+            raise AssertionError(f"Unexpected model: {model}")
+
+        loader.db_session.query.side_effect = query_side_effect
+        loader.db_session.begin_nested.return_value = MagicMock()
+
+        result = loader._process_skills([job])
+
+        assert result.skills_added == 0
+        assert result.relationships_added == 1
+
+
+    def test_process_skills_relationship_integrity_error_fallback(
+        self,
+        loader,
+    ):
+        """Test fallback to individual relationship inserts after batch failure."""
+        job = Mock(
+            source="test_source",
+            source_id="job_1",
+            skills=["Python", "SQL"],
+        )
+
+        python_skill = Mock()
+        python_skill.name = "python"
+        python_skill.id = "skill-python"
+
+        sql_skill = Mock()
+        sql_skill.name = "sql"
+        sql_skill.id = "skill-sql"
+
+        db_job = Mock()
+        db_job.source_site = "test_source"
+        db_job.source_id = "job_1"
+        db_job.id = "job-1"
+
+        skill_query = MagicMock()
+        skill_query.filter.return_value.all.side_effect = [
+            [python_skill, sql_skill],
+            [python_skill, sql_skill],
+        ]
+
+        job_query = MagicMock()
+        job_query.filter.return_value.all.return_value = [db_job]
+
+        relationship_query = MagicMock()
+        relationship_query.filter.return_value.all.return_value = []
+
+        def query_side_effect(model):
+            if model is Skill:
+                return skill_query
+            if model is Job:
+                return job_query
+            if model is JobSkill:
+                return relationship_query
+            raise AssertionError(f"Unexpected model: {model}")
+
+        loader.db_session.query.side_effect = query_side_effect
+
+        class Nested:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return False
+
+        loader.db_session.begin_nested.side_effect = lambda: Nested()
+
+        batch_error = IntegrityError(
+            "INSERT",
+            {},
+            Exception("duplicate batch"),
+        )
+
+        duplicate_error = IntegrityError(
+            "INSERT",
+            {},
+            Exception("duplicate relationship"),
+        )
+
+        flush_calls = 0
+
+        def flush_side_effect():
+            nonlocal flush_calls
+            flush_calls += 1
+
+            # First flush: batch insert → IntegrityError.
+            if flush_calls == 1:
+                raise batch_error
+
+            # Second flush: first individual relationship → succeeds.
+
+            # Third flush: second individual relationship → IntegrityError.
+            if flush_calls == 3:
+                raise duplicate_error
+
+        loader.db_session.flush.side_effect = flush_side_effect
+
+        result = loader._process_skills([job])
+
+        assert result.skills_added == 0
+        assert result.relationships_added == 1
+        assert loader.db_session.begin_nested.call_count == 3
+
+
+    def test_process_skills_skips_missing_job_or_skill_mapping(self, loader):
+        """Skip relationships when the job or skill mapping is missing."""
+        job = Mock(
+            source="test_source",
+            source_id="job_1",
+            skills=["Python"],
+        )
+
+        # Skill exists in the initial lookup, so no new skill is inserted.
+        # But the second lookup deliberately returns no skill objects,
+        # producing an empty skill_map.
+        python_skill = Mock()
+        python_skill.name = "python"
+        python_skill.id = "skill-python"
+
+        skill_query = MagicMock()
+        skill_query.filter.return_value.all.side_effect = [
+            [python_skill],
+            [],
+        ]
+
+        db_job = Mock()
+        db_job.source_site = "test_source"
+        db_job.source_id = "job_1"
+        db_job.id = "job-1"
+
+        job_query = MagicMock()
+        job_query.filter.return_value.all.return_value = [db_job]
+
+        relationship_query = MagicMock()
+        relationship_query.filter.return_value.all.return_value = []
+
+        def query_side_effect(model):
+            if model is Skill:
+                return skill_query
+            if model is Job:
+                return job_query
+            if model is JobSkill:
+                return relationship_query
+            raise AssertionError(f"Unexpected model: {model}")
+
+        loader.db_session.query.side_effect = query_side_effect
+
+        result = loader._process_skills([job])
+
+        assert result.skills_added == 0
+        assert result.relationships_added == 0

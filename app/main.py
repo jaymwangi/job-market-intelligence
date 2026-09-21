@@ -253,7 +253,7 @@ if settings.debug:
     from fastapi import Request
 
     @app.get("/debug/headers", include_in_schema=False)
-    async def debug_headers(request: Request) -> dict[str, str]:
+    async def debug_headers(request: Request) -> dict[str, Any]:
         """
         Debug endpoint to inspect request headers.
         Only available in debug mode.

@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.job import JobFilters, JobListResponse, JobResponse
+from app.models.job import Job
 
 
 class TestJobResponse:
@@ -40,6 +41,27 @@ class TestJobResponse:
         assert job.salary_currency == "USD"
         assert job.is_active is True
 
+    def test_job_response_model_validate_with_none_salaries(self):
+        """Test JobResponse.model_validate handles missing salary values."""
+        job = Job(
+            id=uuid4(),
+            title="Python Developer",
+            description="Python development role",
+            company_name="TechCorp",
+            source_url="https://example.com/job-123",
+            source_site="LinkedIn",
+            source_id="job-123",
+            salary_min=None,
+            salary_max=None,
+            is_active=True,
+            is_tech_role=True,
+        )
+
+        response = JobResponse.model_validate(job)
+
+        assert response.salary_min is None
+        assert response.salary_max is None
+
     def test_job_response_optional_fields(self):
         """Test JobResponse with optional fields omitted."""
         job_id = uuid4()
@@ -54,6 +76,24 @@ class TestJobResponse:
         assert job.company_name is None
         assert job.location is None
         assert job.is_active is True
+
+    def test_job_response_from_model_with_none_salaries(self):
+        """Test from_model handles missing salary values."""
+        job = Job(
+            id=uuid4(),
+            title="Python Developer",
+            company_name="TechCorp",
+            salary_min=None,
+            salary_max=None,
+            is_active=True,
+            is_tech_role=True,
+            skills=[],
+        )
+
+        response = JobResponse.from_model(job)
+
+        assert response.salary_min is None
+        assert response.salary_max is None
 
     def test_job_response_invalid_uuid(self):
         """Test JobResponse with invalid UUID string."""

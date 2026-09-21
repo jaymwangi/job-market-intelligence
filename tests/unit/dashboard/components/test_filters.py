@@ -32,3 +32,27 @@ class TestFilters:
             "min_salary": None,
             "max_salary": None,
         }
+
+    @patch("dashboard.components.filters.st.sidebar")
+    @patch("dashboard.components.filters.st.number_input")
+    @patch("dashboard.components.filters.get_icon", return_value="<svg></svg>")
+    def test_render_filters_normalizes_whitespace(self, mock_get_icon, mock_number_input, mock_sidebar):
+        """Test whitespace-only filter values normalize to None."""
+        mock_sidebar.text_input.side_effect = ["   ", "  ", "\t"]
+        mock_sidebar.selectbox.return_value = "adzuna"
+        mock_number_input.side_effect = [50000, 50000]
+
+        mock_col1 = MagicMock()
+        mock_col2 = MagicMock()
+        mock_sidebar.columns.return_value = [mock_col1, mock_col2]
+
+        result = render_filters()
+
+        assert result == {
+            "search": None,
+            "company": None,
+            "location": None,
+            "source_site": "adzuna",
+            "min_salary": 50000,
+            "max_salary": 50000,
+        }

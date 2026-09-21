@@ -8,9 +8,11 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, Mock
 
 from app.api.routes.jobs import get_service
 from app.main import app
+from app.services.job_service import JobService
 
 
 class TestJobsRoutes:
@@ -257,5 +259,293 @@ class TestJobsRoutes:
             assert "limit" in data
             assert "total" in data
             assert "data" in data
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_get_service_creates_job_service(self):
+        """Test the service dependency creates a JobService."""
+        db = Mock()
+
+        service = get_service(db)
+
+        assert service is not None
+        assert isinstance(service, JobService)
+
+    def test_get_top_skills(self, client):
+        """Test getting top skills."""
+        mock_service = Mock()
+        mock_service.get_top_skills.return_value = [
+            {"skill": "Python", "count": 10},
+            {"skill": "SQL", "count": 8},
+        ]
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.get("/api/v1/jobs/skills/top")
+
+            assert response.status_code == 200
+            assert response.json() == [
+                {"skill": "Python", "count": 10},
+                {"skill": "SQL", "count": 8},
+            ]
+            mock_service.get_top_skills.assert_called_once_with(20, None)
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_get_top_skills_with_filters(self, client):
+        """Test getting top skills with limit and country filter."""
+        mock_service = Mock()
+        mock_service.get_top_skills.return_value = [
+            {"skill": "Python", "count": 5},
+        ]
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.get("/api/v1/jobs/skills/top?limit=10&country_code=KE")
+
+            assert response.status_code == 200
+            assert response.json() == [{"skill": "Python", "count": 5}]
+            mock_service.get_top_skills.assert_called_once_with(10, "KE")
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_get_country_distribution(self, client):
+        """Test getting job distribution by country."""
+        mock_service = Mock()
+        mock_service.get_country_distribution.return_value = [
+            {"country_code": "US", "count": 20},
+            {"country_code": "KE", "count": 10},
+        ]
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.get("/api/v1/jobs/countries/distribution")
+
+            assert response.status_code == 200
+            assert response.json() == [
+                {"country_code": "US", "count": 20},
+                {"country_code": "KE", "count": 10},
+            ]
+            mock_service.get_country_distribution.assert_called_once_with()
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_get_technology_distribution(self, client):
+        """Test getting technology distribution."""
+        mock_service = Mock()
+        mock_service.get_technology_distribution.return_value = [
+            {"category": "backend", "count": 15},
+            {"category": "frontend", "count": 8},
+        ]
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.get("/api/v1/jobs/technology/distribution")
+
+            assert response.status_code == 200
+            assert response.json() == [
+                {"category": "backend", "count": 15},
+                {"category": "frontend", "count": 8},
+            ]
+            mock_service.get_technology_distribution.assert_called_once_with()
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_get_job_stats(self, client):
+        """Test getting job statistics."""
+        mock_service = Mock()
+        mock_service.get_stats.return_value = {
+            "total_jobs": 100,
+            "total_companies": 50,
+            "total_countries": 10,
+            "total_skills": 75,
+            "average_salary_min": 50000.0,
+            "average_salary_max": 90000.0,
+            "tech_role_count": 60,
+        }
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.get("/api/v1/jobs/stats/summary")
+
+            assert response.status_code == 200
+            assert response.json() == mock_service.get_stats.return_value
+            mock_service.get_stats.assert_called_once_with()
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_translate_job_not_found(self, client):
+        """Test translation when the job does not exist."""
+        mock_service = Mock()
+        mock_service.get_job.return_value = None
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.post(f"/api/v1/jobs/{uuid4()}/translate")
+
+            assert response.status_code == 404
+            assert "not found" in response.json()["detail"].lower()
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_translate_job_already_in_target_language(self, client, mock_job):
+        """Test translation when job is already in the target language."""
+        mock_job.language = "en"
+
+        mock_service = Mock()
+        mock_service.get_job.return_value = mock_job
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.post(
+                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
+            )
+
+            assert response.status_code == 200
+
+            data = response.json()
+            assert data["job_id"] == str(mock_job.id)
+            assert data["source_language"] == "en"
+            assert data["target_language"] == "en"
+            assert data["needs_translation"] is False
+            assert data["translated_title"] == mock_job.title
+            assert data["translated_description"] == mock_job.description
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_translate_job_success(self, client, mock_job, monkeypatch):
+        """Test successful job translation."""
+        mock_job.language = "fr"
+
+        mock_service = Mock()
+        mock_service.get_job.return_value = mock_job
+
+        translation_service = Mock()
+        translation_service.translate = AsyncMock(
+            return_value=Mock(
+                text="Translated job description",
+                success=True,
+                duration_ms=125.5,
+                character_count=28,
+                error=None,
+            )
+        )
+
+        async_get_translation_service = AsyncMock(
+            return_value=translation_service
+        )
+
+        monkeypatch.setattr(
+            "app.api.routes.jobs.get_translation_service",
+            async_get_translation_service,
+        )
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.post(
+                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
+            )
+
+            assert response.status_code == 200
+
+            data = response.json()
+            assert data["job_id"] == str(mock_job.id)
+            assert data["source_language"] == "fr"
+            assert data["target_language"] == "en"
+            assert data["needs_translation"] is True
+            assert data["translated_title"] == "Translated job description"
+            assert data["translated_description"] == "Translated job description"
+            assert data["success"] is True
+            assert data["duration_ms"] == 125.5
+            assert data["character_count"] == 28
+            assert data["error"] is None
+
+            translation_service.translate.assert_awaited_once_with(
+                text=mock_job.description,
+                source_language="fr",
+                target_language="en",
+            )
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_translate_job_failed_translation(self, client, mock_job, monkeypatch):
+        """Test translation service returning an unsuccessful result."""
+        mock_job.language = "fr"
+
+        mock_service = Mock()
+        mock_service.get_job.return_value = mock_job
+
+        translation_service = Mock()
+        translation_service.translate = AsyncMock(
+            return_value=Mock(
+                text=None,
+                success=False,
+                duration_ms=50.0,
+                character_count=0,
+                error=ValueError("Translation unavailable"),
+            )
+        )
+
+        monkeypatch.setattr(
+            "app.api.routes.jobs.get_translation_service",
+            AsyncMock(return_value=translation_service),
+        )
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.post(
+                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
+            )
+
+            assert response.status_code == 200
+
+            data = response.json()
+            assert data["needs_translation"] is True
+            assert data["translated_title"] == mock_job.title
+            assert data["translated_description"] == mock_job.description
+            assert data["success"] is False
+            assert data["duration_ms"] == 50.0
+            assert data["character_count"] == 0
+            assert data["error"] == "Translation unavailable"
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_translate_job_exception(self, client, mock_job, monkeypatch):
+        """Test translation endpoint when the translation service raises."""
+        mock_job.language = "fr"
+
+        mock_service = Mock()
+        mock_service.get_job.return_value = mock_job
+
+        translation_service = Mock()
+        translation_service.translate = AsyncMock(
+            side_effect=RuntimeError("Translation service failed")
+        )
+
+        monkeypatch.setattr(
+            "app.api.routes.jobs.get_translation_service",
+            AsyncMock(return_value=translation_service),
+        )
+
+        app.dependency_overrides[get_service] = lambda: mock_service
+
+        try:
+            response = client.post(
+                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
+            )
+
+            assert response.status_code == 500
+            assert response.json()["detail"] == (
+                "Translation failed: Translation service failed"
+            )
         finally:
             app.dependency_overrides.clear()

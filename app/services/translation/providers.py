@@ -27,7 +27,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import aiohttp
@@ -171,7 +171,7 @@ class BaseTranslationProvider:
             "timeout_calls": 0,
             "total_duration_ms": 0.0,
             "total_characters": 0,
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
         }
 
     @property
@@ -216,7 +216,7 @@ class BaseTranslationProvider:
                 healthy=False,
                 provider=self._provider_type,
                 message="Provider is closed",
-                checked_at=datetime.utcnow().isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
         try:
@@ -227,14 +227,14 @@ class BaseTranslationProvider:
                 provider=self._provider_type,
                 message=result.message,
                 details=result.details,
-                checked_at=datetime.utcnow().isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return HealthCheckResult(
                 healthy=False,
                 provider=self._provider_type,
                 message=str(e),
-                checked_at=datetime.utcnow().isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
     def _create_result(
@@ -335,8 +335,15 @@ class GoogleTranslateProvider(BaseTranslationProvider):
                         "Install it with: pip install googletrans==4.0.2",
                         provider=self._provider_type,
                     )
-            # HAS_GOOGLETRANS is True, but the type checker doesn't know that
-            self._translator = Translator()
+            # HAS_GOOGLETRANS is True, but the type checker doesn't know that.
+            translator_class = Translator
+            if translator_class is None:
+                raise TranslationProviderError(
+                    "googletrans is not installed. "
+                    "Install it with: pip install googletrans==4.0.2",
+                    provider=self._provider_type,
+                )
+            self._translator = translator_class()
         return self._translator
 
     @retry(
@@ -432,14 +439,14 @@ class GoogleTranslateProvider(BaseTranslationProvider):
                 latency_ms=latency_ms,
                 provider=self._provider_type,
                 message="OK" if result.success else "Translation failed",
-                checked_at=datetime.utcnow().isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return HealthCheckResult(
                 healthy=False,
                 provider=self._provider_type,
                 message=str(e),
-                checked_at=datetime.utcnow().isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
 
@@ -723,14 +730,14 @@ class DeepLProvider(BaseTranslationProvider):
                 latency_ms=latency_ms,
                 provider=self._provider_type,
                 message="OK" if result.success else "Translation failed",
-                checked_at=datetime.utcnow().isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             return HealthCheckResult(
                 healthy=False,
                 provider=self._provider_type,
                 message=str(e),
-                checked_at=datetime.utcnow().isoformat(),
+                checked_at=datetime.now(UTC).isoformat(),
             )
 
 
@@ -857,7 +864,7 @@ class MockTranslationProvider(BaseTranslationProvider):
                 "batch_call_count": self._batch_call_count,
                 "health_check_count": self._health_check_calls,
             },
-            checked_at=datetime.utcnow().isoformat(),
+            checked_at=datetime.now(UTC).isoformat(),
         )
 
     def get_stats(self) -> dict[str, Any]:
