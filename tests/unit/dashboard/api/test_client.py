@@ -221,8 +221,6 @@ class TestAPIClient:
         client.close()
         mock_close.assert_called_once()
 
-
-
     def test_http_error_with_invalid_json(self, client, mocker):
         """Test HTTP error handling when response JSON is invalid."""
         mock_response = Mock()
@@ -302,17 +300,12 @@ class TestAPIClient:
 
     def test_translate_job(self, client, mocker):
         """Test translate_job constructs the correct URL."""
-        mock_post = mocker.patch.object(
-            client, "post", return_value={"translated": True}
-        )
+        mock_post = mocker.patch.object(client, "post", return_value={"translated": True})
 
         result = client.translate_job("job-123", target_language="fr")
 
         assert result == {"translated": True}
-        mock_post.assert_called_once_with(
-            "api/v1/jobs/job-123/translate?target_language=fr"
-        )
-
+        mock_post.assert_called_once_with("api/v1/jobs/job-123/translate?target_language=fr")
 
     def test_unexpected_error(self, client, mocker):
         """Test unexpected exception handling."""
@@ -323,8 +316,6 @@ class TestAPIClient:
             client.get("/test")
 
         assert "Unexpected error: Unexpected failure" in str(exc_info.value)
-
-
 
     @pytest.mark.parametrize(
         ("method_name", "expected_path"),
@@ -357,28 +348,21 @@ class TestAPIClient:
             ("get_enriched_technology", "api/v1/analytics/enriched/technology"),
         ],
     )
+    def test_simple_get_wrappers(self, client, mocker, method_name, expected_path):
+        """Test API methods that directly delegate to GET."""
+        mock_get = mocker.patch.object(client, "get", return_value={"data": "test"})
 
-    def test_simple_get_wrappers(
-            self, client, mocker, method_name, expected_path
-        ):
-            """Test API methods that directly delegate to GET."""
-            mock_get = mocker.patch.object(
-                client, "get", return_value={"data": "test"}
-            )
+        if method_name == "get_job":
+            result = getattr(client, method_name)("job-123")
+        else:
+            result = getattr(client, method_name)()
 
-            if method_name == "get_job":
-                result = getattr(client, method_name)("job-123")
-            else:
-                result = getattr(client, method_name)()
-
-            assert result == {"data": "test"}
-            mock_get.assert_called_once_with(expected_path)
+        assert result == {"data": "test"}
+        mock_get.assert_called_once_with(expected_path)
 
     def test_get_enriched_skills_with_filters(self, client, mocker):
         """Test enriched skills with country and tech filters."""
-        mock_get = mocker.patch.object(
-            client, "get", return_value={"data": "test"}
-        )
+        mock_get = mocker.patch.object(client, "get", return_value={"data": "test"})
 
         result = client.get_enriched_skills(
             limit=30,
@@ -398,9 +382,7 @@ class TestAPIClient:
 
     def test_get_enriched_salary_with_filters(self, client, mocker):
         """Test enriched salary with country and tech filters."""
-        mock_get = mocker.patch.object(
-            client, "get", return_value={"data": "test"}
-        )
+        mock_get = mocker.patch.object(client, "get", return_value={"data": "test"})
 
         result = client.get_enriched_salary(
             country_code="KE",
@@ -439,9 +421,7 @@ class TestAPIClient:
         expected_params,
     ):
         """Test GET methods that pass query parameters."""
-        mock_get = mocker.patch.object(
-            client, "get", return_value={"data": "test"}
-        )
+        mock_get = mocker.patch.object(client, "get", return_value={"data": "test"})
 
         result = getattr(client, method_name)(*args)
 

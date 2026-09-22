@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from starlette.testclient import TestClient
 
 from app.api.middleware import (
     RequestLoggingMiddleware,
@@ -36,15 +35,17 @@ class TestRequestLoggingMiddleware:
             assert req.state.logger is logger
             return response
 
-        with patch(
-            "app.api.middleware.get_logger",
-            return_value=logger,
-        ), patch(
-            "app.api.middleware.metrics_collector.record_request"
-        ) as record_request, patch.object(
-            __import__("app.api.middleware", fromlist=["settings"]).settings,
-            "api_prefix",
-            "/api",
+        with (
+            patch(
+                "app.api.middleware.get_logger",
+                return_value=logger,
+            ),
+            patch("app.api.middleware.metrics_collector.record_request") as record_request,
+            patch.object(
+                __import__("app.api.middleware", fromlist=["settings"]).settings,
+                "api_prefix",
+                "/api",
+            ),
         ):
             result = await middleware.dispatch(request, call_next)
 
@@ -96,16 +97,19 @@ class TestRequestLoggingMiddleware:
         logger = MagicMock()
         response = JSONResponse({"ok": True})
 
-        with patch(
-            "app.api.middleware.get_logger",
-            return_value=logger,
-        ), patch.object(
-            __import__(
-                "app.api.middleware",
-                fromlist=["settings"],
-            ).settings,
-            "debug",
-            True,
+        with (
+            patch(
+                "app.api.middleware.get_logger",
+                return_value=logger,
+            ),
+            patch.object(
+                __import__(
+                    "app.api.middleware",
+                    fromlist=["settings"],
+                ).settings,
+                "debug",
+                True,
+            ),
         ):
             await middleware.dispatch(
                 request,
@@ -132,12 +136,15 @@ class TestRequestLoggingMiddleware:
         logger = MagicMock()
         response = JSONResponse({"status": "ok"})
 
-        with patch(
-            "app.api.middleware.get_logger",
-            return_value=logger,
-        ), patch(
-            "app.api.middleware.EXCLUDED_PATHS",
-            frozenset({"/health"}),
+        with (
+            patch(
+                "app.api.middleware.get_logger",
+                return_value=logger,
+            ),
+            patch(
+                "app.api.middleware.EXCLUDED_PATHS",
+                frozenset({"/health"}),
+            ),
         ):
             await middleware.dispatch(
                 request,
@@ -209,12 +216,13 @@ class TestRequestLoggingMiddleware:
 
         response = JSONResponse({"ok": True})
 
-        with patch(
-            "app.api.middleware.get_logger",
-            return_value=MagicMock(),
-        ), patch(
-            "app.api.middleware.metrics_collector.record_request"
-        ) as record_request:
+        with (
+            patch(
+                "app.api.middleware.get_logger",
+                return_value=MagicMock(),
+            ),
+            patch("app.api.middleware.metrics_collector.record_request") as record_request,
+        ):
             await middleware.dispatch(
                 request,
                 AsyncMock(return_value=response),
@@ -236,18 +244,20 @@ class TestRequestLoggingMiddleware:
         logger = MagicMock()
         error = RuntimeError("boom")
 
-        with patch(
-            "app.api.middleware.get_logger",
-            return_value=logger,
-        ), patch(
-            "app.api.middleware.metrics_collector.record_request"
-        ) as record_request, patch.object(
-            __import__(
-                "app.api.middleware",
-                fromlist=["settings"],
-            ).settings,
-            "api_prefix",
-            "/api",
+        with (
+            patch(
+                "app.api.middleware.get_logger",
+                return_value=logger,
+            ),
+            patch("app.api.middleware.metrics_collector.record_request") as record_request,
+            patch.object(
+                __import__(
+                    "app.api.middleware",
+                    fromlist=["settings"],
+                ).settings,
+                "api_prefix",
+                "/api",
+            ),
         ):
             with pytest.raises(RuntimeError, match="boom"):
                 await middleware.dispatch(

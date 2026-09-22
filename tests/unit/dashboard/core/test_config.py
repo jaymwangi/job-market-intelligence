@@ -18,6 +18,7 @@ def test_app_icon_alias_returns_app_icon():
 
     assert config.APP_ICON == "🧪"
 
+
 def test_api_base_url_alias_returns_api_base_url():
     config = DashboardConfig(api_base_url="https://example.com")
 

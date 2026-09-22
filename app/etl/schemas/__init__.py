@@ -28,8 +28,8 @@ Schemas:
 
 # Transformed schema - normalized job data
 # Enriched schema - with intelligence data (Sprint 6.6)
-from app.etl.schemas.enriched import JobEnriched
 from app.etl.enrichment.data.technology_categories import TechnologyCategory
+from app.etl.schemas.enriched import JobEnriched
 
 # Pipeline metrics - execution tracking
 from app.etl.schemas.metrics import PipelineMetrics

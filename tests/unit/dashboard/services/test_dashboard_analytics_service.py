@@ -1,13 +1,15 @@
 """
 Unit tests for dashboard analytics service error handling.
 """
+
+from datetime import datetime
 from unittest.mock import Mock
 
 import pytest
-from datetime import datetime
+from schemas.analytics import DashboardSummary, SalaryStatistics
 
 from dashboard.services.analytics_service import AnalyticsService
-from schemas.analytics import DashboardSummary, SalaryStatistics
+
 
 class TestAnalyticsServiceErrorHandling:
     """Test suite for analytics service error handling and edge cases."""
@@ -51,6 +53,7 @@ class TestAnalyticsServiceErrorHandling:
         assert stats is not None
 
         # ============================================================
+
     # Sprint 6.6: Language Analytics
     # ============================================================
 
@@ -318,9 +321,7 @@ class TestAnalyticsServiceErrorHandling:
         result = service.get_tech_vs_non_tech()
 
         assert result == expected
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/tech/vs-non-tech"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/tech/vs-non-tech")
 
     def test_get_tech_vs_non_tech_handles_invalid_response(
         self,
@@ -408,9 +409,7 @@ class TestAnalyticsServiceErrorHandling:
         result = service.get_tech_salary_stats()
 
         assert result == expected
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/tech/salary"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/tech/salary")
 
     def test_get_tech_salary_stats_handles_invalid_response(
         self,
@@ -645,9 +644,7 @@ class TestAnalyticsServiceErrorHandling:
         result = service.get_last_etl_run()
 
         assert result == "2 hours ago"
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/etl/last-run"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/etl/last-run")
 
     def test_get_last_etl_run_falls_back_when_api_has_no_value(
         self,
@@ -717,7 +714,6 @@ class TestAnalyticsServiceErrorHandling:
 
         assert service.get_last_etl_run() == "N/A"
 
-
     def test_get_last_etl_run_inserts_project_root(
         self,
         service,
@@ -731,9 +727,9 @@ class TestAnalyticsServiceErrorHandling:
         import sys
 
         project_root = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(
-                "dashboard/services/analytics_service.py"
-            )))
+            os.path.dirname(
+                os.path.dirname(os.path.abspath("dashboard/services/analytics_service.py"))
+            )
         )
 
         monkeypatch.setattr(
@@ -757,7 +753,6 @@ class TestAnalyticsServiceErrorHandling:
         assert service.get_last_etl_run() == "1 day ago"
         assert project_root in sys.path
 
-
     def test_get_last_etl_run_time_inserts_project_root(
         self,
         service,
@@ -771,9 +766,9 @@ class TestAnalyticsServiceErrorHandling:
         import sys
 
         project_root = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(
-                "dashboard/services/analytics_service.py"
-            )))
+            os.path.dirname(
+                os.path.dirname(os.path.abspath("dashboard/services/analytics_service.py"))
+            )
         )
 
         monkeypatch.setattr(
@@ -799,7 +794,6 @@ class TestAnalyticsServiceErrorHandling:
         assert service.get_last_etl_run_time() == expected
         assert project_root in sys.path
 
-
     def test_get_pipeline_status_inserts_project_root(
         self,
         service,
@@ -813,9 +807,9 @@ class TestAnalyticsServiceErrorHandling:
         import sys
 
         project_root = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(
-                "dashboard/services/analytics_service.py"
-            )))
+            os.path.dirname(
+                os.path.dirname(os.path.abspath("dashboard/services/analytics_service.py"))
+            )
         )
 
         monkeypatch.setattr(
@@ -911,9 +905,7 @@ class TestAnalyticsServiceErrorHandling:
         result = service.get_pipeline_status()
 
         assert result == "Running"
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/etl/status"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/etl/status")
 
     @pytest.mark.parametrize(
         "running,expected",
@@ -988,9 +980,7 @@ class TestAnalyticsServiceErrorHandling:
 
         assert service.get_db_status() == expected
 
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/health/db"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/health/db")
 
     def test_get_db_status_returns_unknown_on_api_error(
         self,
@@ -1013,9 +1003,7 @@ class TestAnalyticsServiceErrorHandling:
         result = service.get_companies_hiring_count()
 
         assert result == 42
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/companies/count"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/companies/count")
 
     def test_get_companies_hiring_count_falls_back_to_top_companies(
         self,
@@ -1083,9 +1071,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Dashboard metrics returns an empty list on failure."""
-        service._fetch_dashboard_summary = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_dashboard_summary = Mock(side_effect=RuntimeError("fetch failed"))
 
         assert service.get_dashboard_metrics() == []
 
@@ -1119,9 +1105,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Skills chart returns an empty chart on failure."""
-        service._fetch_top_skills = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_top_skills = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_skills_chart()
 
@@ -1157,9 +1141,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Skills distribution returns an empty chart on failure."""
-        service._fetch_top_skills = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_top_skills = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_skills_distribution_chart()
 
@@ -1195,9 +1177,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Companies chart returns an empty chart on failure."""
-        service._fetch_top_companies = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_top_companies = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_companies_chart()
 
@@ -1234,9 +1214,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Companies distribution returns an empty chart on failure."""
-        service._fetch_top_companies = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_top_companies = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_companies_distribution_chart()
 
@@ -1272,9 +1250,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Locations chart returns an empty chart on failure."""
-        service._fetch_jobs_by_location = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_jobs_by_location = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_locations_chart()
 
@@ -1304,9 +1280,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Salary distribution returns an empty histogram on failure."""
-        service._fetch_salary_distribution = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_salary_distribution = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_salary_distribution_chart()
 
@@ -1342,9 +1316,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Salary by location returns an empty chart on failure."""
-        service._fetch_salary_by_location = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_salary_by_location = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_salary_by_location_chart()
 
@@ -1381,9 +1353,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Employment types chart returns an empty chart on failure."""
-        service._fetch_employment_types = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_employment_types = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_employment_types_chart()
 
@@ -1419,9 +1389,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Employment types bar chart returns an empty chart on failure."""
-        service._fetch_employment_types = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_employment_types = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_employment_types_bar_chart()
 
@@ -1458,9 +1426,7 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Posting trend returns an empty chart on failure."""
-        service._fetch_posting_trend = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_posting_trend = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_posting_trend_chart()
 
@@ -1497,22 +1463,19 @@ class TestAnalyticsServiceErrorHandling:
         service,
     ):
         """Daily posting trend returns an empty chart on failure."""
-        service._fetch_posting_trend = Mock(
-            side_effect=RuntimeError("fetch failed")
-        )
+        service._fetch_posting_trend = Mock(side_effect=RuntimeError("fetch failed"))
 
         result = service.get_daily_posting_trend_chart()
 
         assert result.title == "Daily Job Postings"
         assert result.x_values == []
         assert result.y_values == []
-            # ============================================================
+        # ============================================================
+
     # Private fetch / normalization methods
     # ============================================================
 
-    def test_fetch_dashboard_summary_normalizes_response(
-        self, service, mock_api_client
-    ):
+    def test_fetch_dashboard_summary_normalizes_response(self, service, mock_api_client):
         data = {"total_jobs": 10}
         expected = Mock()
         service._normalize_response = Mock(return_value=expected)
@@ -1521,9 +1484,7 @@ class TestAnalyticsServiceErrorHandling:
         result = service._fetch_dashboard_summary()
 
         assert result is expected
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/dashboard-summary"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/dashboard-summary")
         service._normalize_response.assert_called_once()
         assert service._normalize_response.call_args.args[0] == data
         assert service._normalize_response.call_args.args[1] is DashboardSummary
@@ -1569,37 +1530,27 @@ class TestAnalyticsServiceErrorHandling:
         )
         service._normalize_list.assert_called_once()
 
-    def test_fetch_salary_statistics_normalizes_response(
-        self, service, mock_api_client
-    ):
+    def test_fetch_salary_statistics_normalizes_response(self, service, mock_api_client):
         expected = Mock()
         service._normalize_response = Mock(return_value=expected)
 
         result = service._fetch_salary_statistics()
 
         assert result is expected
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/salary-statistics"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/salary-statistics")
         service._normalize_response.assert_called_once()
 
-    def test_fetch_salary_distribution_normalizes_list(
-        self, service, mock_api_client
-    ):
+    def test_fetch_salary_distribution_normalizes_list(self, service, mock_api_client):
         expected = [Mock()]
         service._normalize_list = Mock(return_value=expected)
 
         result = service._fetch_salary_distribution()
 
         assert result == expected
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/salary-distribution"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/salary-distribution")
         service._normalize_list.assert_called_once()
 
-    def test_fetch_salary_by_location_normalizes_list(
-        self, service, mock_api_client
-    ):
+    def test_fetch_salary_by_location_normalizes_list(self, service, mock_api_client):
         expected = [Mock()]
         service._normalize_list = Mock(return_value=expected)
 
@@ -1612,18 +1563,14 @@ class TestAnalyticsServiceErrorHandling:
         )
         service._normalize_list.assert_called_once()
 
-    def test_fetch_employment_types_normalizes_list(
-        self, service, mock_api_client
-    ):
+    def test_fetch_employment_types_normalizes_list(self, service, mock_api_client):
         expected = [Mock()]
         service._normalize_list = Mock(return_value=expected)
 
         result = service._fetch_employment_types()
 
         assert result == expected
-        mock_api_client.get.assert_called_once_with(
-            "/api/v1/analytics/employment-types"
-        )
+        mock_api_client.get.assert_called_once_with("/api/v1/analytics/employment-types")
         service._normalize_list.assert_called_once()
 
     def test_fetch_posting_trend_normalizes_list(self, service, mock_api_client):
@@ -1738,9 +1685,7 @@ class TestAnalyticsServiceErrorHandling:
 
         assert isinstance(result, SalaryStatistics)
 
-    def test_normalize_response_invalid_data_raises_when_fallback_fails(
-        self, service
-    ):
+    def test_normalize_response_invalid_data_raises_when_fallback_fails(self, service):
         class BrokenModel:
             def __init__(self, **kwargs):
                 raise RuntimeError("cannot construct")

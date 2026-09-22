@@ -34,7 +34,7 @@ Example:
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol, runtime_checkable,Any
+from typing import Any, Protocol, runtime_checkable
 
 # Language type - ISO 639-1 codes as strings
 # For type checking, this is a string; at runtime, we use strings

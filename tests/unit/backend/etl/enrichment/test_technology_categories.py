@@ -1,11 +1,8 @@
-import pytest
-
 from app.etl.enrichment.data.technology_categories import (
     ALL_CATEGORY_KEYWORDS,
     CATEGORY_DISPLAY_NAMES,
     CATEGORY_KEYWORDS,
     CATEGORY_WEIGHTS,
-    SKILL_DISPLAY_NAMES,
     TechnologyCategory,
     find_category_for_keyword,
     get_category_display_name,
@@ -43,10 +40,7 @@ class TestTechnologyCategory:
 
 class TestCategoryHelpers:
     def test_get_category_display_name_with_enum(self):
-        assert (
-            get_category_display_name(TechnologyCategory.BACKEND)
-            == "Backend Development"
-        )
+        assert get_category_display_name(TechnologyCategory.BACKEND) == "Backend Development"
 
     def test_get_category_display_name_with_valid_string(self):
         assert get_category_display_name("backend") == "Backend Development"
@@ -116,27 +110,19 @@ class TestSkillDisplayHelpers:
         assert normalize_skills_list([]) == []
 
     def test_normalize_skills_list_removes_empty_values(self):
-        assert normalize_skills_list(
-            ["python", "", "   ", "sql"]
-        ) == ["Python", "SQL"]
+        assert normalize_skills_list(["python", "", "   ", "sql"]) == ["Python", "SQL"]
 
     def test_normalize_skills_list_normalizes_and_sorts(self):
-        result = normalize_skills_list(
-            [" python ", "AWS", "sql", "docker"]
-        )
+        result = normalize_skills_list([" python ", "AWS", "sql", "docker"])
 
         assert result == ["AWS", "Docker", "Python", "SQL"]
 
     def test_normalize_skills_list_removes_duplicates(self):
-        result = normalize_skills_list(
-            ["python", "Python", " PYTHON ", "aws", "AWS"]
-        )
+        result = normalize_skills_list(["python", "Python", " PYTHON ", "aws", "AWS"])
 
         assert result == ["AWS", "Python"]
 
     def test_normalize_skills_list_handles_unknown_skills(self):
-        result = normalize_skills_list(
-            ["python", "my_custom_skill"]
-        )
+        result = normalize_skills_list(["python", "my_custom_skill"])
 
         assert result == ["My_Custom_Skill", "Python"]

@@ -1,8 +1,8 @@
 from datetime import datetime
-from schemas.jobs import Job
 from unittest.mock import MagicMock, patch
 
 from components.tables import render_jobs_table
+from schemas.jobs import Job
 
 
 class SessionState(dict[str, object]):
@@ -31,6 +31,8 @@ class Context:
         traceback: object,
     ) -> None:
         return None
+
+
 def make_job(
     *,
     id: str = "1",
@@ -62,6 +64,7 @@ def make_job(
         is_active=is_active,
     )
 
+
 def setup_streamlit_mock(mock_st: MagicMock) -> SessionState:
     """Configure Streamlit layout mocks and return session state."""
     session_state = SessionState()
@@ -70,7 +73,9 @@ def setup_streamlit_mock(mock_st: MagicMock) -> SessionState:
     mock_st.container.return_value = Context()
 
     # render_jobs_table uses three columns for the header and two for details.
-    mock_st.columns.side_effect = lambda spec: [Context() for _ in range(spec if isinstance(spec, int) else len(spec))]
+    mock_st.columns.side_effect = lambda spec: [
+        Context() for _ in range(spec if isinstance(spec, int) else len(spec))
+    ]
 
     mock_st.button.return_value = False
 
@@ -384,9 +389,7 @@ def test_render_expanded_job_without_description(
 
     render_jobs_table([job])
 
-    assert "### 📝 Description" not in [
-        call.args[0] for call in mock_st.markdown.call_args_list
-    ]
+    assert "### 📝 Description" not in [call.args[0] for call in mock_st.markdown.call_args_list]
 
 
 @patch("components.tables.st")

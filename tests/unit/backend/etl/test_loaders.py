@@ -3,18 +3,11 @@ Unit tests for ETL job loader.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import Mock, patch,MagicMock
-
-from sqlalchemy.exc import IntegrityError
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
-from app.etl.loaders.job_loader import (
-    JobLoader,
-    LoadResult,
-    SkillResult,
-    UpsertResult,
-)
 from app.etl.loaders.job_loader import (
     JobLoader,
     LoadResult,
@@ -25,6 +18,7 @@ from app.etl.schemas.validated import JobValidated
 from app.models.job import Job
 from app.models.job_skill import JobSkill
 from app.models.skill import Skill
+
 
 class TestJobLoader:
     """Test suite for JobLoader."""
@@ -410,7 +404,6 @@ class TestJobLoader:
         assert metrics.skills_added == 0
         assert metrics.relationships_added == 0
 
-
     def test_process_skills_empty_and_blank_skills(self, loader):
         """Test that missing and blank skills produce no work."""
         jobs = [
@@ -424,7 +417,6 @@ class TestJobLoader:
         assert result.skills_added == 0
         assert result.relationships_added == 0
         loader.db_session.query.assert_not_called()
-
 
     def test_process_skills_adds_new_skills_and_relationships(self, loader):
         """Test creating new skills and their job relationships."""
@@ -473,7 +465,6 @@ class TestJobLoader:
         assert result.skills_added == 2
         assert result.relationships_added == 2
 
-
     def test_process_skills_returns_skills_when_no_matching_jobs(
         self,
         loader,
@@ -512,7 +503,6 @@ class TestJobLoader:
         assert result.skills_added == 1
         assert result.relationships_added == 0
 
-
     def test_process_skills_skips_duplicate_and_existing_relationships(
         self,
         loader,
@@ -548,9 +538,7 @@ class TestJobLoader:
         job_query.filter.return_value.all.return_value = [db_job]
 
         relationship_query = MagicMock()
-        relationship_query.filter.return_value.all.return_value = [
-            existing_relationship
-        ]
+        relationship_query.filter.return_value.all.return_value = [existing_relationship]
 
         def query_side_effect(*models):
             if models and models[0] is Skill:
@@ -568,7 +556,6 @@ class TestJobLoader:
 
         assert result.skills_added == 0
         assert result.relationships_added == 1
-
 
     def test_process_skills_relationship_integrity_error_fallback(
         self,
@@ -658,7 +645,6 @@ class TestJobLoader:
         assert result.skills_added == 0
         assert result.relationships_added == 1
         assert loader.db_session.begin_nested.call_count == 3
-
 
     def test_process_skills_skips_missing_job_or_skill_mapping(self, loader):
         """Skip relationships when the job or skill mapping is missing."""

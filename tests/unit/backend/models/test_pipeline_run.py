@@ -13,6 +13,4 @@ def test_pipeline_run_repr():
         source_site="linkedin",
     )
 
-    assert repr(pipeline_run) == (
-        f"<PipelineRun(id={run_id}, status=completed, source=linkedin)>"
-    )
+    assert repr(pipeline_run) == (f"<PipelineRun(id={run_id}, status=completed, source=linkedin)>")

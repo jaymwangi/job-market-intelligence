@@ -1,14 +1,13 @@
-import asyncio
-import aiohttp
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock, Mock, patch
 
+import aiohttp
 import pytest
 
 from app.services.translation.interface import (
-    TranslationConfig,
     HealthCheckResult,
+    TranslationConfig,
     TranslationProviderError,
     TranslationProviderType,
     TranslationRateLimitError,
@@ -23,7 +22,6 @@ from app.services.translation.providers import (
     RetryPolicy,
     create_translation_provider,
 )
-
 
 # ============================================================
 # RetryPolicy
@@ -466,7 +464,6 @@ class TestGoogleTranslateProvider:
         assert result.latency_ms is not None
         assert result.latency_ms >= 0
 
-
     def test_get_translator_lazy_import_succeeds_when_dependency_was_missing(self, provider):
         fake_translator = Mock()
 
@@ -558,6 +555,8 @@ class TestGoogleTranslateProvider:
 
         assert test_module.HAS_GOOGLETRANS is False
         assert test_module.Translator is None
+
+
 # ============================================================
 # DeepLProvider
 # ============================================================

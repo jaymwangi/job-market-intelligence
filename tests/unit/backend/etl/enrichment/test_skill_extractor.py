@@ -1,7 +1,5 @@
 import json
 
-import pytest
-
 from app.etl.enrichment.skill_extractor import SkillExtractor
 
 
@@ -31,9 +29,7 @@ class TestSkillExtractor:
 
     def test_loads_keywords_from_json_dict(self, tmp_path):
         data_file = tmp_path / "skills.json"
-        data_file.write_text(
-            json.dumps({"skills": ["Python", "SQL", "Docker"]})
-        )
+        data_file.write_text(json.dumps({"skills": ["Python", "SQL", "Docker"]}))
 
         extractor = SkillExtractor(
             keywords=["Fallback"],
@@ -75,9 +71,7 @@ class TestSkillExtractor:
         assert extractor.keywords == {"python", "sql"}
 
     def test_extract_skills_from_title_and_description(self):
-        extractor = SkillExtractor(
-            keywords=["python", "sql", "docker"]
-        )
+        extractor = SkillExtractor(keywords=["python", "sql", "docker"])
 
         result = extractor.extract_skills(
             "Python Developer",
@@ -107,9 +101,7 @@ class TestSkillExtractor:
         assert result == ["sql"]
 
     def test_extract_skills_returns_sorted_unique_skills(self):
-        extractor = SkillExtractor(
-            keywords=["python", "sql", "docker"]
-        )
+        extractor = SkillExtractor(keywords=["python", "sql", "docker"])
 
         result = extractor.extract_skills(
             "Python Python Developer",
@@ -121,15 +113,16 @@ class TestSkillExtractor:
     def test_extract_skills_returns_empty_when_no_skill_found(self):
         extractor = SkillExtractor(keywords=["python", "sql"])
 
-        assert extractor.extract_skills(
-            "Marketing Manager",
-            "Experience in sales and communication.",
-        ) == []
+        assert (
+            extractor.extract_skills(
+                "Marketing Manager",
+                "Experience in sales and communication.",
+            )
+            == []
+        )
 
     def test_extract_from_title(self):
-        extractor = SkillExtractor(
-            keywords=["python", "sql", "docker"]
-        )
+        extractor = SkillExtractor(keywords=["python", "sql", "docker"])
 
         assert extractor.extract_from_title("Senior Python Developer") == ["python"]
 

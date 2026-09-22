@@ -1,8 +1,9 @@
 """
 Unit tests for ETL validators.
 """
-from typing import cast
+
 from datetime import UTC, datetime
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -165,7 +166,6 @@ class TestJobValidated:
         assert job.country_code == "KE"
         assert job.currency == "USD"
 
-
     def test_invalid_language(self):
         """Test that invalid language codes are rejected."""
         with pytest.raises(ValidationError):
@@ -211,7 +211,6 @@ class TestJobValidated:
         with pytest.raises(ValueError, match="2-letter ISO 639-1 code"):
             JobEnriched.validate_language("1@")
 
-
     def test_validate_country_code_rejects_non_alpha(self):
         """Test the custom country code validator rejects non-alphabetic codes."""
         with pytest.raises(
@@ -219,7 +218,6 @@ class TestJobValidated:
             match="2-letter ISO 3166-1 alpha-2 code",
         ):
             JobEnriched.validate_country_code("K1")
-
 
     def test_validate_tech_confidence_rejects_out_of_range(self):
         """Test the custom confidence validator rejects out-of-range values."""
@@ -229,7 +227,6 @@ class TestJobValidated:
         ):
             JobEnriched.validate_tech_confidence(1.5)
 
-
     def test_validate_currency_rejects_non_alpha(self):
         """Test the custom currency validator rejects non-alphabetic codes."""
         with pytest.raises(
@@ -237,7 +234,6 @@ class TestJobValidated:
             match="3-letter ISO 4217 code",
         ):
             JobEnriched.validate_currency("US1")
-
 
     def test_validate_normalized_salary_rejects_negative(self):
         """Test the custom salary validator rejects negative values."""
@@ -260,17 +256,21 @@ class TestJobValidated:
                 location="Nairobi, Kenya",
             )
 
-        with patch(
-            "app.etl.validators.job_schema.JobValidated",
-            side_effect=exc_info.value,
-        ), patch(
-            "app.etl.validators.job_schema.logger.warning",
-        ) as warning_mock:
+        with (
+            patch(
+                "app.etl.validators.job_schema.JobValidated",
+                side_effect=exc_info.value,
+            ),
+            patch(
+                "app.etl.validators.job_schema.logger.warning",
+            ) as warning_mock,
+        ):
             validated = validator.validate(job)
 
         assert validated is None
         warning_mock.assert_called_once()
         assert "Pydantic validation failed" in warning_mock.call_args.args[0]
+
 
 class TestJobValidator:
     """Test suite for JobValidator."""

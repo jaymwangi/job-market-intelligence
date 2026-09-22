@@ -28,9 +28,7 @@ class TestCountryNormalizer:
     def test_normalize_country_from_comma_separated_location(self, normalizer):
         assert normalizer.normalize("London, UK") == "GB"
 
-    def test_normalize_country_from_comma_separated_location_case_insensitive(
-        self, normalizer
-    ):
+    def test_normalize_country_from_comma_separated_location_case_insensitive(self, normalizer):
         assert normalizer.normalize("London, uK") == "GB"
 
     def test_normalize_country_from_parentheses(self, normalizer):

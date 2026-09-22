@@ -265,6 +265,4 @@ class TestJobsTransformer:
 
     def test_parse_employment_type_matching_keyword(self, transformer):
         """Return the mapped employment type when a keyword matches."""
-        assert transformer._parse_employment_type(
-            {"contract_type": "full-time"}
-        ) == "FULL_TIME"
+        assert transformer._parse_employment_type({"contract_type": "full-time"}) == "FULL_TIME"

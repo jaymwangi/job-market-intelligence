@@ -1,26 +1,25 @@
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 
+import app.services.translation.service as translation_service_module
+from app.services.translation.interface import (
+    HealthCheckResult,
+    TranslationConfig,
+    TranslationError,
+    TranslationProviderError,
+    TranslationProviderType,
+    TranslationRateLimitError,
+    TranslationResult,
+)
 from app.services.translation.service import (
     CacheStatistics,
     MetricsSnapshot,
     TranslationCache,
-    TranslationMetrics,
     TranslationService,
 )
-from app.services.translation.interface import (
-    TranslationConfig,
-    TranslationProviderType,
-    TranslationResult,
-    TranslationError,
-    TranslationProviderError,
-    TranslationRateLimitError,
-    HealthCheckResult,
-)
-import app.services.translation.service as translation_service_module
-
-from datetime import UTC, datetime
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, patch
 
 
 def test_cache_statistics_rates():
@@ -66,6 +65,7 @@ def test_metrics_snapshot_rates_and_dict():
     assert data["total_characters"] == 100
     assert data["provider"] == "google"
 
+
 def test_translation_provider_error_preserves_metadata():
     error = TranslationProviderError(
         "Translation failed",
@@ -78,6 +78,7 @@ def test_translation_provider_error_preserves_metadata():
     assert error.provider is TranslationProviderType.GOOGLE
     assert error.status_code == 500
     assert error.retry_after == 10
+
 
 def test_translation_rate_limit_error_preserves_metadata():
     error = TranslationRateLimitError(
@@ -92,11 +93,13 @@ def test_translation_rate_limit_error_preserves_metadata():
     assert error.retry_after == 30
     assert error.limit == 100
 
+
 def test_metrics_snapshot_zero_requests():
     snapshot = MetricsSnapshot()
 
     assert snapshot.success_rate == 0.0
     assert snapshot.avg_duration_ms == 0.0
+
 
 @pytest.mark.asyncio
 async def test_cache_miss_then_hit():
@@ -211,6 +214,7 @@ async def test_cache_lru_moves_accessed_entry_to_end():
     assert await cache.get("1", "en", "fr") is result1
     assert await cache.get("2", "en", "fr") is None
 
+
 @pytest.mark.asyncio
 async def test_cache_expired_entry_is_miss():
     cache = TranslationCache(max_size=10, ttl_seconds=10)
@@ -224,14 +228,11 @@ async def test_cache_expired_entry_is_miss():
 
     await cache.set("Hello", "en", "fr", result)
 
-    with patch(
-        "app.services.translation.service.datetime"
-    ) as mock_datetime:
-        mock_datetime.now.return_value.timestamp.return_value = (
-            datetime.now(UTC).timestamp() + 20
-        )
+    with patch("app.services.translation.service.datetime") as mock_datetime:
+        mock_datetime.now.return_value.timestamp.return_value = datetime.now(UTC).timestamp() + 20
 
         assert await cache.get("Hello", "en", "fr") is None
+
 
 @pytest.fixture
 def provider():
@@ -340,6 +341,7 @@ async def test_translate_cache_hit_skips_provider(provider):
     assert result is cached_result
     provider.translate.assert_not_awaited()
 
+
 def test_translation_config_rejects_non_positive_timeout():
     with pytest.raises(ValueError, match="timeout must be greater than 0"):
         TranslationConfig(timeout=0)
@@ -356,24 +358,19 @@ def test_translation_config_rejects_non_positive_retry_delay():
 
 
 def test_translation_config_rejects_backoff_factor_below_one():
-    with pytest.raises(
-        ValueError, match="retry_backoff_factor must be >= 1.0"
-    ):
+    with pytest.raises(ValueError, match="retry_backoff_factor must be >= 1.0"):
         TranslationConfig(retry_backoff_factor=0.5)
 
 
 def test_translation_config_rejects_invalid_retry_jitter():
-    with pytest.raises(
-        ValueError, match="retry_jitter must be between 0 and 1.0"
-    ):
+    with pytest.raises(ValueError, match="retry_jitter must be between 0 and 1.0"):
         TranslationConfig(retry_jitter=1.1)
 
 
 def test_translation_config_rejects_non_positive_batch_size():
-    with pytest.raises(
-        ValueError, match="batch_max_size must be greater than 0"
-    ):
+    with pytest.raises(ValueError, match="batch_max_size must be greater than 0"):
         TranslationConfig(batch_max_size=0)
+
 
 @pytest.mark.asyncio
 async def test_translate_caches_provider_result(provider):
@@ -531,6 +528,7 @@ async def test_translate_many_provider_failure_returns_fallbacks(provider):
     metrics = await service.get_metrics()
     assert metrics.failed_requests == 1
 
+
 @pytest.mark.asyncio
 async def test_health_check_when_service_closed(provider):
     service = TranslationService(provider=provider)
@@ -661,6 +659,7 @@ async def test_clear_cache(provider):
 
     stats = await cache.get_stats()
     assert stats.size == 0
+
 
 def test_create_default_with_explicit_config_and_cache(provider):
     config = TranslationConfig(
@@ -830,9 +829,7 @@ async def test_get_translation_service_reuses_singleton(provider):
 @pytest.mark.asyncio
 async def test_translate_text_delegates_to_service():
     service = Mock()
-    service.translate = AsyncMock(
-        return_value=make_result(text="Bonjour")
-    )
+    service.translate = AsyncMock(return_value=make_result(text="Bonjour"))
 
     with patch(
         "app.services.translation.service.get_translation_service",

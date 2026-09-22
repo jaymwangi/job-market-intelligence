@@ -13,9 +13,8 @@ def test_job_skill_repr():
         skill_id=skill_id,
     )
 
-    assert repr(job_skill) == (
-        f"<JobSkill(job_id={job_id}, skill_id={skill_id})>"
-    )
+    assert repr(job_skill) == (f"<JobSkill(job_id={job_id}, skill_id={skill_id})>")
+
 
 import uuid
 

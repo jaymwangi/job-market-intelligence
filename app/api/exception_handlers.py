@@ -40,7 +40,9 @@ def _error_response(
     return JSONResponse(status_code=status_code, content=content)
 
 
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     """Handle validation errors with detailed field information."""
     log = _get_logger(request)
 

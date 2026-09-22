@@ -82,6 +82,7 @@ class TestDatabaseSession:
         db_session.rollback()
 
         assert db_session.get(Job, job_id) is None
+
     def test_get_connect_args_sqlite(self, monkeypatch):
         """Test SQLite-specific connection arguments."""
         from app.database import session

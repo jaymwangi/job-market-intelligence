@@ -1,13 +1,13 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from schemas.jobs import Job
 from components.job_detail import (
     get_translation,
     is_job_translated,
     render_job_detail,
     toggle_translation,
 )
+from schemas.jobs import Job
 
 
 class Context:
@@ -62,8 +62,9 @@ def make_job(
         skills=skills or [],
         technology_category=technology_category,
         is_tech_role=is_tech_role,
-         language=language,
+        language=language,
     )
+
 
 @patch("components.job_detail.st")
 def test_render_job_detail_minimal_english_job(mock_st: MagicMock) -> None:
@@ -370,6 +371,7 @@ def test_toggle_translation_hides_translation(mock_st: MagicMock) -> None:
 
     assert session_state["translated_1"] is False
     assert session_state["translation_text_1"] == ""
+
 
 def setup_streamlit_mock(mock_st: MagicMock) -> SessionState:
     """Configure Streamlit mocks used by render_job_detail."""

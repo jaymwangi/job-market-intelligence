@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+
 from app.etl.enrichment.classifier import (
     UNKNOWN_CATEGORY,
     ClassificationDecision,
@@ -218,9 +219,7 @@ class TestHelpers:
         assert _calculate_ambiguity_score(best, second) == expected
 
     def test_get_sorted_categories(self):
-        result = _get_sorted_categories(
-            {"frontend": 5.0, "backend": 10.0, "data": 7.0}
-        )
+        result = _get_sorted_categories({"frontend": 5.0, "backend": 10.0, "data": 7.0})
 
         assert result == [
             ("backend", 10.0),
@@ -265,9 +264,7 @@ class TestHelpers:
 
         category = SimpleNamespace(is_tech=True)
 
-        with patch(
-            "app.etl.enrichment.classification_config.get_config"
-        ) as get_config:
+        with patch("app.etl.enrichment.classification_config.get_config") as get_config:
             get_config.return_value.categories = {"backend": category}
 
             assert _is_tech_category("backend", policy) is True
@@ -275,9 +272,7 @@ class TestHelpers:
     def test_is_tech_category_returns_false_for_missing_category(self):
         policy = ClassificationPolicy()
 
-        with patch(
-            "app.etl.enrichment.classification_config.get_config"
-        ) as get_config:
+        with patch("app.etl.enrichment.classification_config.get_config") as get_config:
             get_config.return_value.categories = {}
 
             assert _is_tech_category("missing", policy) is False
@@ -309,9 +304,7 @@ class TestClassifyResult:
             ),
         )
 
-        assert decision.explanations == [
-            DecisionReason.SUCCESS.display_message()
-        ]
+        assert decision.explanations == [DecisionReason.SUCCESS.display_message()]
 
     def test_existing_reason_message_is_not_duplicated(self):
         message = DecisionReason.SUCCESS.display_message()
@@ -337,6 +330,7 @@ class TestClassifyResult:
             "Some unrelated explanation",
             f"Explanation: {message}",
         ]
+
     def test_no_categories(self):
         result = make_result()
 
@@ -365,12 +359,13 @@ class TestClassifyResult:
     def test_single_category_non_tech(self):
         result = make_result({"non_tech": 10.0})
 
-        with patch(
-            "app.etl.enrichment.classification_config.get_competing_categories",
-            return_value=[],
-        ), patch(
-            "app.etl.enrichment.classification_config.get_config"
-        ) as get_config:
+        with (
+            patch(
+                "app.etl.enrichment.classification_config.get_competing_categories",
+                return_value=[],
+            ),
+            patch("app.etl.enrichment.classification_config.get_config") as get_config,
+        ):
             category = SimpleNamespace(is_tech=False)
             get_config.return_value.categories = {"non_tech": category}
 
@@ -382,15 +377,14 @@ class TestClassifyResult:
     def test_single_category_success(self):
         result = make_result({"backend": 10.0}, raw_score=12.0, confidence=0.85)
 
-        with patch(
-            "app.etl.enrichment.classification_config.get_competing_categories",
-            return_value=[],
-        ), patch(
-            "app.etl.enrichment.classification_config.get_config"
-        ) as get_config:
-            get_config.return_value.categories = {
-                "backend": SimpleNamespace(is_tech=True)
-            }
+        with (
+            patch(
+                "app.etl.enrichment.classification_config.get_competing_categories",
+                return_value=[],
+            ),
+            patch("app.etl.enrichment.classification_config.get_config") as get_config,
+        ):
+            get_config.return_value.categories = {"backend": SimpleNamespace(is_tech=True)}
 
             decision = classify_result(result, ClassificationPolicy.default())
 
@@ -440,15 +434,14 @@ class TestClassifyResult:
             raw_score=10.0,
         )
 
-        with patch(
-            "app.etl.enrichment.classification_config.get_competing_categories",
-            return_value=[("backend", 5.0)],
-        ), patch(
-            "app.etl.enrichment.classification_config.get_config"
-        ) as get_config:
-            get_config.return_value.categories = {
-                "non_tech": SimpleNamespace(is_tech=False)
-            }
+        with (
+            patch(
+                "app.etl.enrichment.classification_config.get_competing_categories",
+                return_value=[("backend", 5.0)],
+            ),
+            patch("app.etl.enrichment.classification_config.get_config") as get_config,
+        ):
+            get_config.return_value.categories = {"non_tech": SimpleNamespace(is_tech=False)}
 
             decision = classify_result(result, ClassificationPolicy.default())
 
@@ -462,15 +455,14 @@ class TestClassifyResult:
             confidence=0.9,
         )
 
-        with patch(
-            "app.etl.enrichment.classification_config.get_competing_categories",
-            return_value=[("frontend", 5.0)],
-        ), patch(
-            "app.etl.enrichment.classification_config.get_config"
-        ) as get_config:
-            get_config.return_value.categories = {
-                "backend": SimpleNamespace(is_tech=True)
-            }
+        with (
+            patch(
+                "app.etl.enrichment.classification_config.get_competing_categories",
+                return_value=[("frontend", 5.0)],
+            ),
+            patch("app.etl.enrichment.classification_config.get_config") as get_config,
+        ):
+            get_config.return_value.categories = {"backend": SimpleNamespace(is_tech=True)}
 
             decision = classify_result(result, ClassificationPolicy.default())
 
@@ -494,9 +486,7 @@ class TestClassifyResult:
                 }
             }
         )
-        result = make_result(
-            {"backend": 10.0, "frontend": 2.0}
-        )
+        result = make_result({"backend": 10.0, "frontend": 2.0})
 
         with patch(
             "app.etl.enrichment.classification_config.get_competing_categories",
@@ -516,9 +506,7 @@ class TestBatchAndSummaries:
             make_result({"frontend": 12.0}),
         ]
 
-        with patch(
-            "app.etl.enrichment.classifier.classify_result"
-        ) as mock_classify:
+        with patch("app.etl.enrichment.classifier.classify_result") as mock_classify:
             mock_classify.side_effect = [
                 SimpleNamespace(is_tech=True),
                 SimpleNamespace(is_tech=False),

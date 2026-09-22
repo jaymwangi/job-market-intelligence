@@ -9,10 +9,13 @@ from dashboard.pages import jobs
 def mock_streamlit(mocker):
     mocker.patch.object(jobs.st, "markdown")
     mocker.patch.object(jobs.st, "toggle", return_value=True)
-    mocker.patch.object(jobs.st, "columns", side_effect=lambda spec: [
-        MagicMock(__enter__=Mock(), __exit__=Mock(return_value=False))
-        for _ in range(len(spec))
-    ])
+    mocker.patch.object(
+        jobs.st,
+        "columns",
+        side_effect=lambda spec: [
+            MagicMock(__enter__=Mock(), __exit__=Mock(return_value=False)) for _ in range(len(spec))
+        ],
+    )
     mocker.patch.object(jobs.st, "cache_data")
     mocker.patch.object(jobs.st, "rerun")
     mocker.patch.object(jobs, "get_icon", return_value="<svg></svg>")
@@ -22,7 +25,6 @@ def mock_streamlit(mocker):
     mocker.patch.object(jobs, "render_pagination")
     mocker.patch.object(jobs, "render_empty_state")
     mocker.patch.object(jobs, "show_error")
-
 
 
 def test_render_jobs_success(mocker):
@@ -98,9 +100,7 @@ def test_render_jobs_fetch_error(mocker):
     jobs.st.session_state.clear()
     jobs.render()
 
-    show_error.assert_called_once_with(
-        "Failed to load jobs: API unavailable"
-    )
+    show_error.assert_called_once_with("Failed to load jobs: API unavailable")
     render_job_card.assert_not_called()
     render_empty_state.assert_not_called()
 
@@ -157,7 +157,6 @@ def test_render_jobs_tech_toggle_changed_resets_page(mocker):
     assert jobs.st.session_state.jobs_page == 1
     cache_clear.assert_called_once()
     rerun.assert_called_once()
-
 
 
 @pytest.mark.parametrize(

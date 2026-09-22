@@ -5,7 +5,6 @@ import pytest
 from app.etl.schemas.metrics import PipelineMetrics
 
 
-
 class TestPipelineMetrics:
     """Test suite for PipelineMetrics."""
 

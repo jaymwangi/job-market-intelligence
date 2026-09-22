@@ -67,6 +67,7 @@ class TestHealthService:
 
         result = service.is_healthy()
         assert result is False
+
     def test_is_healthy_returns_false_when_check_raises(self, service):
         """Test is_healthy when the health check itself raises."""
         service.check = Mock(side_effect=Exception("Unexpected error"))

@@ -16,6 +16,7 @@ def test_validate_configuration_accepts_valid_settings(monkeypatch):
 
     main.validate_configuration()
 
+
 def test_validate_configuration_rejects_missing_database_url(monkeypatch):
     monkeypatch.setattr(
         type(main.settings),
@@ -25,6 +26,7 @@ def test_validate_configuration_rejects_missing_database_url(monkeypatch):
 
     with pytest.raises(ValueError, match="Database URL is not configured"):
         main.validate_configuration()
+
 
 @pytest.mark.parametrize(
     ("attribute", "value", "message"),
@@ -257,17 +259,14 @@ def test_debug_routes_endpoint():
     assert data["count"] == len(data["routes"])
     assert data["count"] > 0
 
-    paths = {
-        route["path"]
-        for route in data["routes"]
-        if route["path"] is not None
-    }
+    paths = {route["path"] for route in data["routes"] if route["path"] is not None}
 
     assert "/" in paths
     assert "/debug/headers" in paths
     assert "/debug/time" in paths
     assert "/debug/ping" in paths
     assert "/debug/routes" in paths
+
 
 def test_debug_routes_includes_websocket_route(monkeypatch):
     from fastapi.testclient import TestClient
@@ -297,11 +296,7 @@ def test_debug_routes_includes_websocket_route(monkeypatch):
 
     data = response.json()
 
-    websocket_routes = [
-        route
-        for route in data["routes"]
-        if route["type"] == "WebSocketRoute"
-    ]
+    websocket_routes = [route for route in data["routes"] if route["type"] == "WebSocketRoute"]
 
     assert websocket_routes == [
         {

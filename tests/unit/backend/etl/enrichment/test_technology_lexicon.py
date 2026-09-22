@@ -86,9 +86,7 @@ class TestTechnologyLexicon:
     def test_find_technologies_returns_matches(self):
         lexicon = TechnologyLexicon(FakeConfig())
 
-        matches = lexicon.find_technologies(
-            "Python developer using React and Django"
-        )
+        matches = lexicon.find_technologies("Python developer using React and Django")
 
         assert matches == [
             TechnologyMatch(
@@ -117,9 +115,7 @@ class TestTechnologyLexicon:
     def test_find_technologies_resolves_aliases(self):
         lexicon = TechnologyLexicon(FakeConfig())
 
-        matches = lexicon.find_technologies(
-            "Experienced PY developer with nodejs and TS"
-        )
+        matches = lexicon.find_technologies("Experienced PY developer with nodejs and TS")
 
         assert [match.canonical for match in matches] == [
             "python",
@@ -146,9 +142,7 @@ class TestTechnologyLexicon:
     def test_find_technologies_deduplicates_canonical_terms(self):
         lexicon = TechnologyLexicon(FakeConfig())
 
-        matches = lexicon.find_technologies(
-            "Python developer using py and Python"
-        )
+        matches = lexicon.find_technologies("Python developer using py and Python")
 
         assert len(matches) == 1
         assert matches[0].canonical == "python"
@@ -156,18 +150,14 @@ class TestTechnologyLexicon:
     def test_find_technologies_does_not_match_partial_words(self):
         lexicon = TechnologyLexicon(FakeConfig())
 
-        matches = lexicon.find_technologies(
-            "pythonic reactivate developer"
-        )
+        matches = lexicon.find_technologies("pythonic reactivate developer")
 
         assert matches == []
 
     def test_find_technologies_returns_empty_for_no_matches(self):
         lexicon = TechnologyLexicon(FakeConfig())
 
-        assert lexicon.find_technologies(
-            "Project manager with accounting experience"
-        ) == []
+        assert lexicon.find_technologies("Project manager with accounting experience") == []
 
     def test_unknown_alias_can_produce_unknown_category(self):
         config = FakeConfig()

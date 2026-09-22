@@ -33,13 +33,13 @@ class TestJobValidators:
         ):
             job.validate_country_code("country_code", "KEN")
 
-
     def test_validate_confidence_accepts_valid_value(self):
         job = Job.__new__(Job)
 
         result = job.validate_confidence("tech_confidence", 0.85)
 
         assert result == 0.85
+
 
 class TestJobRepr:
     def test_repr_with_long_title(self):

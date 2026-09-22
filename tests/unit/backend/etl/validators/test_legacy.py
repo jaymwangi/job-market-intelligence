@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -20,7 +20,6 @@ def make_job(**overrides: Any) -> dict[str, Any]:
     return job
 
 
-
 def test_job_strips_whitespace():
     job = JobValidatedModel(
         **make_job(
@@ -36,7 +35,7 @@ def test_job_strips_whitespace():
 
 
 def test_job_accepts_datetime_posted_date():
-    posted = datetime(2026, 1, 15, 10, 30, tzinfo=timezone.utc)
+    posted = datetime(2026, 1, 15, 10, 30, tzinfo=UTC)
 
     job = JobValidatedModel(**make_job(posted_date=posted))
 
@@ -44,21 +43,18 @@ def test_job_accepts_datetime_posted_date():
 
 
 def test_job_parses_iso_posted_date():
-    job = JobValidatedModel(
-        **make_job(posted_date="2026-01-15T10:30:00")
-    )
+    job = JobValidatedModel(**make_job(posted_date="2026-01-15T10:30:00"))
 
     assert job.posted_date == datetime(2026, 1, 15, 10, 30)
 
 
 def test_job_parses_zulu_posted_date():
-    job = JobValidatedModel(
-        **make_job(posted_date="2026-01-15T10:30:00Z")
-    )
+    job = JobValidatedModel(**make_job(posted_date="2026-01-15T10:30:00Z"))
 
     assert job.posted_date is not None
     assert job.posted_date.tzinfo is not None
     assert job.posted_date.isoformat() == "2026-01-15T10:30:00+00:00"
+
 
 def test_job_allows_missing_posted_date():
     job = JobValidatedModel(**make_job())

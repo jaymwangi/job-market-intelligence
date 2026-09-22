@@ -25,6 +25,7 @@ class JobObject:
     def model_dump(self) -> dict[str, object]:
         return self._data
 
+
 class Context:
     def __enter__(self) -> "Context":
         return self
@@ -41,9 +42,7 @@ class Context:
 def setup_streamlit_mock(mock_st: MagicMock) -> SessionState:
     session_state = SessionState()
     mock_st.session_state = session_state
-    mock_st.columns.side_effect = lambda spec: [
-        Context() for _ in range(len(spec))
-    ]
+    mock_st.columns.side_effect = lambda spec: [Context() for _ in range(len(spec))]
     mock_st.button.return_value = False
     return session_state
 
@@ -90,13 +89,15 @@ def test_render_job_card_renders_minimal_job(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "1",
-        "title": "Data Analyst",
-        "company_name": "Acme",
-        "location": "Nairobi",
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": "1",
+            "title": "Data Analyst",
+            "company_name": "Acme",
+            "location": "Nairobi",
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
@@ -118,20 +119,22 @@ def test_render_job_card_renders_salary_and_employment(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "2",
-        "title": "Backend Engineer",
-        "company_name": "Acme",
-        "location": "London",
-        "salary_min": 50000,
-        "salary_max": 80000,
-        "salary_currency": "GBP",
-        "country_code": "GB",
-        "employment_type": "FULL_TIME",
-        "technology_category": "backend",
-        "is_tech_role": True,
-        "posted_date": "2026-09-14T10:30:00Z",
-    })
+    job = JobObject(
+        {
+            "id": "2",
+            "title": "Backend Engineer",
+            "company_name": "Acme",
+            "location": "London",
+            "salary_min": 50000,
+            "salary_max": 80000,
+            "salary_currency": "GBP",
+            "country_code": "GB",
+            "employment_type": "FULL_TIME",
+            "technology_category": "backend",
+            "is_tech_role": True,
+            "posted_date": "2026-09-14T10:30:00Z",
+        }
+    )
 
     render_job_card(job)
 
@@ -154,15 +157,17 @@ def test_render_job_card_renders_minimum_salary(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "3",
-        "title": "Data Engineer",
-        "company_name": "Acme",
-        "location": "Nairobi",
-        "salary_min": 75000,
-        "currency": "KES",
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": "3",
+            "title": "Data Engineer",
+            "company_name": "Acme",
+            "location": "Nairobi",
+            "salary_min": 75000,
+            "currency": "KES",
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
@@ -179,25 +184,27 @@ def test_render_job_card_renders_skills_and_truncates_extra_skills(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "4",
-        "title": "ML Engineer",
-        "company_name": "AI Corp",
-        "location": "Berlin",
-        "skills": [
-            "Python",
-            "SQL",
-            "Docker",
-            "AWS",
-            "PyTorch",
-            "Pandas",
-            "Kubernetes",
-            "Spark",
-        ],
-        "technology_category": "ml_ai",
-        "is_tech_role": True,
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": "4",
+            "title": "ML Engineer",
+            "company_name": "AI Corp",
+            "location": "Berlin",
+            "skills": [
+                "Python",
+                "SQL",
+                "Docker",
+                "AWS",
+                "PyTorch",
+                "Pandas",
+                "Kubernetes",
+                "Spark",
+            ],
+            "technology_category": "ml_ai",
+            "is_tech_role": True,
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
@@ -216,14 +223,16 @@ def test_render_job_card_renders_description_and_escapes_html(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "5",
-        "title": "<Senior Engineer>",
-        "company_name": 'A & B "Tech"',
-        "location": "Nairobi",
-        "description": "<script>alert('x')</script>" + "a" * 200,
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": "5",
+            "title": "<Senior Engineer>",
+            "company_name": 'A & B "Tech"',
+            "location": "Nairobi",
+            "description": "<script>alert('x')</script>" + "a" * 200,
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
@@ -242,15 +251,17 @@ def test_render_job_card_renders_non_english_language(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "6",
-        "title": "Développeur",
-        "company_name": "Entreprise",
-        "location": "Paris",
-        "language": "fr",
-        "country_code": "FR",
-        "posted_date": "invalid-date",
-    })
+    job = JobObject(
+        {
+            "id": "6",
+            "title": "Développeur",
+            "company_name": "Entreprise",
+            "location": "Paris",
+            "language": "fr",
+            "country_code": "FR",
+            "posted_date": "invalid-date",
+        }
+    )
 
     render_job_card(job)
 
@@ -267,18 +278,20 @@ def test_render_job_card_handles_unknown_values(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "7",
-        "title": "QA Engineer",
-        "company_name": "Test Corp",
-        "location": "",
-        "country_code": "XX",
-        "language": "xx",
-        "employment_type": "CUSTOM",
-        "technology_category": "unknown",
-        "is_tech_role": True,
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": "7",
+            "title": "QA Engineer",
+            "company_name": "Test Corp",
+            "location": "",
+            "country_code": "XX",
+            "language": "xx",
+            "employment_type": "CUSTOM",
+            "technology_category": "unknown",
+            "is_tech_role": True,
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
@@ -298,13 +311,15 @@ def test_render_job_card_sets_css_state_once(
 ) -> None:
     session_state = setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "8",
-        "title": "Developer",
-        "company_name": "Acme",
-        "location": "Nairobi",
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": "8",
+            "title": "Developer",
+            "company_name": "Acme",
+            "location": "Nairobi",
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
@@ -326,13 +341,15 @@ def test_render_job_card_view_details_sets_selected_job_and_reruns(
     session_state = setup_streamlit_mock(mock_st)
     mock_st.button.return_value = True
 
-    job = JobObject({
-        "id": 123,
-        "title": "Developer",
-        "company_name": "Acme",
-        "location": "Nairobi",
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": 123,
+            "title": "Developer",
+            "company_name": "Acme",
+            "location": "Nairobi",
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
@@ -348,20 +365,21 @@ def test_render_job_card_renders_apply_link(
 ) -> None:
     setup_streamlit_mock(mock_st)
 
-    job = JobObject({
-        "id": "9",
-        "title": "Engineer",
-        "company_name": "Acme",
-        "location": "Nairobi",
-        "source_url": "https://example.com/jobs/9",
-        "posted_date": datetime(2026, 9, 15),
-    })
+    job = JobObject(
+        {
+            "id": "9",
+            "title": "Engineer",
+            "company_name": "Acme",
+            "location": "Nairobi",
+            "source_url": "https://example.com/jobs/9",
+            "posted_date": datetime(2026, 9, 15),
+        }
+    )
 
     render_job_card(job)
 
     markdown_calls = mock_st.markdown.call_args_list
     assert any(
-        "https://example.com/jobs/9" in str(call)
-        and "🔗 Apply" in str(call)
+        "https://example.com/jobs/9" in str(call) and "🔗 Apply" in str(call)
         for call in markdown_calls
     )

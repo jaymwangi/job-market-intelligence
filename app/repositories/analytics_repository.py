@@ -17,7 +17,8 @@ Sprint 6.6 adds:
 from datetime import datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import Date, Integer, cast as sqlalchemy_cast, desc, func
+from sqlalchemy import Date, Integer, desc, func
+from sqlalchemy import cast as sqlalchemy_cast
 from sqlalchemy.orm import Session
 
 from app.models.job import Job
@@ -112,12 +113,7 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Skill.id, Skill.name)
-            .order_by(desc("count"))
-            .limit(limit)
-            .all()
-        )
+        results = query.group_by(Skill.id, Skill.name).order_by(desc("count")).limit(limit).all()
 
         return [
             {
@@ -150,12 +146,7 @@ class AnalyticsRepository:
         query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = (
-            query.group_by(Job.company_name)
-            .order_by(desc("job_count"))
-            .limit(limit)
-            .all()
-        )
+        results = query.group_by(Job.company_name).order_by(desc("job_count")).limit(limit).all()
 
         return [
             {
@@ -188,12 +179,7 @@ class AnalyticsRepository:
         query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = (
-            query.group_by(Job.location)
-            .order_by(desc("job_count"))
-            .limit(limit)
-            .all()
-        )
+        results = query.group_by(Job.location).order_by(desc("job_count")).limit(limit).all()
 
         return [
             {
@@ -232,9 +218,7 @@ class AnalyticsRepository:
 
         stats = cast(
             Any,
-            query.group_by(Job.salary_currency)
-            .order_by(desc("sample_size"))
-            .first(),
+            query.group_by(Job.salary_currency).order_by(desc("sample_size")).first(),
         )
 
         if not stats:
@@ -250,9 +234,7 @@ class AnalyticsRepository:
         # Preserve original median population:
         # salary_min is required, but salary_max is NOT required.
         median_query = self.db.query(
-            func.percentile_cont(0.5)
-            .within_group(Job.salary_min)
-            .label("median")
+            func.percentile_cont(0.5).within_group(Job.salary_min).label("median")
         ).filter(
             Job.salary_min.isnot(None),
         )
@@ -261,21 +243,9 @@ class AnalyticsRepository:
         median = median_query.scalar()
 
         return {
-            "average": (
-                float(stats.average)
-                if stats.average is not None
-                else None
-            ),
-            "minimum": (
-                float(stats.minimum)
-                if stats.minimum is not None
-                else None
-            ),
-            "maximum": (
-                float(stats.maximum)
-                if stats.maximum is not None
-                else None
-            ),
+            "average": (float(stats.average) if stats.average is not None else None),
+            "minimum": (float(stats.minimum) if stats.minimum is not None else None),
+            "maximum": (float(stats.maximum) if stats.maximum is not None else None),
             "median": float(median) if median is not None else None,
             "sample_size": stats.sample_size or 0,
             "currency": stats.currency or "USD",
@@ -297,11 +267,7 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Job.employment_type)
-            .order_by(desc("count"))
-            .all()
-        )
+        results = query.group_by(Job.employment_type).order_by(desc("count")).all()
 
         return [
             {
@@ -348,32 +314,17 @@ class AnalyticsRepository:
         query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = (
-            query.group_by(Job.location)
-            .order_by(desc("job_count"))
-            .limit(limit)
-            .all()
-        )
+        results = query.group_by(Job.location).order_by(desc("job_count")).limit(limit).all()
 
         return [
             {
                 "location": result.location,
                 "average_salary": (
-                    float(result.average_salary)
-                    if result.average_salary is not None
-                    else None
+                    float(result.average_salary) if result.average_salary is not None else None
                 ),
                 "job_count": result.job_count,
-                "min_salary": (
-                    float(result.min_salary)
-                    if result.min_salary is not None
-                    else None
-                ),
-                "max_salary": (
-                    float(result.max_salary)
-                    if result.max_salary is not None
-                    else None
-                ),
+                "min_salary": (float(result.min_salary) if result.min_salary is not None else None),
+                "max_salary": (float(result.max_salary) if result.max_salary is not None else None),
             }
             for result in results
         ]
@@ -411,32 +362,17 @@ class AnalyticsRepository:
         query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        results = (
-            query.group_by(Job.company_name)
-            .order_by(desc("job_count"))
-            .limit(limit)
-            .all()
-        )
+        results = query.group_by(Job.company_name).order_by(desc("job_count")).limit(limit).all()
 
         return [
             {
                 "company": result.company,
                 "average_salary": (
-                    float(result.average_salary)
-                    if result.average_salary is not None
-                    else None
+                    float(result.average_salary) if result.average_salary is not None else None
                 ),
                 "job_count": result.job_count,
-                "min_salary": (
-                    float(result.min_salary)
-                    if result.min_salary is not None
-                    else None
-                ),
-                "max_salary": (
-                    float(result.max_salary)
-                    if result.max_salary is not None
-                    else None
-                ),
+                "min_salary": (float(result.min_salary) if result.min_salary is not None else None),
+                "max_salary": (float(result.max_salary) if result.max_salary is not None else None),
             }
             for result in results
         ]
@@ -468,11 +404,7 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(posted_date)
-            .order_by(posted_date.asc())
-            .all()
-        )
+        results = query.group_by(posted_date).order_by(posted_date.asc()).all()
 
         return [
             {
@@ -511,12 +443,7 @@ class AnalyticsRepository:
         query = self._apply_active_filter(query)
         query = self._apply_source_filter(query, source_site)
 
-        return cast(
-            list[Job],
-            query.order_by(Job.posted_date.desc())
-            .limit(limit)
-            .all()
-        )
+        return cast(list[Job], query.order_by(Job.posted_date.desc()).limit(limit).all())
 
     def get_salary_distribution(self) -> list[dict[str, Any]]:
         """
@@ -689,17 +616,11 @@ class AnalyticsRepository:
         total_jobs = self.get_total_jobs()
 
         unique_companies = (
-            self.db.query(Job.company_name)
-            .filter(Job.company_name.isnot(None))
-            .distinct()
-            .count()
+            self.db.query(Job.company_name).filter(Job.company_name.isnot(None)).distinct().count()
         )
 
         unique_locations = (
-            self.db.query(Job.location)
-            .filter(Job.location.isnot(None))
-            .distinct()
-            .count()
+            self.db.query(Job.location).filter(Job.location.isnot(None)).distinct().count()
         )
 
         unique_skills = self.db.query(Skill).count()
@@ -719,15 +640,9 @@ class AnalyticsRepository:
             "unique_skills": unique_skills,
             "date_range": {
                 "earliest": (
-                    str(date_range.earliest)
-                    if date_range and date_range.earliest
-                    else None
+                    str(date_range.earliest) if date_range and date_range.earliest else None
                 ),
-                "latest": (
-                    str(date_range.latest)
-                    if date_range and date_range.latest
-                    else None
-                ),
+                "latest": (str(date_range.latest) if date_range and date_range.latest else None),
             },
             "last_updated": datetime.now(),
         }
@@ -750,11 +665,7 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Job.language)
-            .order_by(desc("count"))
-            .all()
-        )
+        results = query.group_by(Job.language).order_by(desc("count")).all()
 
         return [
             {
@@ -819,11 +730,7 @@ class AnalyticsRepository:
             "total_count": total,
             "english_count": english_count,
             "non_english_count": total - english_count,
-            "english_percentage": (
-                english_count / total * 100
-                if total > 0
-                else 0
-            ),
+            "english_percentage": (english_count / total * 100 if total > 0 else 0),
         }
 
     def get_language_salary_stats(self) -> list[dict[str, Any]]:
@@ -850,31 +757,17 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Job.language)
-            .order_by(desc("count"))
-            .all()
-        )
+        results = query.group_by(Job.language).order_by(desc("count")).all()
 
         return [
             {
                 "language": result.language,
                 "average_salary": (
-                    float(result.average_salary)
-                    if result.average_salary is not None
-                    else None
+                    float(result.average_salary) if result.average_salary is not None else None
                 ),
                 "count": result.count,
-                "min_salary": (
-                    float(result.min_salary)
-                    if result.min_salary is not None
-                    else None
-                ),
-                "max_salary": (
-                    float(result.max_salary)
-                    if result.max_salary is not None
-                    else None
-                ),
+                "min_salary": (float(result.min_salary) if result.min_salary is not None else None),
+                "max_salary": (float(result.max_salary) if result.max_salary is not None else None),
             }
             for result in results
         ]
@@ -905,11 +798,7 @@ class AnalyticsRepository:
             "total_count": total,
             "tech_count": tech_count,
             "non_tech_count": total - tech_count,
-            "tech_percentage": (
-                tech_count / total * 100
-                if total > 0
-                else 0
-            ),
+            "tech_percentage": (tech_count / total * 100 if total > 0 else 0),
         }
 
     def get_technology_category_distribution(
@@ -931,11 +820,7 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Job.technology_category)
-            .order_by(desc("count"))
-            .all()
-        )
+        results = query.group_by(Job.technology_category).order_by(desc("count")).all()
 
         return [
             {
@@ -956,20 +841,14 @@ class AnalyticsRepository:
         query = self.db.query(
             Job.country_code.label("country"),
             func.count(Job.id).label("total_count"),
-            func.sum(
-                func.cast(Job.is_tech_role, Integer)
-            ).label("tech_count"),
+            func.sum(func.cast(Job.is_tech_role, Integer)).label("tech_count"),
         ).filter(
             Job.country_code.isnot(None),
         )
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Job.country_code)
-            .order_by(desc("total_count"))
-            .all()
-        )
+        results = query.group_by(Job.country_code).order_by(desc("total_count")).all()
 
         return [
             {
@@ -1010,12 +889,7 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Skill.name)
-            .order_by(desc("count"))
-            .limit(limit)
-            .all()
-        )
+        results = query.group_by(Skill.name).order_by(desc("count")).limit(limit).all()
 
         return [
             {
@@ -1067,9 +941,7 @@ class AnalyticsRepository:
         # Preserve original median population:
         # salary_min is required, salary_max is NOT required.
         median_query = self.db.query(
-            func.percentile_cont(0.5)
-            .within_group(Job.salary_min)
-            .label("median")
+            func.percentile_cont(0.5).within_group(Job.salary_min).label("median")
         ).filter(
             Job.salary_min.isnot(None),
             Job.is_tech_role.is_(True),
@@ -1080,21 +952,9 @@ class AnalyticsRepository:
         median = median_query.scalar()
 
         return {
-            "average": (
-                float(stats.average)
-                if stats.average is not None
-                else None
-            ),
-            "minimum": (
-                float(stats.minimum)
-                if stats.minimum is not None
-                else None
-            ),
-            "maximum": (
-                float(stats.maximum)
-                if stats.maximum is not None
-                else None
-            ),
+            "average": (float(stats.average) if stats.average is not None else None),
+            "minimum": (float(stats.minimum) if stats.minimum is not None else None),
+            "maximum": (float(stats.maximum) if stats.maximum is not None else None),
             "median": float(median) if median is not None else None,
             "sample_size": stats.sample_size or 0,
         }
@@ -1133,12 +993,7 @@ class AnalyticsRepository:
         query = self._apply_country_filter(query, country_code)
         query = self._apply_tech_filter(query, tech_only)
 
-        results = (
-            query.group_by(Skill.name)
-            .order_by(desc("count"))
-            .limit(limit)
-            .all()
-        )
+        results = query.group_by(Skill.name).order_by(desc("count")).limit(limit).all()
 
         return [
             {
@@ -1162,11 +1017,7 @@ class AnalyticsRepository:
 
         query = self._apply_active_filter(query)
 
-        results = (
-            query.group_by(Job.country_code)
-            .order_by(desc("count"))
-            .all()
-        )
+        results = query.group_by(Job.country_code).order_by(desc("count")).all()
 
         return [
             {
@@ -1217,9 +1068,7 @@ class AnalyticsRepository:
         # Preserve original median population:
         # salary_min is required, salary_max is NOT required.
         median_query = self.db.query(
-            func.percentile_cont(0.5)
-            .within_group(Job.salary_min)
-            .label("median")
+            func.percentile_cont(0.5).within_group(Job.salary_min).label("median")
         ).filter(
             Job.salary_min.isnot(None),
         )
@@ -1247,26 +1096,10 @@ class AnalyticsRepository:
             }
 
         return {
-            "average_min": (
-                float(result.average_min)
-                if result.average_min is not None
-                else None
-            ),
-            "average_max": (
-                float(result.average_max)
-                if result.average_max is not None
-                else None
-            ),
-            "minimum": (
-                float(result.minimum)
-                if result.minimum is not None
-                else None
-            ),
-            "maximum": (
-                float(result.maximum)
-                if result.maximum is not None
-                else None
-            ),
+            "average_min": (float(result.average_min) if result.average_min is not None else None),
+            "average_max": (float(result.average_max) if result.average_max is not None else None),
+            "minimum": (float(result.minimum) if result.minimum is not None else None),
+            "maximum": (float(result.maximum) if result.maximum is not None else None),
             "median": float(median) if median is not None else None,
             "currency": "USD",
         }

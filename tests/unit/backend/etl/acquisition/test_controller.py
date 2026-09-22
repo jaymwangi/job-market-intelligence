@@ -1,9 +1,11 @@
 """Unit tests for the acquisition controller."""
 
+from datetime import datetime
+
 from app.etl.acquisition.controller import AcquisitionController
 from app.etl.acquisition.models import AcquisitionMode, AcquisitionStats, DatabaseComposition
 from app.models.job import Job
-from datetime import datetime
+
 
 class TestAcquisitionControllerInitialization:
     def test_default_queries_are_built(self, db_session):
@@ -82,10 +84,10 @@ class TestAcquisitionControllerInitialization:
     def test_catch_up_mode_when_database_has_tech_deficit(self, db_session):
         jobs = [
             Job(
-            description="Test job",
-            source_url=f"https://example.com/tech-{i}",
-            language="en",
-            title="Software Engineer",
+                description="Test job",
+                source_url=f"https://example.com/tech-{i}",
+                language="en",
+                title="Software Engineer",
                 company_name="Tech Company",
                 source_site="test",
                 source_id=f"tech-{i}",
@@ -97,10 +99,10 @@ class TestAcquisitionControllerInitialization:
 
         jobs.extend(
             Job(
-            description="Test job",
-            source_url=f"https://example.com/non-tech-{i}",
-            language="en",
-            title="Teacher",
+                description="Test job",
+                source_url=f"https://example.com/non-tech-{i}",
+                language="en",
+                title="Teacher",
                 company_name="School",
                 source_site="test",
                 source_id=f"non-tech-{i}",
@@ -125,10 +127,9 @@ class TestAcquisitionControllerInitialization:
         assert controller.tech_intent_target == controller.initial_composition.tech_deficit
         assert controller.broad_intent_target == 0
 
+
 class TestAcquisitionControllerQuerySelection:
-    def test_get_next_query_returns_none_when_run_capacity_is_reached(
-        self, db_session
-    ):
+    def test_get_next_query_returns_none_when_run_capacity_is_reached(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=2,
@@ -190,9 +191,7 @@ class TestAcquisitionControllerQuerySelection:
         assert second is None
         assert controller.broad_queries_used == 1
 
-    def test_balanced_mode_selects_tech_when_below_target_ratio(
-        self, db_session
-    ):
+    def test_balanced_mode_selects_tech_when_below_target_ratio(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=10,
@@ -213,9 +212,7 @@ class TestAcquisitionControllerQuerySelection:
 
         assert query == {"what": "python", "category": "it-jobs"}
 
-    def test_balanced_mode_selects_broad_when_above_target_ratio(
-        self, db_session
-    ):
+    def test_balanced_mode_selects_broad_when_above_target_ratio(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=10,
@@ -256,9 +253,7 @@ class TestAcquisitionControllerQuerySelection:
 
         assert controller.get_next_query() is None
 
-    def test_catch_up_switches_to_balanced_after_reaching_parity(
-        self, db_session
-    ):
+    def test_catch_up_switches_to_balanced_after_reaching_parity(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=10,
@@ -289,15 +284,13 @@ class TestAcquisitionControllerJobHandling:
             tech_queries=["python"],
         )
 
-        query = {"what": "python", "category": "it-jobs"}
         jobs = [
             {"id": "tech-1", "title": "Python Developer"},
             {"id": "tech-2", "title": "Data Engineer"},
         ]
+        query = {"what": "python", "category": "it-jobs"}
 
-        new_count, duplicate_count = controller.add_jobs(
-            jobs, query, "US"
-        )
+        new_count, duplicate_count = controller.add_jobs(jobs, query, "US")
 
         assert new_count == 2
         assert duplicate_count == 0
@@ -321,9 +314,7 @@ class TestAcquisitionControllerJobHandling:
         query = {"what": "teacher"}
         jobs = [{"id": "job-1", "title": "Teacher"}]
 
-        new_count, duplicate_count = controller.add_jobs(
-            jobs, query, "KE"
-        )
+        new_count, duplicate_count = controller.add_jobs(jobs, query, "KE")
 
         assert new_count == 1
         assert duplicate_count == 0
@@ -572,8 +563,6 @@ class TestAcquisitionControllerClassification:
             max_jobs_per_run=10,
         )
 
-        query = {"what": "python", "category": "it-jobs"}
-
         selected_query = controller.get_next_query()
         assert selected_query is not None
 
@@ -604,9 +593,7 @@ class TestAcquisitionControllerClassification:
         assert metrics["unclassified"] == 0
         assert metrics["mode"] == controller.mode.value
 
-    def test_catch_up_switches_to_balanced_after_classification(
-        self, db_session
-    ):
+    def test_catch_up_switches_to_balanced_after_classification(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=10,
@@ -698,9 +685,7 @@ class TestAcquisitionControllerRemainingBranches:
 
         assert controller._determine_mode() == AcquisitionMode.BALANCED
 
-    def test_balanced_mode_fetches_broad_when_tech_intent_target_met(
-        self, db_session
-    ):
+    def test_balanced_mode_fetches_broad_when_tech_intent_target_met(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=10,
@@ -714,18 +699,14 @@ class TestAcquisitionControllerRemainingBranches:
         controller.balanced_mode_tech_start = 0
         controller.balanced_mode_broad_start = 0
 
-        controller.tech_intent_jobs.extend(
-            [{"id": str(i)} for i in range(5)]
-        )
+        controller.tech_intent_jobs.extend([{"id": str(i)} for i in range(5)])
 
         query = controller._get_balanced_query(AcquisitionStats())
 
         assert query is not None
         assert query == controller.broad_queries[0]
 
-    def test_balanced_mode_fetches_tech_when_broad_intent_target_met(
-        self, db_session
-    ):
+    def test_balanced_mode_fetches_tech_when_broad_intent_target_met(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=10,
@@ -739,18 +720,14 @@ class TestAcquisitionControllerRemainingBranches:
         controller.balanced_mode_tech_start = 0
         controller.balanced_mode_broad_start = 0
 
-        controller.broad_intent_jobs.extend(
-            [{"id": str(i)} for i in range(5)]
-        )
+        controller.broad_intent_jobs.extend([{"id": str(i)} for i in range(5)])
 
         query = controller._get_balanced_query(AcquisitionStats())
 
         assert query is not None
         assert query["what"] == controller.tech_queries[0]["what"]
 
-    def test_balanced_mode_tie_breaker_fetches_broad(
-        self, db_session
-    ):
+    def test_balanced_mode_tie_breaker_fetches_broad(self, db_session):
         controller = AcquisitionController(
             db_session=db_session,
             max_jobs_per_run=10,
@@ -764,12 +741,8 @@ class TestAcquisitionControllerRemainingBranches:
         controller.balanced_mode_tech_start = 0
         controller.balanced_mode_broad_start = 0
 
-        controller.tech_intent_jobs.extend(
-            [{"id": f"tech-{i}"} for i in range(2)]
-        )
-        controller.broad_intent_jobs.extend(
-            [{"id": "broad-1"}]
-        )
+        controller.tech_intent_jobs.extend([{"id": f"tech-{i}"} for i in range(2)])
+        controller.broad_intent_jobs.extend([{"id": "broad-1"}])
 
         controller.projected_composition.tech_count = 5
         controller.projected_composition.non_tech_count = 5
@@ -779,6 +752,7 @@ class TestAcquisitionControllerRemainingBranches:
 
         assert query is not None
         assert query == controller.broad_queries[0]
+
 
 class TestAcquisitionControllerStateAndResults:
     def test_get_stats_reflects_current_controller_state(self, db_session):
@@ -821,10 +795,10 @@ class TestAcquisitionControllerStateAndResults:
             "_is_duplicate": True,
         }
 
-        controller.all_jobs = [unique_job, duplicate_job]
+        controller.all_jobs = [unique_job, duplicate_job]  # type: ignore[assignment]
         controller.tech_intent_jobs = []
-        controller.broad_intent_jobs = [unique_job, duplicate_job]
-        controller.duplicates = [duplicate_job]
+        controller.broad_intent_jobs = [unique_job, duplicate_job]  # type: ignore[assignment]
+        controller.duplicates = [duplicate_job]  # type: ignore[assignment]
 
         result = controller.get_result()
 
@@ -846,9 +820,9 @@ class TestAcquisitionControllerStateAndResults:
         unique_job = JobObject("unique-1")
         duplicate_job = JobObject("duplicate-1", is_duplicate=True)
 
-        controller.all_jobs = [unique_job, duplicate_job]
-        controller.broad_intent_jobs = [unique_job, duplicate_job]
-        controller.duplicates = [duplicate_job]
+        controller.all_jobs = [unique_job, duplicate_job]  # type: ignore[assignment]
+        controller.broad_intent_jobs = [unique_job, duplicate_job]  # type: ignore[assignment]
+        controller.duplicates = [duplicate_job]  # type: ignore[assignment]
 
         result = controller.get_result()
 

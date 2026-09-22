@@ -23,9 +23,7 @@ class TestCurrencyNormalizer:
     def test_normalize_uses_currency_alias_map(self, normalizer):
         # Pick an alias that actually exists in the configured map.
         alias, expected = next(
-            (key, value)
-            for key, value in normalizer.currency_map.items()
-            if key != value
+            (key, value) for key, value in normalizer.currency_map.items() if key != value
         )
         assert normalizer.normalize(alias) == expected
 
@@ -76,13 +74,9 @@ class TestCurrencyNormalizer:
     def test_convert_converts_between_known_currencies(self, normalizer):
         result = normalizer.convert(100.0, "GBP", "EUR")
 
-        expected = 100.0 * (
-            normalizer.reference_rates["GBP"]
-            / normalizer.reference_rates["EUR"]
-        )
+        expected = 100.0 * (normalizer.reference_rates["GBP"] / normalizer.reference_rates["EUR"])
 
         assert result == pytest.approx(expected)
-
 
     def test_to_usd_delegates_to_convert(self, normalizer):
         result = normalizer.to_usd(100.0, "GBP")

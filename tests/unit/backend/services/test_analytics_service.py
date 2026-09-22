@@ -2,10 +2,10 @@
 Unit tests for analytics service.
 """
 
-from unittest.mock import Mock,patch
+from datetime import UTC, datetime
+from unittest.mock import Mock, patch
 
 import pytest
-from datetime import UTC, datetime
 
 from app.schemas.analytics import (
     DashboardSummaryResponse,
@@ -256,12 +256,9 @@ class TestAnalyticsService:
         assert result.top_skills[0].count == 450
         assert result.salary_statistics.average == 135000.0
 
-
     @patch("app.services.analytics_service.logger")
     @patch("app.database.session.get_db")
-    def test_get_last_etl_run_returns_na_on_error(
-        self, mock_get_db, mock_logger, service
-    ):
+    def test_get_last_etl_run_returns_na_on_error(self, mock_get_db, mock_logger, service):
         mock_get_db.side_effect = RuntimeError("Database unavailable")
 
         result = service.get_last_etl_run()
@@ -271,9 +268,7 @@ class TestAnalyticsService:
 
     @patch("app.services.analytics_service.logger")
     @patch("app.database.session.get_db")
-    def test_get_last_etl_run_time_returns_none_on_error(
-        self, mock_get_db, mock_logger, service
-    ):
+    def test_get_last_etl_run_time_returns_none_on_error(self, mock_get_db, mock_logger, service):
         mock_get_db.side_effect = RuntimeError("Database unavailable")
 
         result = service.get_last_etl_run_time()
@@ -283,9 +278,7 @@ class TestAnalyticsService:
 
     @patch("app.services.analytics_service.logger")
     @patch("app.database.session.get_db")
-    def test_get_pipeline_status_returns_unknown_on_error(
-        self, mock_get_db, mock_logger, service
-    ):
+    def test_get_pipeline_status_returns_unknown_on_error(self, mock_get_db, mock_logger, service):
         mock_get_db.side_effect = RuntimeError("Database unavailable")
 
         result = service.get_pipeline_status()
@@ -295,9 +288,7 @@ class TestAnalyticsService:
 
     @patch("app.services.analytics_service.logger")
     @patch("app.database.session.get_db")
-    def test_get_db_status_returns_unknown_on_error(
-        self, mock_get_db, mock_logger, service
-    ):
+    def test_get_db_status_returns_unknown_on_error(self, mock_get_db, mock_logger, service):
         mock_get_db.side_effect = RuntimeError("Database unavailable")
 
         result = service.get_db_status()
@@ -309,21 +300,16 @@ class TestAnalyticsService:
     def test_get_companies_hiring_count_returns_zero_on_error(
         self, mock_logger, service, mock_repo
     ):
-        mock_repo.get_top_companies.side_effect = RuntimeError(
-            "Database unavailable"
-        )
+        mock_repo.get_top_companies.side_effect = RuntimeError("Database unavailable")
 
         result = service.get_companies_hiring_count()
 
         assert result == 0
         mock_logger.error.assert_called_once()
 
-
     @patch("app.repositories.pipeline_run_repository.PipelineRunRepository")
     @patch("app.database.session.get_db")
-    def test_get_last_etl_run_success(
-        self, mock_get_db, mock_repository, service
-    ):
+    def test_get_last_etl_run_success(self, mock_get_db, mock_repository, service):
         mock_db = Mock()
         mock_get_db.return_value = iter([mock_db])
         mock_repository.return_value.format_last_run_time.return_value = "2h ago"
@@ -333,12 +319,9 @@ class TestAnalyticsService:
         assert result == "2h ago"
         mock_repository.return_value.format_last_run_time.assert_called_once()
 
-
     @patch("app.repositories.pipeline_run_repository.PipelineRunRepository")
     @patch("app.database.session.get_db")
-    def test_get_last_etl_run_time_success(
-        self, mock_get_db, mock_repository, service
-    ):
+    def test_get_last_etl_run_time_success(self, mock_get_db, mock_repository, service):
         mock_db = Mock()
         expected_time = datetime(2026, 9, 17, 10, 0, tzinfo=UTC)
         mock_get_db.return_value = iter([mock_db])
@@ -349,12 +332,9 @@ class TestAnalyticsService:
         assert result == expected_time
         mock_repository.return_value.get_last_run_time.assert_called_once()
 
-
     @patch("app.repositories.pipeline_run_repository.PipelineRunRepository")
     @patch("app.database.session.get_db")
-    def test_get_pipeline_status_running(
-        self, mock_get_db, mock_repository, service
-    ):
+    def test_get_pipeline_status_running(self, mock_get_db, mock_repository, service):
         mock_db = Mock()
         mock_get_db.return_value = iter([mock_db])
         mock_repository.return_value.get_running_run.return_value = {
@@ -366,12 +346,9 @@ class TestAnalyticsService:
 
         assert result == "Running"
 
-
     @patch("app.database.health.check_database_health")
     @patch("app.database.session.get_db")
-    def test_get_db_status_operational(
-        self, mock_get_db, mock_health, service
-    ):
+    def test_get_db_status_operational(self, mock_get_db, mock_health, service):
         mock_db = Mock()
         mock_get_db.return_value = iter([mock_db])
         mock_health.return_value = {"healthy": True}
@@ -380,10 +357,7 @@ class TestAnalyticsService:
 
         assert result == "Operational"
 
-
-    def test_get_companies_hiring_count_success(
-        self, service, mock_repo
-    ):
+    def test_get_companies_hiring_count_success(self, service, mock_repo):
         mock_repo.get_top_companies.return_value = [
             {"company": "Company A"},
             {"company": "Company B"},

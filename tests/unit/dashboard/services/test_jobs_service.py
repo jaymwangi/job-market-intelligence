@@ -278,7 +278,6 @@ class TestJobsService:
 
         assert before <= result <= after
 
-
     def test_fetch_jobs_cached_success(self):
         """Test the cached jobs API call."""
         expected = {

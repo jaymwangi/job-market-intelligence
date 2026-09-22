@@ -125,9 +125,7 @@ class TestDatabaseHealth:
 
         assert result is False
         mock_log.error.assert_called_once()
-        assert mock_log.error.call_args.args[0] == (
-            "Operational error connecting to database"
-        )
+        assert mock_log.error.call_args.args[0] == ("Operational error connecting to database")
 
     def test_check_database_connection_sqlalchemy_error_with_custom_log(self):
         """Test SQLAlchemyError with a custom logger."""
@@ -139,9 +137,7 @@ class TestDatabaseHealth:
 
         assert result is False
         mock_log.error.assert_called_once()
-        assert mock_log.error.call_args.args[0] == (
-            "SQLAlchemy error connecting to database"
-        )
+        assert mock_log.error.call_args.args[0] == ("SQLAlchemy error connecting to database")
 
     def test_check_database_connection_generic_exception_with_custom_log(self):
         """Test generic exception with a custom logger."""
@@ -153,9 +149,7 @@ class TestDatabaseHealth:
 
         assert result is False
         mock_log.error.assert_called_once()
-        assert mock_log.error.call_args.args[0] == (
-            "Unexpected error connecting to database"
-        )
+        assert mock_log.error.call_args.args[0] == ("Unexpected error connecting to database")
 
     def test_check_database_health_success(self):
         """Test successful database health check."""

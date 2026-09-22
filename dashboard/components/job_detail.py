@@ -267,6 +267,7 @@ def is_job_translated(job_id: str) -> bool:
     """
     return st.session_state.get(f"translated_{job_id}", False)
 
+
 def toggle_translation(job_id: str) -> None:
     """
     Toggle translation for a job.

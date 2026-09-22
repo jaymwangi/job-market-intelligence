@@ -130,9 +130,7 @@ class TestClassificationPolicy:
 
     def test_preserves_threshold_override_objects(self):
         override = ThresholdOverride(tech_minimum=11.0)
-        policy = ClassificationPolicy(
-            category_overrides={"backend": override}
-        )
+        policy = ClassificationPolicy(category_overrides={"backend": override})
 
         assert policy.category_overrides["backend"] is override
 
@@ -193,9 +191,7 @@ class TestClassificationPolicy:
     def test_parse_overrides_accepts_threshold_override(self):
         override = ThresholdOverride(tech_minimum=10.0)
 
-        result = ClassificationPolicy._parse_overrides(
-            {"backend": override}
-        )
+        result = ClassificationPolicy._parse_overrides({"backend": override})
 
         assert result == {"backend": override}
 
@@ -226,9 +222,7 @@ class TestClassificationPolicy:
             }
         )
 
-        assert result["backend"] == ThresholdOverride(
-            tech_minimum=10.0
-        )
+        assert result["backend"] == ThresholdOverride(tech_minimum=10.0)
 
     def test_parse_overrides_removes_none_values(self):
         result = ClassificationPolicy._parse_overrides(
@@ -241,15 +235,11 @@ class TestClassificationPolicy:
             }
         )
 
-        assert result["backend"] == ThresholdOverride(
-            tech_minimum=10.0
-        )
+        assert result["backend"] == ThresholdOverride(tech_minimum=10.0)
 
     def test_parse_overrides_rejects_invalid_type(self):
         with pytest.raises(ValueError, match="Invalid override type"):
-            ClassificationPolicy._parse_overrides(
-                {"backend": "invalid"}
-            )
+            ClassificationPolicy._parse_overrides({"backend": "invalid"})
 
     def test_to_dict_serializes_policy(self):
         policy = ClassificationPolicy(
@@ -431,9 +421,7 @@ class TestPolicyFormatter:
 
     def test_summary_includes_category_overrides(self):
         policy = ClassificationPolicy(
-            category_overrides={
-                "backend": ThresholdOverride(tech_minimum=12.0)
-            }
+            category_overrides={"backend": ThresholdOverride(tech_minimum=12.0)}
         )
 
         result = PolicyFormatter.summary(policy)

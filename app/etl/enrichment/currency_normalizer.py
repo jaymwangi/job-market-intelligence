@@ -75,7 +75,7 @@ class CurrencyNormalizer:
         Note: These are static reference rates for normalization purposes.
         For production use, consider integrating a live currency API.
         """
-# Normalize currencies
+        # Normalize currencies
         from_curr = self.normalize(from_currency)
         to_curr = self.normalize(to_currency)
 

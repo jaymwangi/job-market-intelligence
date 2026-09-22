@@ -216,10 +216,7 @@ class JobLoader:
             [(source_site, source_id) for source_site, source_id in existing_jobs],
         )
 
-        existing_keys = {
-            (source_site, source_id)
-            for source_site, source_id in existing_jobs
-        }
+        existing_keys = {(source_site, source_id) for source_site, source_id in existing_jobs}
 
         job_repo = JobRepository(self.db_session)
 
@@ -333,10 +330,7 @@ class JobLoader:
             .all()
         )
 
-        job_map = {
-            (source_site, source_id): job_id
-            for job_id, source_site, source_id in jobs_db
-        }
+        job_map = {(source_site, source_id): job_id for job_id, source_site, source_id in jobs_db}
 
         if not job_map:
             return SkillResult(

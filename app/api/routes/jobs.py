@@ -1,4 +1,5 @@
-from typing import TypedDict, Any, Dict, List, Optional
+from typing import TypedDict
+
 
 class TranslationResponse(TypedDict, total=False):
     job_id: str
@@ -14,6 +15,7 @@ class TranslationResponse(TypedDict, total=False):
     duration_ms: float | None
     character_count: int | None
     error: str | None
+
 
 """Jobs API routes."""
 

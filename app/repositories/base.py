@@ -49,7 +49,9 @@ class BaseRepository[ModelType: Base]:
         """Get record by primary key"""
         return self._build_query(id=id).first()
 
-    def find_all(self, order_by: str | None = None, descending: bool = False, **filters: Any) -> list[ModelType]:
+    def find_all(
+        self, order_by: str | None = None, descending: bool = False, **filters: Any
+    ) -> list[ModelType]:
         """Find all records matching filters, with optional ordering"""
         query = self._build_query(**filters)
 
@@ -59,7 +61,16 @@ class BaseRepository[ModelType: Base]:
 
         return query.all()
 
-    def find_paginated(self, page: int = 1, per_page: int = 20, skip: int = 0, limit: int = 100, order_by: str | None = None, descending: bool = False, **filters: Any) -> list[ModelType]:
+    def find_paginated(
+        self,
+        page: int = 1,
+        per_page: int = 20,
+        skip: int = 0,
+        limit: int = 100,
+        order_by: str | None = None,
+        descending: bool = False,
+        **filters: Any,
+    ) -> list[ModelType]:
         """Find records with pagination"""
         query = self._build_query(**filters)
 

@@ -14,6 +14,7 @@ def test_setup_logging_sets_expected_log_levels():
     assert logging.getLogger("urllib3").level == logging.WARNING
     assert logging.getLogger("requests").level == logging.WARNING
 
+
 def test_setup_logging_defaults_invalid_level_to_info(monkeypatch):
     captured = {}
 

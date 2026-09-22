@@ -23,6 +23,7 @@ class SessionState(dict[str, object]):
     def __setattr__(self, name: str, value: object) -> None:
         self[name] = value
 
+
 def setup_streamlit_mock(mock_st: MagicMock) -> SessionState:
     session_state = SessionState()
     mock_st.session_state = session_state
@@ -126,12 +127,9 @@ def test_current_page_button_is_disabled(
 
     page_calls = mock_st.button.call_args_list[1:-1]
 
-    current_call = next(
-        call for call in page_calls if call.args[0] == "**3**"
-    )
+    current_call = next(call for call in page_calls if call.args[0] == "**3**")
 
     assert current_call.kwargs["disabled"] is True
-
 
 
 @patch("components.pagination.st")

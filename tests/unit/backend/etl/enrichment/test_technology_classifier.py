@@ -26,10 +26,13 @@ class TestTechnologyClassifier:
     def test_keyword_matches_multi_word_keyword(self):
         classifier = TechnologyClassifier()
 
-        assert classifier._keyword_matches(
-            "senior software engineer with machine learning experience",
-            "machine learning",
-        ) is True
+        assert (
+            classifier._keyword_matches(
+                "senior software engineer with machine learning experience",
+                "machine learning",
+            )
+            is True
+        )
 
     def test_keyword_matches_empty_keyword(self):
         classifier = TechnologyClassifier()
@@ -100,26 +103,28 @@ class TestTechnologyClassifier:
     def test_is_tech_role_returns_true_for_technology_category(self):
         classifier = TechnologyClassifier()
 
-        assert classifier.is_tech_role(
-            "Backend Developer",
-            ["Python"],
-        ) is True
+        assert (
+            classifier.is_tech_role(
+                "Backend Developer",
+                ["Python"],
+            )
+            is True
+        )
 
     def test_is_tech_role_returns_false_for_other(self):
         classifier = TechnologyClassifier()
 
-        assert classifier.is_tech_role(
-            "Office Administrator",
-            ["Microsoft Office"],
-        ) is False
+        assert (
+            classifier.is_tech_role(
+                "Office Administrator",
+                ["Microsoft Office"],
+            )
+            is False
+        )
 
     def test_is_tech_role_with_category(self):
         classifier = TechnologyClassifier()
 
-        assert classifier.is_tech_role_with_category(
-            TechnologyCategory.BACKEND
-        ) is True
+        assert classifier.is_tech_role_with_category(TechnologyCategory.BACKEND) is True
 
-        assert classifier.is_tech_role_with_category(
-            TechnologyCategory.OTHER
-        ) is False
+        assert classifier.is_tech_role_with_category(TechnologyCategory.OTHER) is False

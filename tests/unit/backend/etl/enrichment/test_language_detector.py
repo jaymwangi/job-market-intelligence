@@ -135,9 +135,7 @@ class TestConfidence:
         return LanguageDetector()
 
     def test_get_confidence_returns_zero_point_five_when_no_values(self, detector):
-        detector.detector = SimpleNamespace(
-            compute_language_confidence_values=lambda text: []
-        )
+        detector.detector = SimpleNamespace(compute_language_confidence_values=lambda text: [])
 
         assert detector._get_confidence("some text") == 0.5
 
@@ -156,9 +154,7 @@ class TestConfidence:
         def raise_error(text):
             raise RuntimeError("confidence failure")
 
-        detector.detector = SimpleNamespace(
-            compute_language_confidence_values=raise_error
-        )
+        detector.detector = SimpleNamespace(compute_language_confidence_values=raise_error)
 
         assert detector._get_confidence("some text") == 0.5
 
@@ -232,9 +228,7 @@ class TestDetection:
         assert detector._cache_hits == 1
 
     def test_detect_internal_handles_no_detected_language(self, detector):
-        detector.detector = SimpleNamespace(
-            detect_language_of=lambda text: None
-        )
+        detector.detector = SimpleNamespace(detect_language_of=lambda text: None)
 
         result = detector._detect_internal("some sufficiently long text")
 
@@ -325,6 +319,7 @@ class TestDetection:
         assert "fr" in languages
         assert len(languages) > 0
 
+
 class TestConvenienceFunctions:
     def test_get_detector_creates_singleton(self, monkeypatch):
         fake_detector = object()
@@ -338,28 +333,20 @@ class TestConvenienceFunctions:
         assert second is fake_detector
 
     def test_detect_language_delegates_to_singleton(self, monkeypatch):
-        fake_detector = SimpleNamespace(
-            detect=lambda text: LanguageCode.ENGLISH
-        )
+        fake_detector = SimpleNamespace(detect=lambda text: LanguageCode.ENGLISH)
         monkeypatch.setattr(module, "get_detector", lambda: fake_detector)
 
         assert module.detect_language("English text") == LanguageCode.ENGLISH
 
     def test_is_english_delegates_to_singleton(self, monkeypatch):
-        fake_detector = SimpleNamespace(
-            is_english=lambda text: True
-        )
+        fake_detector = SimpleNamespace(is_english=lambda text: True)
         monkeypatch.setattr(module, "get_detector", lambda: fake_detector)
 
         assert module.is_english("English text") is True
 
-    def test_detect_language_with_confidence_delegates_to_singleton(
-        self, monkeypatch
-    ):
+    def test_detect_language_with_confidence_delegates_to_singleton(self, monkeypatch):
         expected = (LanguageCode.FRENCH, 0.89)
-        fake_detector = SimpleNamespace(
-            detect_with_confidence=lambda text: expected
-        )
+        fake_detector = SimpleNamespace(detect_with_confidence=lambda text: expected)
         monkeypatch.setattr(module, "get_detector", lambda: fake_detector)
 
         assert module.detect_language_with_confidence("French text") == expected
@@ -389,17 +376,14 @@ class TestConvenienceFunctions:
             "hit_rate": 33.33,
         }
 
-        fake_detector = SimpleNamespace(
-            get_cache_stats=lambda: expected
-        )
+        fake_detector = SimpleNamespace(get_cache_stats=lambda: expected)
         monkeypatch.setattr(module, "get_detector", lambda: fake_detector)
 
         assert module.get_language_cache_stats() == expected
 
+
 class TestDetectorInitialization:
-    def test_build_detector_raises_runtime_error_when_builder_fails(
-        self, monkeypatch
-    ):
+    def test_build_detector_raises_runtime_error_when_builder_fails(self, monkeypatch):
         detector = LanguageDetector.__new__(LanguageDetector)
 
         class FailingBuilder:
@@ -415,10 +399,9 @@ class TestDetectorInitialization:
         ):
             detector._build_detector()
 
+
 class TestLinguaImportFallback:
-    def test_module_raises_import_error_when_lingua_is_unavailable(
-        self, monkeypatch
-    ):
+    def test_module_raises_import_error_when_lingua_is_unavailable(self, monkeypatch):
         import builtins
         import importlib.util
         from pathlib import Path
@@ -472,11 +455,7 @@ class TestLinguaImportFallback:
         # TYPE_CHECKING conditional.
         else_body = fallback_classes[0].orelse
 
-        class_nodes = [
-            node
-            for node in else_body
-            if isinstance(node, ast.Try)
-        ][0].handlers[0].body
+        class_nodes = [node for node in else_body if isinstance(node, ast.Try)][0].handlers[0].body
 
         fallback_class_nodes = [
             node

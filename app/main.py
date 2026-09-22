@@ -1,8 +1,9 @@
 import os
 import platform
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Any, AsyncGenerator
+from typing import Any
 
 from fastapi import FastAPI, Request
 from starlette.routing import Route, WebSocketRoute
@@ -83,7 +84,7 @@ def validate_configuration() -> None:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """
     Application lifecycle management.
 
@@ -259,7 +260,7 @@ if settings.debug:
         Only available in debug mode.
         """
         return {
-            "headers": dict(request.headers),  # type: ignore[dict-item]
+            "headers": dict(request.headers),
             "request_id": getattr(request.state, "request_id", "-"),
         }
 

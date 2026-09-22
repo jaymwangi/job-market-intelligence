@@ -40,8 +40,8 @@ class TestCreateBarChart:
         assert len(traces) == 1
         trace = traces[0]
         assert isinstance(trace, go.Bar)
-        trace_json = trace.to_plotly_json()
         assert trace.type == "bar"
+        trace_json = trace.to_plotly_json()
         assert trace_json["x"] == ["Nairobi", "Mombasa"]
         assert trace_json["y"] == [100, 50]
         assert trace_json["marker"]["color"] == "#123456"
@@ -102,8 +102,8 @@ class TestCreateHorizontalBarChart:
         assert len(traces) == 1
         trace = traces[0]
         assert isinstance(trace, go.Bar)
-        trace_json = trace.to_plotly_json()
         assert trace.type == "bar"
+        trace_json = trace.to_plotly_json()
         assert trace_json["orientation"] == "h"
         assert trace_json["y"] == ["Python", "SQL"]
         assert trace_json["x"] == [100, 80]
@@ -156,8 +156,8 @@ class TestCreatePieChart:
         assert len(traces) == 1
         trace = traces[0]
         assert isinstance(trace, go.Pie)
-        trace_json = trace.to_plotly_json()
         assert trace.type == "pie"
+        trace_json = trace.to_plotly_json()
         assert trace_json["labels"] == ["Full-time", "Contract"]
         assert trace_json["values"] == [80, 20]
         assert trace_json["textinfo"] == "label+percent"
@@ -176,7 +176,6 @@ class TestCreatePieChart:
 
         trace = fig.data[0]
         assert isinstance(trace, go.Pie)
-        trace_json = trace.to_plotly_json()
         assert trace.textinfo == "label"
 
     def test_creates_empty_pie_chart(self) -> None:
@@ -212,8 +211,8 @@ class TestCreateDonutChart:
         assert len(traces) == 1
         trace = traces[0]
         assert isinstance(trace, go.Pie)
-        trace_json = trace.to_plotly_json()
         assert trace.type == "pie"
+        trace_json = trace.to_plotly_json()
         assert trace_json["hole"] == 0.6
         assert trace_json["labels"] == ["Full-time", "Contract"]
         assert trace_json["values"] == [75, 25]
@@ -231,7 +230,6 @@ class TestCreateDonutChart:
 
         trace = fig.data[0]
         assert isinstance(trace, go.Pie)
-        trace_json = trace.to_plotly_json()
         assert trace.textinfo == "label"
 
     def test_creates_empty_donut_chart(self) -> None:
@@ -270,8 +268,8 @@ class TestCreateLineChart:
         assert len(traces) == 1
         trace = traces[0]
         assert isinstance(trace, go.Scatter)
-        trace_json = trace.to_plotly_json()
         assert trace.type == "scatter"
+        trace_json = trace.to_plotly_json()
         assert trace_json["mode"] == "lines+markers"
         assert trace_json["fill"] == "tozeroy"
         assert trace_json["line"]["color"] == "#abcdef"
@@ -331,8 +329,8 @@ class TestCreateHistogram:
         assert len(traces) == 1
         trace = traces[0]
         assert isinstance(trace, go.Bar)
-        trace_json = trace.to_plotly_json()
         assert trace.type == "bar"
+        trace_json = trace.to_plotly_json()
         assert trace_json["x"] == ["0-50k", "50-100k", "100-150k"]
         assert trace_json["y"] == [10, 30, 20]
         assert trace_json["marker"]["color"] == "#abcdef"

@@ -36,7 +36,9 @@ class TestFilters:
     @patch("dashboard.components.filters.st.sidebar")
     @patch("dashboard.components.filters.st.number_input")
     @patch("dashboard.components.filters.get_icon", return_value="<svg></svg>")
-    def test_render_filters_normalizes_whitespace(self, mock_get_icon, mock_number_input, mock_sidebar):
+    def test_render_filters_normalizes_whitespace(
+        self, mock_get_icon, mock_number_input, mock_sidebar
+    ):
         """Test whitespace-only filter values normalize to None."""
         mock_sidebar.text_input.side_effect = ["   ", "  ", "\t"]
         mock_sidebar.selectbox.return_value = "adzuna"

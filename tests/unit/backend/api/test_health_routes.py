@@ -2,9 +2,9 @@
 Unit tests for health check API routes.
 """
 
+import importlib
 from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
-import importlib
 
 import pytest
 from fastapi.testclient import TestClient
@@ -234,7 +234,6 @@ class TestHealthRoutes:
         assert data["detail"]["status"] == "unhealthy"
         assert data["detail"]["database"] == "PostgreSQL"
 
-
     @pytest.mark.asyncio
     async def test_get_metrics(self):
         """Test metrics endpoint returns collected metrics."""
@@ -294,11 +293,7 @@ class TestHealthRoutes:
         assert result["database"] == "PostgreSQL"
         assert result["message"] == "Database unavailable"
         assert "timestamp" in result
-        mock_logger.exception.assert_called_once_with(
-            "Database health check failed: RuntimeError"
-        )
-
-
+        mock_logger.exception.assert_called_once_with("Database health check failed: RuntimeError")
 
     @pytest.mark.asyncio
     async def test_db_health_check_unhealthy_without_message(self):
@@ -336,8 +331,6 @@ class TestHealthRoutes:
         try:
             collector = reloaded_module.metrics_collector
 
-            assert collector.get_metrics() == {
-                "error": "Metrics collector not available"
-            }
+            assert collector.get_metrics() == {"error": "Metrics collector not available"}
         finally:
             importlib.reload(health_module)

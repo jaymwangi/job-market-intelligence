@@ -163,7 +163,9 @@ class JobRepository:
     # API Query Methods
     # ============================================================
 
-    def _apply_filters(self, query: Query[Job], filters: JobFilters, search_query: str | None = None) -> Query[Job]:
+    def _apply_filters(
+        self, query: Query[Job], filters: JobFilters, search_query: str | None = None
+    ) -> Query[Job]:
         if filters.company_name:
             query = query.filter(Job.company_name.ilike(f"%{filters.company_name}%"))
 

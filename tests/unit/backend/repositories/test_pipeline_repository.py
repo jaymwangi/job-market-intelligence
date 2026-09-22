@@ -121,7 +121,6 @@ class TestPipelineRunRepository:
             assert mock_run.duration_seconds == 0.5
             mock_db.flush.assert_called_once()
 
-
     def test_get_latest_completed_run_returns_row(
         self,
         repository,
@@ -160,7 +159,6 @@ class TestPipelineRunRepository:
             "updated_at": row[9],
         }
 
-
     def test_get_latest_completed_run_returns_none_when_no_row(
         self,
         repository,
@@ -173,7 +171,6 @@ class TestPipelineRunRepository:
 
         assert repository.get_latest_completed_run() is None
 
-
     def test_get_latest_completed_run_returns_none_on_error(
         self,
         repository,
@@ -183,7 +180,6 @@ class TestPipelineRunRepository:
         mock_db.execute.side_effect = RuntimeError("Database unavailable")
 
         assert repository.get_latest_completed_run() is None
-
 
     def test_get_running_run_returns_row(
         self,
@@ -223,7 +219,6 @@ class TestPipelineRunRepository:
             "updated_at": row[9],
         }
 
-
     def test_get_running_run_returns_none_when_no_row(
         self,
         repository,
@@ -236,7 +231,6 @@ class TestPipelineRunRepository:
 
         assert repository.get_running_run() is None
 
-
     def test_get_running_run_returns_none_on_error(
         self,
         repository,
@@ -247,53 +241,37 @@ class TestPipelineRunRepository:
 
         assert repository.get_running_run() is None
 
-
-    def test_get_last_run_time_returns_completed_time(
-        self, repository
-    ):
+    def test_get_last_run_time_returns_completed_time(self, repository):
         completed_at = datetime(2026, 9, 17, 10, 30, tzinfo=UTC)
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": completed_at}
-        )
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": completed_at})
 
         result = repository.get_last_run_time()
 
         assert result == completed_at
 
-    def test_get_last_run_time_returns_started_time_when_no_completed_time(
-        self, repository
-    ):
+    def test_get_last_run_time_returns_started_time_when_no_completed_time(self, repository):
         started_at = datetime(2026, 9, 17, 10, 0, tzinfo=UTC)
-        repository.get_latest_completed_run = Mock(
-            return_value={"started_at": started_at}
-        )
+        repository.get_latest_completed_run = Mock(return_value={"started_at": started_at})
 
         result = repository.get_last_run_time()
 
         assert result == started_at
 
-
-    def test_get_last_run_time_returns_none_when_no_run(
-        self, repository
-    ):
+    def test_get_last_run_time_returns_none_when_no_run(self, repository):
         repository.get_latest_completed_run = Mock(return_value=None)
 
         result = repository.get_last_run_time()
 
         assert result is None
 
-    def test_format_last_run_time_returns_no_runs_yet_when_no_run(
-        self, repository
-    ):
+    def test_format_last_run_time_returns_no_runs_yet_when_no_run(self, repository):
         repository.get_latest_completed_run = Mock(return_value=None)
 
         result = repository.format_last_run_time()
 
         assert result == "No runs yet"
 
-    def test_format_last_run_time_returns_no_runs_yet_when_no_time(
-        self, repository
-    ):
+    def test_format_last_run_time_returns_no_runs_yet_when_no_time(self, repository):
         repository.get_latest_completed_run = Mock(
             return_value={"completed_at": None, "started_at": None}
         )
@@ -302,92 +280,62 @@ class TestPipelineRunRepository:
 
         assert result == "No runs yet"
 
-    def test_format_last_run_time_handles_invalid_date(
-        self, repository
-    ):
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": "not-a-date"}
-        )
+    def test_format_last_run_time_handles_invalid_date(self, repository):
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": "not-a-date"})
 
         result = repository.format_last_run_time()
 
         assert result == "Invalid date"
 
-    def test_format_last_run_time_returns_days_and_hours(
-        self, repository
-    ):
+    def test_format_last_run_time_returns_days_and_hours(self, repository):
         last_time = datetime.now(UTC) - timedelta(days=2, hours=3)
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": last_time}
-        )
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": last_time})
 
         result = repository.format_last_run_time()
 
         assert result.startswith("2d 3h")
 
-    def test_format_last_run_time_returns_hours_and_minutes(
-        self, repository
-    ):
+    def test_format_last_run_time_returns_hours_and_minutes(self, repository):
         last_time = datetime.now(UTC) - timedelta(hours=2, minutes=15)
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": last_time}
-        )
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": last_time})
 
         result = repository.format_last_run_time()
 
         assert result.startswith("2h 15m")
 
-    def test_format_last_run_time_returns_minutes(
-        self, repository
-    ):
+    def test_format_last_run_time_returns_minutes(self, repository):
         last_time = datetime.now(UTC) - timedelta(minutes=15)
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": last_time}
-        )
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": last_time})
 
         result = repository.format_last_run_time()
 
         assert result.startswith("15m ago")
 
-    def test_format_last_run_time_returns_just_now(
-        self, repository
-    ):
+    def test_format_last_run_time_returns_just_now(self, repository):
         last_time = datetime.now(UTC) - timedelta(seconds=30)
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": last_time}
-        )
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": last_time})
 
         result = repository.format_last_run_time()
 
         assert result == "Just now"
 
     @patch("app.repositories.pipeline_run_repository.datetime")
-    def test_format_last_run_time_returns_hours_only(
-        self, mock_datetime, repository
-    ):
+    def test_format_last_run_time_returns_hours_only(self, mock_datetime, repository):
         now = datetime(2026, 9, 17, 12, 0, tzinfo=UTC)
         last_time = datetime(2026, 9, 17, 10, 0, tzinfo=UTC)
 
         mock_datetime.now.return_value = now
         mock_datetime.fromisoformat.side_effect = datetime.fromisoformat
 
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": last_time}
-        )
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": last_time})
 
         result = repository.format_last_run_time()
 
         assert result == "2h ago"
 
-    def test_format_last_run_time_handles_naive_datetime(
-        self, repository
-    ):
-        last_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(
-            minutes=15
-        )
-        repository.get_latest_completed_run = Mock(
-            return_value={"completed_at": last_time}
-        )
+    def test_format_last_run_time_handles_naive_datetime(self, repository):
+        last_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=15)
+        repository.get_latest_completed_run = Mock(return_value={"completed_at": last_time})
 
         result = repository.format_last_run_time()
 

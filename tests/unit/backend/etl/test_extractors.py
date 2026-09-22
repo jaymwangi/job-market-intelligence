@@ -366,9 +366,7 @@ class TestJobsExtractorCoverage:
         assert len(result) == 2
         assert client.get.call_count == 1
 
-    def test_extract_stops_when_page_is_shorter_than_page_size(
-        self, extractor, client
-    ):
+    def test_extract_stops_when_page_is_shorter_than_page_size(self, extractor, client):
         """Extraction stops when fewer than the requested page size are returned."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -381,34 +379,30 @@ class TestJobsExtractorCoverage:
         assert client.get.call_count == 1
 
     def test_extract_handles_exception(self, extractor, client, mocker):
-            """Unexpected extraction errors are logged and accumulated jobs returned."""
-            mock_exception = mocker.patch(
-                "app.etl.extractors.jobs_api.logger.exception"
-            )
+        """Unexpected extraction errors are logged and accumulated jobs returned."""
+        mock_exception = mocker.patch("app.etl.extractors.jobs_api.logger.exception")
 
-            client.get.side_effect = [
-                {
-                    "results": [{"id": "1"}, {"id": "2"}],
-                    "count": 100,
-                },
-                Exception("API failure"),
-            ]
+        client.get.side_effect = [
+            {
+                "results": [{"id": "1"}, {"id": "2"}],
+                "count": 100,
+            },
+            Exception("API failure"),
+        ]
 
-            result = extractor.extract("us")
+        result = extractor.extract("us")
 
-            assert len(result) == 2
-            assert all(job[RAW_SOURCE_COUNTRY_FIELD] == "us" for job in result)
-            assert client.get.call_count == 2
-            mock_exception.assert_called_once_with(
-                "Unexpected error fetching jobs for %s",
-                "us",
-            )
+        assert len(result) == 2
+        assert all(job[RAW_SOURCE_COUNTRY_FIELD] == "us" for job in result)
+        assert client.get.call_count == 2
+        mock_exception.assert_called_once_with(
+            "Unexpected error fetching jobs for %s",
+            "us",
+        )
 
     def test_extract_handles_exception(self, extractor, client, mocker):
         """Unexpected extraction errors are logged and accumulated jobs returned."""
-        mock_exception = mocker.patch(
-            "app.etl.extractors.jobs_api.logger.exception"
-        )
+        mock_exception = mocker.patch("app.etl.extractors.jobs_api.logger.exception")
 
         client.get.side_effect = [
             {
@@ -440,9 +434,7 @@ class TestJobsExtractorCoverage:
         assert extractor.extract_with_params("us", {"what": "python"}) == []
         client.get.assert_not_called()
 
-    def test_extract_with_params_defaults_search_params_to_empty_dict(
-        self, extractor, client
-    ):
+    def test_extract_with_params_defaults_search_params_to_empty_dict(self, extractor, client):
         """None search parameters are converted to an empty dictionary."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -459,9 +451,7 @@ class TestJobsExtractorCoverage:
         assert params["app_key"] == "test_api_key"
         assert params["results_per_page"] == 2
 
-    def test_extract_with_params_applies_search_params(
-        self, extractor, client
-    ):
+    def test_extract_with_params_applies_search_params(self, extractor, client):
         """Custom search parameters are passed to the API."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -508,9 +498,7 @@ class TestJobsExtractorCoverage:
         assert all(job[RAW_SOURCE_COUNTRY_FIELD] == "de" for job in result)
         assert client.get.call_count == 3
 
-    def test_extract_with_params_stops_when_page_is_short(
-        self, extractor, client
-    ):
+    def test_extract_with_params_stops_when_page_is_short(self, extractor, client):
         """Parameterized extraction stops when a short page is returned."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -525,13 +513,9 @@ class TestJobsExtractorCoverage:
         assert len(result) == 1
         assert client.get.call_count == 1
 
-    def test_extract_with_params_handles_exception(
-        self, extractor, client, mocker
-    ):
+    def test_extract_with_params_handles_exception(self, extractor, client, mocker):
         """Parameterized extraction logs unexpected errors."""
-        mock_exception = mocker.patch(
-            "app.etl.extractors.jobs_api.logger.exception"
-        )
+        mock_exception = mocker.patch("app.etl.extractors.jobs_api.logger.exception")
 
         client.get.side_effect = Exception("API failure")
 
@@ -547,9 +531,7 @@ class TestJobsExtractorCoverage:
             {"what": "python"},
         )
 
-    def test_private_fetch_page_invalid_results_type(
-        self, extractor, client
-    ):
+    def test_private_fetch_page_invalid_results_type(self, extractor, client):
         """Invalid API results are treated as an empty page."""
         client.get.return_value = {
             "results": {"not": "a list"},
@@ -561,9 +543,7 @@ class TestJobsExtractorCoverage:
         assert jobs == []
         assert has_more is False
 
-    def test_private_fetch_page_invalid_count(
-        self, extractor, client
-    ):
+    def test_private_fetch_page_invalid_count(self, extractor, client):
         """Invalid count values are treated as zero."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -575,9 +555,7 @@ class TestJobsExtractorCoverage:
         assert jobs == [{"id": "1"}]
         assert has_more is False
 
-    def test_private_fetch_page_has_more(
-        self, extractor, client
-    ):
+    def test_private_fetch_page_has_more(self, extractor, client):
         """has_more is true when additional pages exist."""
         client.get.return_value = {
             "results": [{"id": "1"}, {"id": "2"}],
@@ -589,9 +567,7 @@ class TestJobsExtractorCoverage:
         assert len(jobs) == 2
         assert has_more is True
 
-    def test_private_fetch_page_debug_logging(
-        self, extractor, client, caplog
-    ):
+    def test_private_fetch_page_debug_logging(self, extractor, client, caplog):
         """Private page fetching executes debug logging."""
         extractor.debug = True
         client.get.return_value = {
@@ -605,9 +581,7 @@ class TestJobsExtractorCoverage:
         assert "URL:" in caplog.text
         assert "Params:" in caplog.text
 
-    def test_fetch_page_with_params_invalid_results_type(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_invalid_results_type(self, extractor, client):
         """Parameterized page fetching handles invalid results."""
         client.get.return_value = {
             "results": {"invalid": True},
@@ -623,9 +597,7 @@ class TestJobsExtractorCoverage:
         assert jobs == []
         assert has_more is False
 
-    def test_fetch_page_with_params_invalid_count(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_invalid_count(self, extractor, client):
         """Parameterized page fetching handles invalid counts."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -641,9 +613,7 @@ class TestJobsExtractorCoverage:
         assert jobs == [{"id": "1"}]
         assert has_more is False
 
-    def test_fetch_page_with_params_merges_params(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_merges_params(self, extractor, client):
         """Custom parameters are merged into the base API parameters."""
         client.get.return_value = {
             "results": [],
@@ -667,9 +637,7 @@ class TestJobsExtractorCoverage:
         assert params["what"] == "python"
         assert params["where"] == "London"
 
-    def test_fetch_page_with_params_can_override_page_size(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_can_override_page_size(self, extractor, client):
         """Search parameters can override the default page size."""
         client.get.return_value = {
             "results": [],
@@ -685,9 +653,7 @@ class TestJobsExtractorCoverage:
         params = client.get.call_args.kwargs["params"]
         assert params["results_per_page"] == 50
 
-    def test_fetch_page_with_params_has_more(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_has_more(self, extractor, client):
         """Parameterized page fetching detects additional pages."""
         client.get.return_value = {
             "results": [{"id": "1"}, {"id": "2"}],
@@ -703,9 +669,7 @@ class TestJobsExtractorCoverage:
         assert len(jobs) == 2
         assert has_more is True
 
-    def test_fetch_page_with_params_debug_logging(
-        self, extractor, client, caplog
-    ):
+    def test_fetch_page_with_params_debug_logging(self, extractor, client, caplog):
         """Parameterized page fetching executes debug logging."""
         extractor.debug = True
         client.get.return_value = {
@@ -723,9 +687,7 @@ class TestJobsExtractorCoverage:
         assert "URL:" in caplog.text
         assert "Params:" in caplog.text
 
-    def test_fetch_page_uses_default_results_per_page(
-        self, extractor, client
-    ):
+    def test_fetch_page_uses_default_results_per_page(self, extractor, client):
         """fetch_page uses the extractor page size when no override is supplied."""
         client.get.return_value = {"results": [], "count": 0}
 
@@ -733,9 +695,7 @@ class TestJobsExtractorCoverage:
 
         params = client.get.call_args.kwargs["params"]
         assert params["results_per_page"] == 2
-        assert client.get.call_args.args[0] == (
-            "https://api.test.com/jobs/us/search/2"
-        )
+        assert client.get.call_args.args[0] == ("https://api.test.com/jobs/us/search/2")
 
     def test_fetch_page_debug_logging(self, extractor, client, caplog):
         """fetch_page executes its debug logging branch."""
@@ -748,9 +708,7 @@ class TestJobsExtractorCoverage:
         assert "URL:" in caplog.text
         assert "Params:" in caplog.text
 
-    def test_fetch_page_debug_masks_credentials(
-        self, extractor, client, caplog
-    ):
+    def test_fetch_page_debug_masks_credentials(self, extractor, client, caplog):
         """Debug logging does not expose API credentials."""
         extractor.debug = True
         client.get.return_value = {"results": [], "count": 0}
@@ -762,9 +720,7 @@ class TestJobsExtractorCoverage:
         assert "test_api_key" not in caplog.text
         assert "test..." in caplog.text
 
-    def test_private_fetch_page_invalid_results_type(
-        self, extractor, client
-    ):
+    def test_private_fetch_page_invalid_results_type(self, extractor, client):
         """Invalid API results are treated as an empty page."""
         client.get.return_value = {
             "results": {"not": "a list"},
@@ -776,9 +732,7 @@ class TestJobsExtractorCoverage:
         assert jobs == []
         assert has_more is False
 
-    def test_private_fetch_page_invalid_count(
-        self, extractor, client
-    ):
+    def test_private_fetch_page_invalid_count(self, extractor, client):
         """Invalid count values are treated as zero."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -790,9 +744,7 @@ class TestJobsExtractorCoverage:
         assert jobs == [{"id": "1"}]
         assert has_more is False
 
-    def test_private_fetch_page_has_more(
-        self, extractor, client
-    ):
+    def test_private_fetch_page_has_more(self, extractor, client):
         """has_more is true when additional pages exist."""
         client.get.return_value = {
             "results": [{"id": "1"}, {"id": "2"}],
@@ -804,9 +756,7 @@ class TestJobsExtractorCoverage:
         assert len(jobs) == 2
         assert has_more is True
 
-    def test_private_fetch_page_debug_logging(
-        self, extractor, client, caplog
-    ):
+    def test_private_fetch_page_debug_logging(self, extractor, client, caplog):
         """Private page fetching executes debug logging."""
         extractor.debug = True
         client.get.return_value = {
@@ -820,9 +770,7 @@ class TestJobsExtractorCoverage:
         assert "URL:" in caplog.text
         assert "Params:" in caplog.text
 
-    def test_fetch_page_with_params_invalid_results_type(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_invalid_results_type(self, extractor, client):
         """Parameterized page fetching handles invalid results."""
         client.get.return_value = {
             "results": {"invalid": True},
@@ -838,9 +786,7 @@ class TestJobsExtractorCoverage:
         assert jobs == []
         assert has_more is False
 
-    def test_fetch_page_with_params_invalid_count(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_invalid_count(self, extractor, client):
         """Parameterized page fetching handles invalid counts."""
         client.get.return_value = {
             "results": [{"id": "1"}],
@@ -856,9 +802,7 @@ class TestJobsExtractorCoverage:
         assert jobs == [{"id": "1"}]
         assert has_more is False
 
-    def test_fetch_page_with_params_merges_params(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_merges_params(self, extractor, client):
         """Custom parameters are merged into the base API parameters."""
         client.get.return_value = {
             "results": [],
@@ -882,9 +826,7 @@ class TestJobsExtractorCoverage:
         assert params["what"] == "python"
         assert params["where"] == "London"
 
-    def test_fetch_page_with_params_can_override_page_size(
-        self, extractor, client
-    ):
+    def test_fetch_page_with_params_can_override_page_size(self, extractor, client):
         """Search parameters can override the default page size."""
         client.get.return_value = {
             "results": [],
@@ -900,9 +842,7 @@ class TestJobsExtractorCoverage:
         params = client.get.call_args.kwargs["params"]
         assert params["results_per_page"] == 50
 
-    def test_fetch_page_with_params_debug_logging(
-        self, extractor, client, caplog
-    ):
+    def test_fetch_page_with_params_debug_logging(self, extractor, client, caplog):
         """Parameterized page fetching executes debug logging."""
         extractor.debug = True
         client.get.return_value = {

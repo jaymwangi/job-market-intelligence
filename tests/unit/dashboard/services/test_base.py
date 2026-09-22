@@ -17,6 +17,7 @@ def test_refresh_clears_cache():
 
     cache_manager.clear.assert_called_once_with()
 
+
 from unittest.mock import Mock, patch
 
 from services.base import BaseService

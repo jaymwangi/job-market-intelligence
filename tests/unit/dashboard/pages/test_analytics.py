@@ -157,17 +157,12 @@ def test_render_skills_analytics_skills_exception(service):
     ):
         analytics.render_skills_analytics(service)
 
-    assert any(
-        "skills database error" in call.args[0]
-        for call in show_error.call_args_list
-    )
+    assert any("skills database error" in call.args[0] for call in show_error.call_args_list)
 
 
 def test_render_skills_analytics_technology_exception(service):
     service.get_enriched_top_skills.return_value = []
-    service.get_technology_distribution.side_effect = RuntimeError(
-        "technology database error"
-    )
+    service.get_technology_distribution.side_effect = RuntimeError("technology database error")
 
     columns = [context_manager_mock(), context_manager_mock()]
 
@@ -185,10 +180,8 @@ def test_render_skills_analytics_technology_exception(service):
     ):
         analytics.render_skills_analytics(service)
 
-    assert any(
-        "technology database error" in call.args[0]
-        for call in show_error.call_args_list
-    )
+    assert any("technology database error" in call.args[0] for call in show_error.call_args_list)
+
 
 # ============================================================
 # render_analytics_dashboard
@@ -429,10 +422,7 @@ def test_render_company_analytics_company_exception(service):
     ):
         analytics.render_company_analytics(service)
 
-    assert any(
-        "company database error" in call.args[0]
-        for call in show_error.call_args_list
-    )
+    assert any("company database error" in call.args[0] for call in show_error.call_args_list)
 
 
 def test_render_company_analytics_distribution_exception(service):
@@ -466,10 +456,7 @@ def test_render_company_analytics_distribution_exception(service):
     ):
         analytics.render_company_analytics(service)
 
-    assert any(
-        "distribution database error" in call.args[0]
-        for call in show_error.call_args_list
-    )
+    assert any("distribution database error" in call.args[0] for call in show_error.call_args_list)
 
 
 # ============================================================
@@ -664,6 +651,7 @@ def test_render_kpi_cards_exception(service):
 
     show_error.assert_called_once()
     assert "analytics failure" in show_error.call_args[0][0]
+
 
 # ============================================================
 # render_salary_analytics
@@ -862,17 +850,12 @@ def test_render_salary_analytics_statistics_exception(service):
     ):
         analytics.render_salary_analytics(service)
 
-    assert any(
-        "statistics database error" in call.args[0]
-        for call in show_error.call_args_list
-    )
+    assert any("statistics database error" in call.args[0] for call in show_error.call_args_list)
 
 
 def test_render_salary_analytics_distribution_exception(service):
     service.get_salary_statistics.return_value = None
-    service.get_salary_distribution_chart.side_effect = RuntimeError(
-        "distribution database error"
-    )
+    service.get_salary_distribution_chart.side_effect = RuntimeError("distribution database error")
 
     location_data = Mock()
     location_data.x_values = []
@@ -890,10 +873,7 @@ def test_render_salary_analytics_distribution_exception(service):
     ):
         analytics.render_salary_analytics(service)
 
-    assert any(
-        "distribution database error" in call.args[0]
-        for call in show_error.call_args_list
-    )
+    assert any("distribution database error" in call.args[0] for call in show_error.call_args_list)
 
 
 def test_render_salary_analytics_location_exception(service):
@@ -919,9 +899,9 @@ def test_render_salary_analytics_location_exception(service):
         analytics.render_salary_analytics(service)
 
     assert any(
-        "location salary database error" in call.args[0]
-        for call in show_error.call_args_list
+        "location salary database error" in call.args[0] for call in show_error.call_args_list
     )
+
 
 # ============================================================
 # render_employment_analytics
@@ -1061,9 +1041,7 @@ def test_render_employment_analytics_no_bar_data(service):
 
 
 def test_render_employment_analytics_donut_exception(service):
-    service.get_employment_types_chart.side_effect = RuntimeError(
-        "employment types database error"
-    )
+    service.get_employment_types_chart.side_effect = RuntimeError("employment types database error")
 
     bar_data = Mock()
     bar_data.x_values = []
@@ -1085,8 +1063,7 @@ def test_render_employment_analytics_donut_exception(service):
         analytics.render_employment_analytics(service)
 
     assert any(
-        "employment types database error" in call.args[0]
-        for call in show_error.call_args_list
+        "employment types database error" in call.args[0] for call in show_error.call_args_list
     )
 
 
@@ -1115,8 +1092,7 @@ def test_render_employment_analytics_bar_exception(service):
         analytics.render_employment_analytics(service)
 
     assert any(
-        "employment bar database error" in call.args[0]
-        for call in show_error.call_args_list
+        "employment bar database error" in call.args[0] for call in show_error.call_args_list
     )
 
 
@@ -1182,7 +1158,7 @@ def test_render_posting_trends_no_cumulative_data(service):
             "columns",
             return_value=[context_manager_mock(), context_manager_mock()],
         ),
-        patch.object(analytics.st, "selectbox", return_value=30) as selectbox,
+        patch.object(analytics.st, "selectbox", return_value=30),
         patch.object(
             analytics,
             "loading_spinner",
@@ -1222,7 +1198,7 @@ def test_render_posting_trends_daily_data_empty(service):
             "columns",
             return_value=[context_manager_mock(), context_manager_mock()],
         ),
-        patch.object(analytics.st, "selectbox", return_value=30) as selectbox,
+        patch.object(analytics.st, "selectbox", return_value=30),
         patch.object(
             analytics,
             "loading_spinner",
@@ -1247,9 +1223,7 @@ def test_render_posting_trends_daily_data_empty(service):
 
 
 def test_render_posting_trends_exception(service):
-    service.get_posting_trend_chart.side_effect = RuntimeError(
-        "database error"
-    )
+    service.get_posting_trend_chart.side_effect = RuntimeError("database error")
 
     with (
         patch.object(analytics, "section_header"),
@@ -1258,7 +1232,7 @@ def test_render_posting_trends_exception(service):
             "columns",
             return_value=[context_manager_mock(), context_manager_mock()],
         ),
-        patch.object(analytics.st, "selectbox", return_value=30) as selectbox,
+        patch.object(analytics.st, "selectbox", return_value=30),
         patch.object(
             analytics,
             "loading_spinner",
@@ -1270,6 +1244,7 @@ def test_render_posting_trends_exception(service):
 
     show_error.assert_called_once()
     assert "database error" in show_error.call_args[0][0]
+
 
 def test_render_language_analytics_success(service):
     lang_dist = [
@@ -1472,9 +1447,7 @@ def test_render_language_analytics_no_salary_data(service):
 
 
 def test_render_language_analytics_exception(service):
-    service.get_language_distribution.side_effect = RuntimeError(
-        "database error"
-    )
+    service.get_language_distribution.side_effect = RuntimeError("database error")
 
     with (
         patch.object(analytics, "section_header"),
@@ -1489,6 +1462,7 @@ def test_render_language_analytics_exception(service):
 
     show_error.assert_called_once()
     assert "database error" in show_error.call_args[0][0]
+
 
 def test_render_tech_analytics_success(service):
     tech_stats = {
@@ -1707,9 +1681,7 @@ def test_render_tech_analytics_salary_na_values(service):
 
 
 def test_render_tech_analytics_exception(service):
-    service.get_tech_vs_non_tech.side_effect = RuntimeError(
-        "database error"
-    )
+    service.get_tech_vs_non_tech.side_effect = RuntimeError("database error")
 
     with (
         patch.object(analytics, "section_header"),

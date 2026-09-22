@@ -238,7 +238,10 @@ class TestDatabaseCompositionChecker:
 
         checker = DatabaseCompositionChecker(db_session)
 
-        assert checker.has_reached_parity(
-            country=country,
-            tolerance=0.05,
-        ) is True
+        assert (
+            checker.has_reached_parity(
+                country=country,
+                tolerance=0.05,
+            )
+            is True
+        )

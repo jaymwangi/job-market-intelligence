@@ -1,4 +1,3 @@
-from typing import Any, Dict, List, Optional
 """Analytics API routes."""
 
 from fastapi import APIRouter, Depends, Query, status

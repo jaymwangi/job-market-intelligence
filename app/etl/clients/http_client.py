@@ -1,8 +1,7 @@
-import json
 # app/etl/clients/http_client.py
 """Simple HTTP client with session reuse."""
 
-from typing import Any, cast, cast
+from typing import Any, cast
 
 import requests
 

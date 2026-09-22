@@ -1,4 +1,3 @@
-import re
 from unittest.mock import patch
 
 import pytest
@@ -97,8 +96,10 @@ class TestMetricsCollector:
     def test_get_metrics_with_no_requests(self):
         collector = MetricsCollector()
 
-        with patch("app.core.metrics.time.perf_counter", return_value=10.0), \
-             patch("app.core.metrics.datetime") as mock_datetime:
+        with (
+            patch("app.core.metrics.time.perf_counter", return_value=10.0),
+            patch("app.core.metrics.datetime") as mock_datetime,
+        ):
             collector.start_time = 5.0
             mock_datetime.now.return_value.isoformat.return_value = "2026-09-08T00:00:00+00:00"
 

@@ -3,12 +3,11 @@ Unit tests for jobs API routes.
 """
 
 from datetime import datetime
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock
 
 from app.api.routes.jobs import get_service
 from app.main import app
@@ -404,9 +403,7 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.post(
-                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
-            )
+            response = client.post(f"/api/v1/jobs/{mock_job.id}/translate?target_language=en")
 
             assert response.status_code == 200
 
@@ -438,9 +435,7 @@ class TestJobsRoutes:
             )
         )
 
-        async_get_translation_service = AsyncMock(
-            return_value=translation_service
-        )
+        async_get_translation_service = AsyncMock(return_value=translation_service)
 
         monkeypatch.setattr(
             "app.api.routes.jobs.get_translation_service",
@@ -450,9 +445,7 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.post(
-                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
-            )
+            response = client.post(f"/api/v1/jobs/{mock_job.id}/translate?target_language=en")
 
             assert response.status_code == 200
 
@@ -502,9 +495,7 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.post(
-                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
-            )
+            response = client.post(f"/api/v1/jobs/{mock_job.id}/translate?target_language=en")
 
             assert response.status_code == 200
 
@@ -539,13 +530,9 @@ class TestJobsRoutes:
         app.dependency_overrides[get_service] = lambda: mock_service
 
         try:
-            response = client.post(
-                f"/api/v1/jobs/{mock_job.id}/translate?target_language=en"
-            )
+            response = client.post(f"/api/v1/jobs/{mock_job.id}/translate?target_language=en")
 
             assert response.status_code == 500
-            assert response.json()["detail"] == (
-                "Translation failed: Translation service failed"
-            )
+            assert response.json()["detail"] == ("Translation failed: Translation service failed")
         finally:
             app.dependency_overrides.clear()

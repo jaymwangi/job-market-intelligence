@@ -8,8 +8,8 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.job import JobFilters, JobListResponse, JobResponse
 from app.models.job import Job
+from app.schemas.job import JobFilters, JobListResponse, JobResponse
 
 
 class TestJobResponse:

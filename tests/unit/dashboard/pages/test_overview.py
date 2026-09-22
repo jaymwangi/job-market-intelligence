@@ -1,8 +1,8 @@
 import sys
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock
 
 import pytest
-from datetime import datetime, timezone
 
 sys.path.insert(0, "dashboard")
 
@@ -75,6 +75,7 @@ def test_render_success(services, mocker):
     mocker.patch.object(overview.st, "success")
     mocker.patch.object(overview.st, "warning")
     mocker.patch.object(overview.st, "plotly_chart")
+
     def mock_columns(spec):
         count = spec if isinstance(spec, int) else len(spec)
         columns = []
@@ -104,6 +105,7 @@ def test_render_success(services, mocker):
     analytics_service.get_enriched_salary.assert_called_once_with()
     analytics_service.get_technology_distribution.assert_called_once_with()
     analytics_service.get_companies_hiring_count.assert_called_once_with()
+
 
 def test_render_company_count_fallback_with_jobs(services, mocker):
     analytics_service, jobs_service = services
@@ -141,6 +143,7 @@ def test_render_company_count_fallback_with_jobs(services, mocker):
     mocker.patch.object(overview.st, "success")
     mocker.patch.object(overview.st, "warning")
     mocker.patch.object(overview.st, "plotly_chart")
+
     def mock_columns(spec):
         count = spec if isinstance(spec, int) else len(spec)
         columns = []
@@ -191,6 +194,7 @@ def test_render_company_count_fallback_with_no_jobs(services, mocker):
     mocker.patch.object(overview.st, "success")
     mocker.patch.object(overview.st, "warning")
     mocker.patch.object(overview.st, "plotly_chart")
+
     def mock_columns(spec):
         count = spec if isinstance(spec, int) else len(spec)
         columns = []
@@ -212,6 +216,7 @@ def test_render_company_count_fallback_with_no_jobs(services, mocker):
     overview.render()
 
     jobs_service.fetch_jobs.assert_called()
+
 
 @pytest.mark.parametrize(
     "empty_field",
@@ -251,6 +256,7 @@ def test_render_empty_analytics_data(services, mocker, empty_field):
     mocker.patch.object(overview.st, "success")
     mocker.patch.object(overview.st, "warning")
     mocker.patch.object(overview.st, "plotly_chart")
+
     def mock_columns(spec):
         count = spec if isinstance(spec, int) else len(spec)
         columns = []
@@ -272,6 +278,7 @@ def test_render_empty_analytics_data(services, mocker, empty_field):
     overview.render()
 
     assert jobs_service.fetch_jobs.called
+
 
 def test_render_technology_data_only_other(services, mocker):
     analytics_service, jobs_service = services
@@ -302,6 +309,7 @@ def test_render_technology_data_only_other(services, mocker):
     mocker.patch.object(overview.st, "success")
     mocker.patch.object(overview.st, "warning")
     mocker.patch.object(overview.st, "plotly_chart")
+
     def mock_columns(spec):
         count = spec if isinstance(spec, int) else len(spec)
         columns = []
@@ -323,6 +331,7 @@ def test_render_technology_data_only_other(services, mocker):
     overview.render()
 
     caption_mock.assert_any_call("No technology data available")
+
 
 def test_render_company_count_fallback_exception(services, mocker):
     analytics_service, jobs_service = services
@@ -380,7 +389,7 @@ def test_render_jobs_with_date_and_salary(services, mocker):
     job.title = "Data Scientist"
     job.company_name = "Example Corp"
     job.location = "Nairobi"
-    job.posted_date = datetime.now(timezone.utc)
+    job.posted_date = datetime.now(UTC)
     job.salary_min = 50000
     job.salary_max = 80000
 
@@ -428,6 +437,7 @@ def test_render_jobs_with_date_and_salary(services, mocker):
     overview.render()
 
     assert jobs_service.fetch_jobs.called
+
 
 def test_render_job_with_invalid_posted_date(services, mocker):
     analytics_service, jobs_service = services
@@ -484,6 +494,7 @@ def test_render_job_with_invalid_posted_date(services, mocker):
     overview.render()
 
     caption_mock.assert_any_call("📅 Recently posted")
+
 
 def test_render_job_with_posted_date_exception(services, mocker):
     analytics_service, jobs_service = services
@@ -547,6 +558,7 @@ def test_render_job_with_posted_date_exception(services, mocker):
 
     caption_mock.assert_any_call("📅 Recently posted")
 
+
 @pytest.mark.parametrize(
     ("pipeline_status", "db_status"),
     [
@@ -604,6 +616,7 @@ def test_render_system_status_variants(services, mocker, pipeline_status, db_sta
 
     overview.render()
 
+
 def test_render_api_health_warning(services, mocker):
     analytics_service, jobs_service = services
 
@@ -654,6 +667,7 @@ def test_render_api_health_warning(services, mocker):
     mocker.patch.object(overview, "divider")
 
     overview.render()
+
 
 def test_render_api_health_exception(services, mocker):
     analytics_service, jobs_service = services
@@ -706,18 +720,13 @@ def test_render_api_health_exception(services, mocker):
 
     overview.render()
 
+
 def test_render_system_status_fallbacks(services, mocker):
     analytics_service, jobs_service = services
 
-    analytics_service.get_last_etl_run.side_effect = Exception(
-        "ETL unavailable"
-    )
-    analytics_service.get_pipeline_status.side_effect = Exception(
-        "pipeline unavailable"
-    )
-    analytics_service.get_db_status.side_effect = Exception(
-        "DB unavailable"
-    )
+    analytics_service.get_last_etl_run.side_effect = Exception("ETL unavailable")
+    analytics_service.get_pipeline_status.side_effect = Exception("pipeline unavailable")
+    analytics_service.get_db_status.side_effect = Exception("DB unavailable")
 
     jobs_response = Mock()
     jobs_response.items = []
@@ -766,12 +775,11 @@ def test_render_system_status_fallbacks(services, mocker):
 
     overview.render()
 
+
 def test_render_market_data_exception(services, mocker):
     analytics_service, jobs_service = services
 
-    analytics_service.get_enriched_top_skills.side_effect = Exception(
-        "Analytics unavailable"
-    )
+    analytics_service.get_enriched_top_skills.side_effect = Exception("Analytics unavailable")
 
     mocker.patch.object(
         overview.StateManager,
@@ -792,7 +800,5 @@ def test_render_market_data_exception(services, mocker):
 
     overview.render()
 
-    show_error.assert_called_once_with(
-        "Failed to load market data: Analytics unavailable"
-    )
+    show_error.assert_called_once_with("Failed to load market data: Analytics unavailable")
     logger_exception.assert_called_once_with("Overview page error")

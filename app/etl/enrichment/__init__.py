@@ -114,7 +114,7 @@ from app.etl.enrichment.tech_scorer import (
 # ============================================================
 
 
-def TechnologyClassifier(*args: Any, **kwargs: Any) -> Any:# noqa: N802
+def TechnologyClassifier(*args: Any, **kwargs: Any) -> Any:  # noqa: N802
     """Legacy technology classifier - deprecated.
 
     Deprecated:

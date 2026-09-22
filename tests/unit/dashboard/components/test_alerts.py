@@ -38,7 +38,7 @@ class TestBasicAlerts:
 
         assert "Something went wrong" in first_call.args[0]
         assert "<svg>error</svg>" in first_call.args[0]
-        assert "role=\"alert\"" in second_call.args[0]
+        assert 'role="alert"' in second_call.args[0]
         assert 'aria-label="Error: Something went wrong"' in second_call.args[0]
 
     @patch("dashboard.components.alerts.get_icon")
@@ -75,8 +75,7 @@ class TestBasicAlerts:
         assert "<svg>success</svg>" in mock_st.markdown.call_args_list[0].args[0]
         assert 'role="status"' in mock_st.markdown.call_args_list[1].args[0]
         assert (
-            'aria-label="Success: Saved successfully"'
-            in mock_st.markdown.call_args_list[1].args[0]
+            'aria-label="Success: Saved successfully"' in mock_st.markdown.call_args_list[1].args[0]
         )
 
     @patch("dashboard.components.alerts.get_icon")
@@ -101,8 +100,7 @@ class TestBasicAlerts:
         assert "<svg>warning</svg>" in mock_st.markdown.call_args_list[0].args[0]
         assert 'role="status"' in mock_st.markdown.call_args_list[1].args[0]
         assert (
-            'aria-label="Warning: Check your filters"'
-            in mock_st.markdown.call_args_list[1].args[0]
+            'aria-label="Warning: Check your filters"' in mock_st.markdown.call_args_list[1].args[0]
         )
 
     @patch("dashboard.components.alerts.get_icon")
@@ -238,6 +236,4 @@ class TestShowApiError:
         expander.__enter__.assert_called_once()
         expander.__exit__.assert_called_once()
 
-        mock_st.code.assert_called_once_with(
-            "Type: ValueError\nMessage: Invalid response"
-        )
+        mock_st.code.assert_called_once_with("Type: ValueError\nMessage: Invalid response")

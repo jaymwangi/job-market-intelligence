@@ -1,5 +1,7 @@
-import pytest
+from dataclasses import replace
 from pathlib import Path
+
+import pytest
 
 from app.etl.enrichment.classification_config import (
     CategoryRole,
@@ -25,7 +27,7 @@ from app.etl.enrichment.classification_config import (
     normalize_keyword,
     reload_config,
 )
-from dataclasses import replace
+
 
 def test_title_pattern_config_defaults():
     config = TitlePatternConfig(pattern=r"\bpython\b")
@@ -221,9 +223,7 @@ def test_normalize_keywords_rejects_non_numeric_weights(weight):
 
 
 def test_parse_title_patterns_parses_string_pattern_with_defaults():
-    result = ClassificationConfigLoader._parse_title_patterns(
-        [r"\bpython\b"]
-    )
+    result = ClassificationConfigLoader._parse_title_patterns([r"\bpython\b"])
 
     assert len(result) == 1
     assert result[0].pattern == r"\bpython\b"
@@ -255,9 +255,7 @@ def test_parse_title_patterns_parses_full_dict_configuration():
 
 
 def test_parse_title_patterns_applies_dict_defaults():
-    result = ClassificationConfigLoader._parse_title_patterns(
-        [{"pattern": "developer"}]
-    )
+    result = ClassificationConfigLoader._parse_title_patterns([{"pattern": "developer"}])
 
     assert result[0].categories == ()
     assert result[0].weight == 8.0
@@ -589,6 +587,8 @@ def test_build_taxonomy_preserves_existing_config_data():
     assert result.category_thresholds == config.category_thresholds
     assert result.classification == config.classification
     assert result.title_pattern_boost == config.title_pattern_boost
+
+
 def test_validate_version_accepts_supported_major():
     config = ClassificationConfigLoader.get_config()
 
@@ -611,6 +611,7 @@ def test_validate_version_rejects_invalid_version():
     errors = ClassificationConfigLoader._validate_version(bad_config)
 
     assert any("Invalid version format" in error for error in errors)
+
 
 def test_validate_weights_accepts_valid_weights():
     config = ClassificationConfigLoader.get_config()
@@ -644,6 +645,7 @@ def test_is_numeric_rejects_non_numeric():
     assert ClassificationConfigLoader._is_numeric("1") is False
     assert ClassificationConfigLoader._is_numeric(None) is False
 
+
 def test_validate_weights_detects_non_positive():
     config = ClassificationConfigLoader.get_config()
     weights = dict(config.weights)
@@ -668,6 +670,7 @@ def test_validate_weights_detects_bad_sum():
     errors = ClassificationConfigLoader._validate_weights(bad_config)
 
     assert any("must sum to 1.0" in error for error in errors)
+
 
 def test_validate_thresholds_accepts_valid_thresholds():
     config = ClassificationConfigLoader.get_config()
@@ -753,7 +756,6 @@ def test_validate_boosts_detects_negative():
     assert any("must be non-negative" in error for error in errors)
 
 
-
 def test_validate_matching_accepts_valid_matching():
     config = ClassificationConfigLoader.get_config()
 
@@ -832,6 +834,7 @@ def test_get_non_tech_categories_returns_only_non_tech():
 
     assert all(not config.categories[cat_id].is_tech for cat_id in result)
 
+
 def test_normalize_keyword_applies_alias():
     config = ClassificationConfigLoader.get_config()
 
@@ -858,6 +861,7 @@ def test_is_stopword_returns_true_for_configured_stopword():
 def test_is_stopword_returns_false_for_unknown_word():
     assert ClassificationConfigLoader.is_stopword("definitely_not_a_stopword") is False
 
+
 def test_get_compiled_regex_returns_empty_for_unknown_category():
     assert ClassificationConfigLoader.get_compiled_regex("does_not_exist") == []
 
@@ -866,11 +870,7 @@ def test_get_compiled_regex_returns_empty_when_category_has_no_regex():
     config = ClassificationConfigLoader.get_config()
 
     category_id = next(
-        (
-            cat_id
-            for cat_id, cat in config.categories.items()
-            if not cat.regex
-        ),
+        (cat_id for cat_id, cat in config.categories.items() if not cat.regex),
         None,
     )
 
@@ -882,11 +882,7 @@ def test_get_compiled_regex_compiles_category_patterns():
     config = ClassificationConfigLoader.get_config()
 
     category_id = next(
-        (
-            cat_id
-            for cat_id, cat in config.categories.items()
-            if cat.regex
-        ),
+        (cat_id for cat_id, cat in config.categories.items() if cat.regex),
         None,
     )
 
@@ -901,11 +897,7 @@ def test_get_compiled_regex_uses_cache():
     config = ClassificationConfigLoader.get_config()
 
     category_id = next(
-        (
-            cat_id
-            for cat_id, cat in config.categories.items()
-            if cat.regex
-        ),
+        (cat_id for cat_id, cat in config.categories.items() if cat.regex),
         None,
     )
 
@@ -914,6 +906,7 @@ def test_get_compiled_regex_uses_cache():
         second = ClassificationConfigLoader.get_compiled_regex(category_id)
 
         assert first is second
+
 
 def test_get_compiled_title_patterns_returns_all_strength_groups():
     result = ClassificationConfigLoader.get_compiled_title_patterns()
@@ -945,6 +938,7 @@ def test_get_effective_thresholds_returns_global_thresholds():
     assert result["medium_confidence"] == config.thresholds.get("medium_confidence", 50)
     assert result["low_confidence"] == config.thresholds.get("low_confidence", 30)
 
+
 def test_get_effective_thresholds_with_defaults_uses_custom_defaults():
     defaults = {
         "tech_minimum": 999.0,
@@ -963,13 +957,12 @@ def test_get_effective_thresholds_with_defaults_uses_custom_defaults():
 
 
 def test_get_effective_thresholds_with_defaults_uses_builtin_defaults():
-    result = ClassificationConfigLoader.get_effective_thresholds_with_defaults(
-        "does_not_exist"
-    )
+    result = ClassificationConfigLoader.get_effective_thresholds_with_defaults("does_not_exist")
 
     assert "tech_minimum" in result
     assert "minimum_margin" in result
     assert "min_confidence" in result
+
 
 def test_get_classification_settings_returns_copy():
     config = ClassificationConfigLoader.get_config()
@@ -986,9 +979,7 @@ def test_get_classification_settings_returns_copy():
 def test_get_tech_title_patterns_returns_configured_patterns():
     config = ClassificationConfigLoader.get_config()
 
-    assert ClassificationConfigLoader.get_tech_title_patterns() == (
-        config.tech_title_patterns
-    )
+    assert ClassificationConfigLoader.get_tech_title_patterns() == (config.tech_title_patterns)
 
 
 def test_get_category_families_groups_categories():
@@ -1000,7 +991,6 @@ def test_get_category_families_groups_categories():
 
     for family, category_ids in result.items():
         assert all(config.categories[cat_id].family == family for cat_id in category_ids)
-
 
 
 def test_get_category_by_id_or_display_name_finds_by_id():
@@ -1017,20 +1007,13 @@ def test_get_category_by_id_or_display_name_finds_by_display_name():
     config = ClassificationConfigLoader.get_config()
     category_id, category = next(iter(config.categories.items()))
 
-    result = ClassificationConfigLoader.get_category_by_id_or_display_name(
-        category.display_name
-    )
+    result = ClassificationConfigLoader.get_category_by_id_or_display_name(category.display_name)
 
     assert result == category
 
 
 def test_get_category_by_id_or_display_name_returns_none_for_unknown():
-    assert (
-        ClassificationConfigLoader.get_category_by_id_or_display_name(
-            "does_not_exist"
-        )
-        is None
-    )
+    assert ClassificationConfigLoader.get_category_by_id_or_display_name("does_not_exist") is None
 
 
 def test_get_category_by_display_name_finds_category():
@@ -1038,16 +1021,13 @@ def test_get_category_by_display_name_finds_category():
     category = next(iter(config.categories.values()))
 
     assert (
-        ClassificationConfigLoader.get_category_by_display_name(category.display_name)
-        == category
+        ClassificationConfigLoader.get_category_by_display_name(category.display_name) == category
     )
 
 
 def test_get_category_by_display_name_returns_none_for_unknown():
     assert (
-        ClassificationConfigLoader.get_category_by_display_name(
-            "Definitely Unknown Category"
-        )
+        ClassificationConfigLoader.get_category_by_display_name("Definitely Unknown Category")
         is None
     )
 
@@ -1086,13 +1066,11 @@ def test_competes_returns_true_for_distinct_categories():
     if len(category_ids) >= 2:
         first, second = category_ids[:2]
 
-        if (
-            config._parents.get(first) != second
-            and config._parents.get(second) != first
-        ):
+        if config._parents.get(first) != second and config._parents.get(second) != first:
 
             assert ClassificationConfigLoader.competes(first, second) is True
             assert ClassificationConfigLoader.competes(second, first) is True
+
 
 def test_get_competing_categories_unknown_primary_returns_everything_except_first():
     sorted_categories = [
@@ -1141,11 +1119,7 @@ def test_is_parent_identifies_parent_category():
     config = ClassificationConfigLoader.get_config()
 
     parent_id = next(
-        (
-            cat_id
-            for cat_id, role in config._roles.items()
-            if role == CategoryRole.PARENT
-        ),
+        (cat_id for cat_id, role in config._roles.items() if role == CategoryRole.PARENT),
         None,
     )
 
@@ -1157,11 +1131,7 @@ def test_is_specialization_identifies_specialization_category():
     config = ClassificationConfigLoader.get_config()
 
     specialization_id = next(
-        (
-            cat_id
-            for cat_id, role in config._roles.items()
-            if role == CategoryRole.SPECIALIZATION
-        ),
+        (cat_id for cat_id, role in config._roles.items() if role == CategoryRole.SPECIALIZATION),
         None,
     )
 
@@ -1180,11 +1150,7 @@ def test_get_children_returns_children_for_parent():
     config = ClassificationConfigLoader.get_config()
 
     parent_id = next(
-        (
-            cat_id
-            for cat_id in config._children
-            if config._children[cat_id]
-        ),
+        (cat_id for cat_id in config._children if config._children[cat_id]),
         None,
     )
 
@@ -1202,39 +1168,25 @@ def test_get_parent_returns_parent_for_child():
     config = ClassificationConfigLoader.get_config()
 
     child_id = next(
-        (
-            cat_id
-            for cat_id, parent in config._parents.items()
-            if parent is not None
-        ),
+        (cat_id for cat_id, parent in config._parents.items() if parent is not None),
         None,
     )
 
     if child_id is not None:
-        assert (
-            ClassificationConfigLoader.get_parent(child_id)
-            == config._parents[child_id]
-        )
+        assert ClassificationConfigLoader.get_parent(child_id) == config._parents[child_id]
 
 
 def test_get_role_returns_configured_role():
     config = ClassificationConfigLoader.get_config()
     category_id = next(iter(config.categories))
 
-    assert (
-        ClassificationConfigLoader.get_role(category_id)
-        == config._roles[category_id]
-    )
+    assert ClassificationConfigLoader.get_role(category_id) == config._roles[category_id]
 
 
 def test_get_all_parents_matches_taxonomy():
     config = ClassificationConfigLoader.get_config()
 
-    expected = [
-        cat_id
-        for cat_id, role in config._roles.items()
-        if role == CategoryRole.PARENT
-    ]
+    expected = [cat_id for cat_id, role in config._roles.items() if role == CategoryRole.PARENT]
 
     assert ClassificationConfigLoader.get_all_parents() == expected
 
@@ -1243,12 +1195,11 @@ def test_get_all_specializations_matches_taxonomy():
     config = ClassificationConfigLoader.get_config()
 
     expected = [
-        cat_id
-        for cat_id, role in config._roles.items()
-        if role == CategoryRole.SPECIALIZATION
+        cat_id for cat_id, role in config._roles.items() if role == CategoryRole.SPECIALIZATION
     ]
 
     assert ClassificationConfigLoader.get_all_specializations() == expected
+
 
 def test_module_level_config_helpers():
     config = get_config()
@@ -1273,9 +1224,7 @@ def test_module_level_classification_helpers():
         ClassificationConfigLoader.get_classification_settings()
     )
 
-    assert get_tech_title_patterns() == (
-        ClassificationConfigLoader.get_tech_title_patterns()
-    )
+    assert get_tech_title_patterns() == (ClassificationConfigLoader.get_tech_title_patterns())
 
     assert get_compiled_title_patterns() == (
         ClassificationConfigLoader.get_compiled_title_patterns()
@@ -1285,11 +1234,10 @@ def test_module_level_classification_helpers():
 def test_module_level_threshold_helper():
     result = get_effective_thresholds("does_not_exist")
 
-    expected = ClassificationConfigLoader.get_effective_thresholds_with_defaults(
-        "does_not_exist"
-    )
+    expected = ClassificationConfigLoader.get_effective_thresholds_with_defaults("does_not_exist")
 
     assert result == expected
+
 
 def test_module_level_taxonomy_helpers():
     config = ClassificationConfigLoader.get_config()
@@ -1298,9 +1246,7 @@ def test_module_level_taxonomy_helpers():
 
     assert competes(category_ids[0], category_ids[0]) is False
 
-    assert is_parent(category_ids[0]) == ClassificationConfigLoader.is_parent(
-        category_ids[0]
-    )
+    assert is_parent(category_ids[0]) == ClassificationConfigLoader.is_parent(category_ids[0])
 
     assert is_specialization(category_ids[0]) == (
         ClassificationConfigLoader.is_specialization(category_ids[0])
@@ -1310,19 +1256,13 @@ def test_module_level_taxonomy_helpers():
         ClassificationConfigLoader.get_children(category_ids[0])
     )
 
-    assert get_parent(category_ids[0]) == (
-        ClassificationConfigLoader.get_parent(category_ids[0])
-    )
+    assert get_parent(category_ids[0]) == (ClassificationConfigLoader.get_parent(category_ids[0]))
 
-    assert get_role(category_ids[0]) == (
-        ClassificationConfigLoader.get_role(category_ids[0])
-    )
+    assert get_role(category_ids[0]) == (ClassificationConfigLoader.get_role(category_ids[0]))
 
     assert get_all_parents() == ClassificationConfigLoader.get_all_parents()
 
-    assert get_all_specializations() == (
-        ClassificationConfigLoader.get_all_specializations()
-    )
+    assert get_all_specializations() == (ClassificationConfigLoader.get_all_specializations())
 
 
 def test_module_level_competing_categories_helper():
@@ -1332,11 +1272,13 @@ def test_module_level_competing_categories_helper():
         ("category_c", 80),
     ]
 
-    assert get_competing_categories(
-        "does_not_exist",
-        categories,
-    ) == categories[1:]
-
+    assert (
+        get_competing_categories(
+            "does_not_exist",
+            categories,
+        )
+        == categories[1:]
+    )
 
 
 def test_load_raises_for_missing_config_file(tmp_path):
@@ -1681,15 +1623,14 @@ def test_get_effective_thresholds_applies_category_override():
         result = ClassificationConfigLoader.get_effective_thresholds(category_id)
         assert result["high_confidence"] == 99
 
-        result_with_defaults = (
-            ClassificationConfigLoader.get_effective_thresholds_with_defaults(
-                category_id
-            )
+        result_with_defaults = ClassificationConfigLoader.get_effective_thresholds_with_defaults(
+            category_id
         )
         assert result_with_defaults["high_confidence"] == 99
     finally:
         ClassificationConfigLoader._config = original_config
         ClassificationConfigLoader._config_path = original_path
+
 
 def test_get_compiled_title_patterns_skips_invalid_pattern_defensively():
     config = ClassificationConfigLoader.get_config()
@@ -1717,6 +1658,7 @@ def test_get_compiled_title_patterns_skips_invalid_pattern_defensively():
         ClassificationConfigLoader._config = original_config
         ClassificationConfigLoader._config_path = original_path
 
+
 def test_validate_weights_detects_non_numeric(monkeypatch):
     """Test validation rejects a weight reported as non-numeric."""
     config = ClassificationConfigLoader.get_config()
@@ -1730,6 +1672,7 @@ def test_validate_weights_detects_non_numeric(monkeypatch):
     errors = ClassificationConfigLoader._validate_weights(config)
 
     assert any("must be numeric" in error for error in errors)
+
 
 def test_get_config_loads_when_config_is_none(monkeypatch):
     """Test get_config loads configuration when no config is cached."""

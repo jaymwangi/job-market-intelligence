@@ -70,7 +70,6 @@ def test_init_does_nothing_when_already_initialized():
     assert session["jobs_page"] == 5
 
 
-
 def test_get_cache_manager_creates_and_reuses_singleton():
     manager = MagicMock()
 
@@ -126,14 +125,18 @@ def test_get_service_creates_and_caches_new_service():
             self.api_client = api_client
             self.cache_manager = cache_manager
 
-    with patch("utils.state.st.session_state", session), patch.object(
-        StateManager,
-        "get_api_client",
-        return_value=api_client,
-    ), patch.object(
-        StateManager,
-        "get_cache_manager",
-        return_value=cache_manager,
+    with (
+        patch("utils.state.st.session_state", session),
+        patch.object(
+            StateManager,
+            "get_api_client",
+            return_value=api_client,
+        ),
+        patch.object(
+            StateManager,
+            "get_cache_manager",
+            return_value=cache_manager,
+        ),
     ):
         result = StateManager.get_service(FakeService)
 
@@ -153,14 +156,18 @@ def test_get_service_creates_services_dict_if_missing():
             self.api_client = api_client
             self.cache_manager = cache_manager
 
-    with patch("utils.state.st.session_state", session), patch.object(
-        StateManager,
-        "get_api_client",
-        return_value=api_client,
-    ), patch.object(
-        StateManager,
-        "get_cache_manager",
-        return_value=cache_manager,
+    with (
+        patch("utils.state.st.session_state", session),
+        patch.object(
+            StateManager,
+            "get_api_client",
+            return_value=api_client,
+        ),
+        patch.object(
+            StateManager,
+            "get_cache_manager",
+            return_value=cache_manager,
+        ),
     ):
         result = StateManager.get_service(FakeService)
 
@@ -174,16 +181,20 @@ def test_service_getters_delegate_to_get_service():
     jobs = object()
     health = object()
 
-    with patch(
-        "services.analytics_service.AnalyticsService",
-        return_value=analytics,
-    ) as analytics_class, patch(
-        "services.jobs_service.JobsService",
-        return_value=jobs,
-    ) as jobs_class, patch(
-        "services.health.HealthService",
-        return_value=health,
-    ) as health_class:
+    with (
+        patch(
+            "services.analytics_service.AnalyticsService",
+            return_value=analytics,
+        ) as analytics_class,
+        patch(
+            "services.jobs_service.JobsService",
+            return_value=jobs,
+        ) as jobs_class,
+        patch(
+            "services.health.HealthService",
+            return_value=health,
+        ) as health_class,
+    ):
         with patch.object(
             StateManager,
             "get_service",
@@ -230,9 +241,10 @@ def test_clear_cache_logs_refresh_error():
     service.refresh.side_effect = RuntimeError("refresh failed")
     StateManager._services = {"broken": service}
 
-    with patch("utils.state.st.session_state", session), patch(
-        "utils.state.logger.error"
-    ) as mock_error:
+    with (
+        patch("utils.state.st.session_state", session),
+        patch("utils.state.logger.error") as mock_error,
+    ):
         StateManager.clear_cache()
 
     mock_error.assert_called_once()
@@ -355,17 +367,19 @@ def test_get_etl_status_logs_api_warning():
     analytics.get_last_etl_run_time.return_value = None
     analytics.get_db_status.return_value = "healthy"
 
-    with patch.object(
-        StateManager,
-        "get_api_client",
-        return_value=api_client,
-    ), patch.object(
-        StateManager,
-        "get_analytics_service",
-        return_value=analytics,
-    ), patch(
-        "utils.state.logger.warning"
-    ) as mock_warning:
+    with (
+        patch.object(
+            StateManager,
+            "get_api_client",
+            return_value=api_client,
+        ),
+        patch.object(
+            StateManager,
+            "get_analytics_service",
+            return_value=analytics,
+        ),
+        patch("utils.state.logger.warning") as mock_warning,
+    ):
         StateManager.get_etl_status()
 
     mock_warning.assert_called_once()
@@ -413,16 +427,21 @@ def test_refresh_etl_status():
 
 
 def test_refresh_dashboard():
-    with patch.object(StateManager, "clear_cache") as mock_clear, patch.object(
-        StateManager,
-        "refresh_etl_status",
-    ) as mock_refresh, patch.object(
-        StateManager,
-        "set_jobs_page",
-    ) as mock_page, patch.object(
-        StateManager,
-        "set_selected_job_id",
-    ) as mock_selected:
+    with (
+        patch.object(StateManager, "clear_cache") as mock_clear,
+        patch.object(
+            StateManager,
+            "refresh_etl_status",
+        ) as mock_refresh,
+        patch.object(
+            StateManager,
+            "set_jobs_page",
+        ) as mock_page,
+        patch.object(
+            StateManager,
+            "set_selected_job_id",
+        ) as mock_selected,
+    ):
         StateManager.refresh_dashboard()
 
     mock_clear.assert_called_once_with()
@@ -436,18 +455,22 @@ def test_module_level_service_functions():
     jobs = object()
     health = object()
 
-    with patch.object(
-        StateManager,
-        "get_analytics_service",
-        return_value=analytics,
-    ), patch.object(
-        StateManager,
-        "get_jobs_service",
-        return_value=jobs,
-    ), patch.object(
-        StateManager,
-        "get_health_service",
-        return_value=health,
+    with (
+        patch.object(
+            StateManager,
+            "get_analytics_service",
+            return_value=analytics,
+        ),
+        patch.object(
+            StateManager,
+            "get_jobs_service",
+            return_value=jobs,
+        ),
+        patch.object(
+            StateManager,
+            "get_health_service",
+            return_value=health,
+        ),
     ):
         assert get_analytics_service() is analytics
         assert get_jobs_service() is jobs
@@ -457,18 +480,22 @@ def test_module_level_service_functions():
 def test_module_level_etl_functions():
     status = {"status": "running"}
 
-    with patch.object(
-        StateManager,
-        "get_etl_status",
-        return_value=status,
-    ), patch.object(
-        StateManager,
-        "get_last_etl_run",
-        return_value="today",
-    ), patch.object(
-        StateManager,
-        "get_pipeline_status",
-        return_value="running",
+    with (
+        patch.object(
+            StateManager,
+            "get_etl_status",
+            return_value=status,
+        ),
+        patch.object(
+            StateManager,
+            "get_last_etl_run",
+            return_value="today",
+        ),
+        patch.object(
+            StateManager,
+            "get_pipeline_status",
+            return_value="running",
+        ),
     ):
         assert get_etl_status() is status
         assert get_last_etl_run() == "today"
@@ -499,18 +526,22 @@ def test_service_factory_delegates_service_methods():
     jobs = object()
     health = object()
 
-    with patch.object(
-        StateManager,
-        "get_analytics_service",
-        return_value=analytics,
-    ), patch.object(
-        StateManager,
-        "get_jobs_service",
-        return_value=jobs,
-    ), patch.object(
-        StateManager,
-        "get_health_service",
-        return_value=health,
+    with (
+        patch.object(
+            StateManager,
+            "get_analytics_service",
+            return_value=analytics,
+        ),
+        patch.object(
+            StateManager,
+            "get_jobs_service",
+            return_value=jobs,
+        ),
+        patch.object(
+            StateManager,
+            "get_health_service",
+            return_value=health,
+        ),
     ):
         assert factory.get_analytics_service() is analytics
         assert factory.get_jobs_service() is jobs
@@ -530,18 +561,22 @@ def test_service_factory_refresh_all():
 def test_service_factory_etl_methods():
     factory = ServiceFactory()
 
-    with patch.object(
-        StateManager,
-        "get_etl_status",
-        return_value={"status": "running"},
-    ), patch.object(
-        StateManager,
-        "get_last_etl_run",
-        return_value="today",
-    ), patch.object(
-        StateManager,
-        "get_pipeline_status",
-        return_value="running",
+    with (
+        patch.object(
+            StateManager,
+            "get_etl_status",
+            return_value={"status": "running"},
+        ),
+        patch.object(
+            StateManager,
+            "get_last_etl_run",
+            return_value="today",
+        ),
+        patch.object(
+            StateManager,
+            "get_pipeline_status",
+            return_value="running",
+        ),
     ):
         assert factory.get_etl_status() == {"status": "running"}
         assert factory.get_last_etl_run() == "today"
@@ -594,14 +629,17 @@ def test_get_etl_status_falls_back_to_analytics_service():
     analytics_service.get_last_etl_run_time.return_value = "12:00"
     analytics_service.get_db_status.return_value = "healthy"
 
-    with patch.object(
-        StateManager,
-        "get_api_client",
-        return_value=api_client,
-    ), patch.object(
-        StateManager,
-        "get_analytics_service",
-        return_value=analytics_service,
+    with (
+        patch.object(
+            StateManager,
+            "get_api_client",
+            return_value=api_client,
+        ),
+        patch.object(
+            StateManager,
+            "get_analytics_service",
+            return_value=analytics_service,
+        ),
     ):
         result = StateManager.get_etl_status()
 
@@ -617,14 +655,17 @@ def test_get_etl_status_returns_unknown_when_fallback_fails():
     api_client = MagicMock()
     api_client.get.side_effect = RuntimeError("API unavailable")
 
-    with patch.object(
-        StateManager,
-        "get_api_client",
-        return_value=api_client,
-    ), patch.object(
-        StateManager,
-        "get_analytics_service",
-        side_effect=RuntimeError("database unavailable"),
+    with (
+        patch.object(
+            StateManager,
+            "get_api_client",
+            return_value=api_client,
+        ),
+        patch.object(
+            StateManager,
+            "get_analytics_service",
+            side_effect=RuntimeError("database unavailable"),
+        ),
     ):
         result = StateManager.get_etl_status()
 

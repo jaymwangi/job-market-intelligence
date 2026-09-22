@@ -546,12 +546,15 @@ class TestEnricherSteps:
         """SkillExtractor initialization failure should use the fallback."""
         fallback_extractor = Mock()
 
-        with patch(
-            "app.etl.enrichment.enricher.SkillExtractor",
-            side_effect=[Exception("settings failure"), fallback_extractor],
-        ), patch(
-            "app.etl.enrichment.enricher.logger.warning",
-        ) as warning_mock:
+        with (
+            patch(
+                "app.etl.enrichment.enricher.SkillExtractor",
+                side_effect=[Exception("settings failure"), fallback_extractor],
+            ),
+            patch(
+                "app.etl.enrichment.enricher.logger.warning",
+            ) as warning_mock,
+        ):
             enricher = Enricher(
                 language_detector=Mock(),
                 tech_scorer=Mock(),
@@ -565,6 +568,7 @@ class TestEnricherSteps:
             "Failed to initialize SkillExtractor with settings: %s"
         )
         assert str(warning_mock.call_args.args[1]) == "settings failure"
+
 
 class TestEnricherPipeline:
     def test_enrich_runs_all_steps_and_returns_enriched_job(self):
@@ -669,10 +673,7 @@ class TestEnricherPipeline:
         assert "timings" in captured_context
         assert "language" in captured_context["timings"]
         assert "build" in captured_context["timings"]
-        assert all(
-            timing >= 0
-            for timing in captured_context["timings"].values()
-        )
+        assert all(timing >= 0 for timing in captured_context["timings"].values())
 
     def test_enrich_reraises_step_exception(self):
         """A failed enrichment step should be logged and re-raised."""
@@ -700,6 +701,7 @@ class TestEnricherPipeline:
             raise AssertionError("Expected ValueError")
         except ValueError as exc:
             assert str(exc) == "enrichment failed"
+
 
 class TestEnricherBatch:
     def test_enrich_batch_returns_all_successful_jobs(self):

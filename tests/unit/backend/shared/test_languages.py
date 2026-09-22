@@ -111,9 +111,11 @@ def test_get_language_badge_for_supported_language():
     assert get_language_badge("en") == "🇬🇧 EN"
     assert get_language_badge("sw") == "🌐 SW"
 
+
 def test_get_language_badge_for_unsupported_language():
     """Test language badge fallback for an unsupported language."""
     assert get_language_badge("xx") == "🌐 XX"
+
 
 @pytest.mark.parametrize(
     ("code", "expected"),

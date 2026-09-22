@@ -13,7 +13,6 @@ from app.schemas.job import JobFilters
 from app.services.job_service import JobService
 
 
-
 @pytest.fixture
 def mock_repo():
     """Create a mock repository."""
@@ -23,9 +22,11 @@ def mock_repo():
     repo.get_by_id.return_value = None
     return repo
 
+
 @pytest.fixture
 def service(mock_repo):
     return JobService(mock_repo)
+
 
 class TestJobService:
     """Test suite for JobService."""
