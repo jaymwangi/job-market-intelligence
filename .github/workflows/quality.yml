@@ -33,7 +33,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r dashboard/requirements.txt
-          pip install ruff black mypy pytest pytest-cov
+          pip install ruff black mypy pytest pytest-cov pytest-asyncio
 
       - name: Ruff
         run: ruff check .
@@ -94,7 +94,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r dashboard/requirements.txt
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-asyncio
 
       - name: Run Alembic migrations
         env:
