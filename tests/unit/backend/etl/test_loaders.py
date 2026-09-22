@@ -160,13 +160,8 @@ class TestJobLoader:
         mock_job_repo,
     ):
         """Test updating existing jobs."""
-        existing_job_1 = Mock()
-        existing_job_1.source_site = "test_source"
-        existing_job_1.source_id = "job_1"
-
-        existing_job_2 = Mock()
-        existing_job_2.source_site = "test_source"
-        existing_job_2.source_id = "job_2"
+        existing_job_1 = ("test_source", "job_1")
+        existing_job_2 = ("test_source", "job_2")
 
         mock_db.query.return_value.filter.return_value.all.return_value = [
             existing_job_1,
@@ -198,9 +193,7 @@ class TestJobLoader:
         mock_job_repo,
     ):
         """Test loading a mixture of new and existing jobs."""
-        existing_job = Mock()
-        existing_job.source_site = "test_source"
-        existing_job.source_id = "job_1"
+        existing_job = ("test_source", "job_1")
 
         mock_db.query.return_value.filter.return_value.all.return_value = [existing_job]
 
@@ -449,10 +442,7 @@ class TestJobLoader:
         sql_skill.name = "sql"
         sql_skill.id = "skill-sql"
 
-        db_job = Mock()
-        db_job.source_site = "test_source"
-        db_job.source_id = "job_1"
-        db_job.id = "job-1"
+        db_job = ("job-1", "test_source", "job_1")
 
         skill_query = MagicMock()
         skill_query.filter.return_value.all.side_effect = [
@@ -466,14 +456,14 @@ class TestJobLoader:
         relationship_query = MagicMock()
         relationship_query.filter.return_value.all.return_value = []
 
-        def query_side_effect(model):
-            if model is Skill:
+        def query_side_effect(*models):
+            if models and models[0] is Skill:
                 return skill_query
-            if model is Job:
-                return job_query
-            if model is JobSkill:
+            if models and models[0] is JobSkill:
                 return relationship_query
-            raise AssertionError(f"Unexpected model: {model}")
+            if len(models) == 3 and models[0] is Job.id:
+                return job_query
+            raise AssertionError(f"Unexpected query arguments: {models}")
 
         loader.db_session.query.side_effect = query_side_effect
         loader.db_session.begin_nested.return_value = MagicMock()
@@ -508,12 +498,12 @@ class TestJobLoader:
         job_query = MagicMock()
         job_query.filter.return_value.all.return_value = []
 
-        def query_side_effect(model):
-            if model is Skill:
+        def query_side_effect(*models):
+            if models and models[0] is Skill:
                 return skill_query
-            if model is Job:
+            if len(models) == 3 and models[0] is Job.id:
                 return job_query
-            raise AssertionError(f"Unexpected model: {model}")
+            raise AssertionError(f"Unexpected query arguments: {models}")
 
         loader.db_session.query.side_effect = query_side_effect
 
@@ -542,10 +532,7 @@ class TestJobLoader:
         sql_skill.name = "sql"
         sql_skill.id = "skill-sql"
 
-        db_job = Mock()
-        db_job.source_site = "test_source"
-        db_job.source_id = "job_1"
-        db_job.id = "job-1"
+        db_job = ("job-1", "test_source", "job_1")
 
         existing_relationship = Mock()
         existing_relationship.job_id = "job-1"
@@ -565,14 +552,14 @@ class TestJobLoader:
             existing_relationship
         ]
 
-        def query_side_effect(model):
-            if model is Skill:
+        def query_side_effect(*models):
+            if models and models[0] is Skill:
                 return skill_query
-            if model is Job:
-                return job_query
-            if model is JobSkill:
+            if models and models[0] is JobSkill:
                 return relationship_query
-            raise AssertionError(f"Unexpected model: {model}")
+            if len(models) == 3 and models[0] is Job.id:
+                return job_query
+            raise AssertionError(f"Unexpected query arguments: {models}")
 
         loader.db_session.query.side_effect = query_side_effect
         loader.db_session.begin_nested.return_value = MagicMock()
@@ -602,10 +589,7 @@ class TestJobLoader:
         sql_skill.name = "sql"
         sql_skill.id = "skill-sql"
 
-        db_job = Mock()
-        db_job.source_site = "test_source"
-        db_job.source_id = "job_1"
-        db_job.id = "job-1"
+        db_job = ("job-1", "test_source", "job_1")
 
         skill_query = MagicMock()
         skill_query.filter.return_value.all.side_effect = [
@@ -619,14 +603,14 @@ class TestJobLoader:
         relationship_query = MagicMock()
         relationship_query.filter.return_value.all.return_value = []
 
-        def query_side_effect(model):
-            if model is Skill:
+        def query_side_effect(*models):
+            if models and models[0] is Skill:
                 return skill_query
-            if model is Job:
-                return job_query
-            if model is JobSkill:
+            if models and models[0] is JobSkill:
                 return relationship_query
-            raise AssertionError(f"Unexpected model: {model}")
+            if len(models) == 3 and models[0] is Job.id:
+                return job_query
+            raise AssertionError(f"Unexpected query arguments: {models}")
 
         loader.db_session.query.side_effect = query_side_effect
 
@@ -697,10 +681,7 @@ class TestJobLoader:
             [],
         ]
 
-        db_job = Mock()
-        db_job.source_site = "test_source"
-        db_job.source_id = "job_1"
-        db_job.id = "job-1"
+        db_job = ("job-1", "test_source", "job_1")
 
         job_query = MagicMock()
         job_query.filter.return_value.all.return_value = [db_job]
@@ -708,14 +689,14 @@ class TestJobLoader:
         relationship_query = MagicMock()
         relationship_query.filter.return_value.all.return_value = []
 
-        def query_side_effect(model):
-            if model is Skill:
+        def query_side_effect(*models):
+            if models and models[0] is Skill:
                 return skill_query
-            if model is Job:
-                return job_query
-            if model is JobSkill:
+            if models and models[0] is JobSkill:
                 return relationship_query
-            raise AssertionError(f"Unexpected model: {model}")
+            if len(models) == 3 and models[0] is Job.id:
+                return job_query
+            raise AssertionError(f"Unexpected query arguments: {models}")
 
         loader.db_session.query.side_effect = query_side_effect
 

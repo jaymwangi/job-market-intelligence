@@ -206,17 +206,20 @@ class JobLoader:
         logger.warning("DEBUG source_keys=%s", source_keys)
 
         existing_jobs = (
-            self.db_session.query(Job)
+            self.db_session.query(Job.source_site, Job.source_id)
             .filter(tuple_(Job.source_site, Job.source_id).in_(source_keys))
             .all()
         )
 
         logger.warning(
             "DEBUG existing_jobs=%s",
-            [(job.source_site, job.source_id, str(job.id)) for job in existing_jobs],
+            [(source_site, source_id) for source_site, source_id in existing_jobs],
         )
 
-        existing_keys = {(job.source_site, job.source_id) for job in existing_jobs}
+        existing_keys = {
+            (source_site, source_id)
+            for source_site, source_id in existing_jobs
+        }
 
         job_repo = JobRepository(self.db_session)
 
@@ -325,12 +328,15 @@ class JobLoader:
         source_keys = list({(source_site, source_id) for source_site, source_id, _ in job_skills})
 
         jobs_db = (
-            self.db_session.query(Job)
+            self.db_session.query(Job.id, Job.source_site, Job.source_id)
             .filter(tuple_(Job.source_site, Job.source_id).in_(source_keys))
             .all()
         )
 
-        job_map = {(job.source_site, job.source_id): job.id for job in jobs_db}
+        job_map = {
+            (source_site, source_id): job_id
+            for job_id, source_site, source_id in jobs_db
+        }
 
         if not job_map:
             return SkillResult(
