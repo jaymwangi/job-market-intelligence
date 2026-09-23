@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from starlette.routing import Route, WebSocketRoute
 
 from app.api.exception_handlers import setup_exception_handlers
@@ -250,7 +250,8 @@ async def root() -> dict[str, Any]:
 
 # --- Optional: Development-only endpoints ---
 
-if settings.debug:
+
+def register_debug_routes(app: FastAPI) -> None:
     from fastapi import Request
 
     @app.get("/debug/headers", include_in_schema=False)
@@ -314,3 +315,7 @@ if settings.debug:
             routes.append(route_info)
 
         return {"routes": routes, "count": len(routes)}
+
+
+if settings.debug:
+    register_debug_routes(app)

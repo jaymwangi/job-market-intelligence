@@ -4,6 +4,21 @@ from fastapi import FastAPI
 from app import main
 
 
+@pytest.fixture
+def debug_app(monkeypatch):
+    monkeypatch.setattr(main.settings, "debug", True)
+    debug_paths = {
+        "/debug/headers",
+        "/debug/time",
+        "/debug/ping",
+        "/debug/routes",
+    }
+    registered_paths = {getattr(route, "path", None) for route in main.app.routes}
+    if not debug_paths.issubset(registered_paths):
+        main.register_debug_routes(main.app)
+    return main.app
+
+
 def test_validate_configuration_accepts_valid_settings(monkeypatch):
     monkeypatch.setattr(main.settings, "database_url", "postgresql://localhost/test")
     monkeypatch.setattr(main.settings, "api_prefix", "/api/v1")
@@ -61,6 +76,7 @@ def test_validate_configuration_rejects_production_wildcard_origins(monkeypatch)
 
 def test_validate_configuration_rejects_production_validation_errors(monkeypatch):
     monkeypatch.setattr(main.settings, "environment", "production")
+    monkeypatch.setattr(main.settings, "debug", True)
     monkeypatch.setattr(main.settings, "allowed_origins", ["https://example.com"])
 
     with pytest.raises(
@@ -198,10 +214,10 @@ def test_root_endpoint():
     assert data["openapi"] == "/openapi.json"
 
 
-def test_debug_headers_endpoint():
+def test_debug_headers_endpoint(debug_app):
     from fastapi.testclient import TestClient
 
-    client = TestClient(main.app)
+    client = TestClient(debug_app)
 
     response = client.get(
         "/debug/headers",
@@ -215,10 +231,10 @@ def test_debug_headers_endpoint():
     assert "request_id" in data
 
 
-def test_debug_time_endpoint():
+def test_debug_time_endpoint(debug_app):
     from fastapi.testclient import TestClient
 
-    client = TestClient(main.app)
+    client = TestClient(debug_app)
 
     response = client.get("/debug/time")
 
@@ -230,10 +246,10 @@ def test_debug_time_endpoint():
     assert data["utc_time"].endswith("+00:00")
 
 
-def test_debug_ping_endpoint():
+def test_debug_ping_endpoint(debug_app):
     from fastapi.testclient import TestClient
 
-    client = TestClient(main.app)
+    client = TestClient(debug_app)
 
     response = client.get("/debug/ping")
 
@@ -245,10 +261,10 @@ def test_debug_ping_endpoint():
     assert data["timestamp"].endswith("+00:00")
 
 
-def test_debug_routes_endpoint():
+def test_debug_routes_endpoint(debug_app):
     from fastapi.testclient import TestClient
 
-    client = TestClient(main.app)
+    client = TestClient(debug_app)
 
     response = client.get("/debug/routes")
 
@@ -268,7 +284,7 @@ def test_debug_routes_endpoint():
     assert "/debug/routes" in paths
 
 
-def test_debug_routes_includes_websocket_route(monkeypatch):
+def test_debug_routes_includes_websocket_route(monkeypatch, debug_app):
     from fastapi.testclient import TestClient
     from starlette.routing import WebSocketRoute
 
@@ -288,7 +304,7 @@ def test_debug_routes_includes_websocket_route(monkeypatch):
         [*main.app.router.routes, websocket_route],
     )
 
-    client = TestClient(main.app)
+    client = TestClient(debug_app)
 
     response = client.get("/debug/routes")
 
