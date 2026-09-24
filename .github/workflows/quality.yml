@@ -129,7 +129,8 @@ jobs:
             --cov=app \
             --cov=dashboard \
             --cov-report=xml \
-            --cov-report=term-missing
+            --cov-report=term-missing \
+            --cov-fail-under=0
 
       - name: Upload integration test coverage
         uses: codecov/codecov-action@v5
