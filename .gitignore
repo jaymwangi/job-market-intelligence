@@ -97,7 +97,9 @@ reports/
 data/
 
 # Foglamp scan data
-.foglamp/
-sprint 6_)7.md
+.foglamp/*
+!.foglamp/scan.json
+
+# Sprints breakdown
 sprint 6_7.md
 Sprint 6.8 — Production Hardening & Documentation.md

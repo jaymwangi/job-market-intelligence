@@ -94,13 +94,6 @@ class Job(Base):
         nullable=True,
         doc="ISO 4217 currency code of the original salary posting",
     )
-    # Optional: normalized salary in USD for cross-market comparison
-    # TODO: Add after implementing currency normalization
-    # salary_usd: Mapped[Decimal | None] = mapped_column(
-    #     Numeric(12, 2),
-    #     nullable=True,
-    #     doc="Salary normalized to USD for cross-market comparison",
-    # )
 
     # ============================================================
     # Employment Details
