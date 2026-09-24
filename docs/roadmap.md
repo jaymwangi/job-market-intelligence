@@ -39,6 +39,7 @@ This document tracks the development roadmap for Job Market Intelligence.
 | ⏸️ Sprint 6.7.11 | Postponed | Regression & Final Validation |
 | 🚧 Sprint 6.8 | In Progress | Production Hardening & Documentation → **v1.0.0** |
 | ✅ Sprint 6.8.1 | Complete | Release Baseline & Repository Cleanup |
+| ✅ Sprint 6.8.2 | Complete | Configuration & Secrets Hardening |
 
 > **Postponement note:** Sprints 6.7.9 – 6.7.11 are deferred until the Neon free-tier 5 GB storage refreshes next month. They will be resumed before the final release audit in Sprint 6.8.
 
@@ -509,3 +510,24 @@ Sprint 6.8 is the final pre-release sprint for the v1.0.0 release candidate.
 - Quality CI: **passed**
 - E2E CI: **passed**
 - Release baseline commit: `11585db`
+
+### ✅ Sprint 6.8.2 — Configuration & Secrets Hardening
+
+- Audited development, testing, and production configuration
+- Audited database, external API, logging, CORS, ETL, acquisition, translation, classification, and dashboard configuration
+- Verified configuration flow: Environment / Secret Store → Settings → Application
+- Corrected stale and mismatched environment variable names
+- Updated Adzuna configuration to use `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`
+- Updated database pool configuration to match current settings
+- Updated pipeline and acquisition configuration to match the current implementation
+- Removed obsolete configuration for Redis, rate limiting, startup ETL, and unused monitoring flags
+- Added current dashboard configuration variables to `.env.example`
+- Ensured `.env.example` contains safe placeholders only and no real credentials
+- Documented managed PostgreSQL `DATABASE_URL` configuration
+- Documented local/Docker Compose PostgreSQL configuration
+- Documented production translation credential requirements
+- Verified missing database configuration produces a clear configuration error
+- Verified production configuration validation passes with safe production values
+- Backend configuration tests and dashboard configuration tests: **25 passed**
+- `git diff --check`: **passed**
+- Configuration example commit: `6e581cd`
