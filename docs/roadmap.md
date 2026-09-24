@@ -37,7 +37,8 @@ This document tracks the development roadmap for Job Market Intelligence.
 | ⏸️ Sprint 6.7.9 | Postponed | Production Smoke Testing |
 | ⏸️ Sprint 6.7.10 | Postponed | ETL Automation Verification |
 | ⏸️ Sprint 6.7.11 | Postponed | Regression & Final Validation |
-| 🚧 Sprint 6.8 | Upcoming | Production Hardening & Documentation → **v1.0.0** |
+| 🚧 Sprint 6.8 | In Progress | Production Hardening & Documentation → **v1.0.0** |
+| ✅ Sprint 6.8.1 | Complete | Release Baseline & Repository Cleanup |
 
 > **Postponement note:** Sprints 6.7.9 – 6.7.11 are deferred until the Neon free-tier 5 GB storage refreshes next month. They will be resumed before the final release audit in Sprint 6.8.
 
@@ -481,3 +482,30 @@ test_dashboard_api.py        44 passed
 ─────────────────────────────────────
 Total:                        74 passed
 Warnings:                     2 (dependency/deprecation cleanup)
+```
+
+---
+
+## 🚧 Sprint 6.8 — Production Hardening & Documentation
+
+Sprint 6.8 is the final pre-release sprint for the v1.0.0 release candidate.
+
+### ✅ Sprint 6.8.1 — Release Baseline & Repository Cleanup
+
+- Established the v1.0.0 release baseline
+- Cleaned temporary and stale repository artifacts
+- Audited tracked secrets, credentials, databases, dumps, logs, and generated files
+- Removed stale TODO/commented-out code
+- Preserved the tracked Foglamp architecture map
+- Verified `.gitignore` coverage for local/generated artifacts
+- Verified no dead modules requiring removal
+- Verified dependency consistency with `pip check`
+- Verified Alembic migration state at `74b5dc797be3 (head)`
+- Verified Python 3.13.3 baseline
+- Verified Render and Docker deployment configuration
+- Verified Ruff and repository diff checks
+- Full test suite: **1971 passed, 1 skipped**
+- Full coverage: **99.29%**
+- Quality CI: **passed**
+- E2E CI: **passed**
+- Release baseline commit: `11585db`
