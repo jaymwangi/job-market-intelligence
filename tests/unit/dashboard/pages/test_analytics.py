@@ -69,9 +69,12 @@ def test_render_skills_analytics_success(service):
         patch.object(analytics.st, "plotly_chart") as plotly_chart,
         patch.object(analytics.px, "pie", return_value=fig) as pie,
     ):
-        analytics.render_skills_analytics(service)
+        analytics.render_skills_analytics(
+            service,
+            enriched_skills=service.get_enriched_top_skills.return_value,
+        )
 
-    service.get_enriched_top_skills.assert_called_once_with(limit=15)
+    service.get_enriched_top_skills.assert_not_called()
     service.get_technology_distribution.assert_called_once_with()
 
     create_chart.assert_called_once()
@@ -103,7 +106,10 @@ def test_render_skills_analytics_no_skills(service):
         patch.object(analytics, "empty_state_analytics") as empty_state,
         patch.object(analytics.st, "info") as info,
     ):
-        analytics.render_skills_analytics(service)
+        analytics.render_skills_analytics(
+            service,
+            enriched_skills=[],
+        )
 
     empty_state.assert_called_once_with(
         title="No Skills Data",
@@ -132,32 +138,12 @@ def test_render_skills_analytics_no_filtered_technology(service):
         patch.object(analytics, "empty_state_analytics"),
         patch.object(analytics.st, "info") as info,
     ):
-        analytics.render_skills_analytics(service)
+        analytics.render_skills_analytics(
+            service,
+            enriched_skills=[],
+        )
 
     info.assert_called_once_with("No technology categories found")
-
-
-def test_render_skills_analytics_skills_exception(service):
-    service.get_enriched_top_skills.side_effect = RuntimeError("skills database error")
-    service.get_technology_distribution.return_value = []
-
-    columns = [context_manager_mock(), context_manager_mock()]
-
-    with (
-        patch.object(analytics, "section_header"),
-        patch.object(analytics.st, "columns", return_value=columns),
-        patch.object(
-            analytics,
-            "loading_spinner",
-            return_value=context_manager_mock(),
-        ),
-        patch.object(analytics, "show_error") as show_error,
-        patch.object(analytics, "empty_state_analytics"),
-        patch.object(analytics.st, "info"),
-    ):
-        analytics.render_skills_analytics(service)
-
-    assert any("skills database error" in call.args[0] for call in show_error.call_args_list)
 
 
 def test_render_skills_analytics_technology_exception(service):
@@ -178,7 +164,10 @@ def test_render_skills_analytics_technology_exception(service):
         patch.object(analytics.st, "info"),
         patch.object(analytics, "show_error") as show_error,
     ):
-        analytics.render_skills_analytics(service)
+        analytics.render_skills_analytics(
+            service,
+            enriched_skills=[],
+        )
 
     assert any("technology database error" in call.args[0] for call in show_error.call_args_list)
 
@@ -189,9 +178,15 @@ def test_render_skills_analytics_technology_exception(service):
 
 
 def test_render_analytics_dashboard_normal_flow(service):
-    service.get_enriched_top_skills.return_value = [{"skill": "Python", "count": 10}]
-    service.get_country_distribution.return_value = {"Kenya": 10}
-    service.get_enriched_salary.return_value = {"average": 100000}
+    shared_skills = [{"skill": "Python", "count": 10}]
+    shared_countries = [{"country": "Kenya", "count": 10}]
+    shared_english_stats = {"english_count": 8, "non_english_count": 2}
+    shared_tech_stats = {"tech_count": 7, "non_tech_count": 3}
+
+    service.get_enriched_top_skills.return_value = shared_skills
+    service.get_country_distribution.return_value = shared_countries
+    service.get_english_vs_non_english.return_value = shared_english_stats
+    service.get_tech_vs_non_tech.return_value = shared_tech_stats
 
     with (
         patch.object(
@@ -220,16 +215,39 @@ def test_render_analytics_dashboard_normal_flow(service):
         analytics.render_analytics_dashboard()
 
     get_analytics_service.assert_called_once_with()
-    render_kpi_cards.assert_called_once_with(service)
-    render_overview_analytics.assert_called_once_with(service)
+    service.get_country_distribution.assert_called_once_with()
+    service.get_enriched_top_skills.assert_called_once_with(limit=15)
+    service.get_english_vs_non_english.assert_called_once_with()
+    service.get_tech_vs_non_tech.assert_called_once_with()
+
+    render_kpi_cards.assert_called_once_with(
+        service,
+        countries=shared_countries,
+        enriched_skills=shared_skills,
+    )
+    render_overview_analytics.assert_called_once_with(
+        service,
+        countries=shared_countries,
+        english_stats=shared_english_stats,
+        tech_stats=shared_tech_stats,
+    )
     render_location_analytics.assert_called_once_with(service)
-    render_skills_analytics.assert_called_once_with(service)
+    render_skills_analytics.assert_called_once_with(
+        service,
+        enriched_skills=shared_skills,
+    )
     render_company_analytics.assert_called_once_with(service)
     render_salary_analytics.assert_called_once_with(service)
     render_employment_analytics.assert_called_once_with(service)
     render_posting_trends.assert_called_once_with(service)
-    render_language_analytics.assert_called_once_with(service)
-    render_tech_analytics.assert_called_once_with(service)
+    render_language_analytics.assert_called_once_with(
+        service,
+        english_stats=shared_english_stats,
+    )
+    render_tech_analytics.assert_called_once_with(
+        service,
+        tech_stats=shared_tech_stats,
+    )
 
 
 def test_render_analytics_dashboard_refresh():
@@ -486,21 +504,30 @@ def test_render_overview_analytics_success(service):
             return_value=[context_manager_mock() for _ in range(4)],
         ),
     ):
-        analytics.render_overview_analytics(service)
+        analytics.render_overview_analytics(
+            service,
+            countries=service.get_country_distribution.return_value,
+            english_stats=service.get_english_vs_non_english.return_value,
+            tech_stats=service.get_tech_vs_non_tech.return_value,
+        )
 
-    service.get_tech_vs_non_tech.assert_called_once_with()
-    service.get_english_vs_non_english.assert_called_once_with()
-    service.get_country_distribution.assert_called_once_with()
+    service.get_tech_vs_non_tech.assert_not_called()
+    service.get_english_vs_non_english.assert_not_called()
+    service.get_country_distribution.assert_not_called()
 
 
 def test_render_overview_analytics_exception(service):
-    service.get_tech_vs_non_tech.side_effect = RuntimeError("database error")
-
     with (
         patch.object(analytics, "section_header"),
         patch.object(analytics, "show_error") as show_error,
+        patch.object(analytics.st, "columns", side_effect=RuntimeError("database error")),
     ):
-        analytics.render_overview_analytics(service)
+        analytics.render_overview_analytics(
+            service,
+            countries=[],
+            english_stats={},
+            tech_stats={},
+        )
 
     show_error.assert_called_once()
     assert "database error" in show_error.call_args[0][0]
@@ -611,10 +638,14 @@ def test_render_kpi_cards_success(service):
         ),
         patch.object(analytics, "divider"),
     ):
-        analytics.render_kpi_cards(service)
+        analytics.render_kpi_cards(
+            service,
+            countries=service.get_country_distribution.return_value,
+            enriched_skills=service.get_enriched_top_skills.return_value,
+        )
 
-    service.get_enriched_top_skills.assert_called_once_with(limit=5)
-    service.get_country_distribution.assert_called_once_with()
+    service.get_enriched_top_skills.assert_not_called()
+    service.get_country_distribution.assert_not_called()
     service.get_enriched_salary.assert_called_once_with()
     service.get_companies_hiring_count.assert_called_once_with()
 
@@ -638,16 +669,24 @@ def test_render_kpi_cards_companies_fallback(service):
         ),
         patch.object(analytics, "divider"),
     ):
-        analytics.render_kpi_cards(service)
+        analytics.render_kpi_cards(
+            service,
+            countries={},
+            enriched_skills=[],
+        )
 
     service.get_companies_hiring_count.assert_called_once_with()
 
 
 def test_render_kpi_cards_exception(service):
-    service.get_enriched_top_skills.side_effect = RuntimeError("analytics failure")
+    service.get_enriched_salary.side_effect = RuntimeError("analytics failure")
 
     with patch.object(analytics, "show_error") as show_error:
-        analytics.render_kpi_cards(service)
+        analytics.render_kpi_cards(
+            service,
+            countries=[],
+            enriched_skills=[],
+        )
 
     show_error.assert_called_once()
     assert "analytics failure" in show_error.call_args[0][0]
@@ -1295,10 +1334,13 @@ def test_render_language_analytics_success(service):
         patch.object(analytics, "divider"),
         patch.object(analytics.st, "plotly_chart") as plotly_chart,
     ):
-        analytics.render_language_analytics(service)
+        analytics.render_language_analytics(
+            service,
+            english_stats=english_stats,
+        )
 
     service.get_language_distribution.assert_called_once_with()
-    service.get_english_vs_non_english.assert_called_once_with()
+    service.get_english_vs_non_english.assert_not_called()
     service.get_language_by_country.assert_called_once_with()
     service.get_language_salary_stats.assert_called_once_with()
 
@@ -1364,10 +1406,13 @@ def test_render_language_analytics_no_english_stats(service):
         patch.object(analytics, "divider"),
         patch.object(analytics.st, "plotly_chart"),
     ):
-        analytics.render_language_analytics(service)
+        analytics.render_language_analytics(
+            service,
+            english_stats=None,
+        )
 
     service.get_language_distribution.assert_called_once_with()
-    service.get_english_vs_non_english.assert_called_once_with()
+    service.get_english_vs_non_english.assert_not_called()
     service.get_language_by_country.assert_not_called()
     service.get_language_salary_stats.assert_called_once_with()
 
@@ -1406,9 +1451,16 @@ def test_render_language_analytics_no_country_data(service):
         patch.object(analytics, "divider"),
         patch.object(analytics.st, "plotly_chart"),
     ):
-        analytics.render_language_analytics(service)
+        analytics.render_language_analytics(
+            service,
+            english_stats={
+                "english_count": 100,
+                "non_english_count": 0,
+                "english_percentage": 100.0,
+            },
+        )
 
-    service.get_english_vs_non_english.assert_called_once_with()
+    service.get_english_vs_non_english.assert_not_called()
     service.get_language_by_country.assert_called_once_with()
     service.get_language_salary_stats.assert_called_once_with()
 
@@ -1549,9 +1601,12 @@ def test_render_tech_analytics_success(service):
         patch.object(analytics.st, "plotly_chart") as plotly_chart,
         patch.object(analytics.st, "metric") as metric,
     ):
-        analytics.render_tech_analytics(service)
+        analytics.render_tech_analytics(
+            service,
+            tech_stats=tech_stats,
+        )
 
-    service.get_tech_vs_non_tech.assert_called_once_with()
+    service.get_tech_vs_non_tech.assert_not_called()
     service.get_tech_category_distribution.assert_called_once_with()
     service.get_tech_by_country.assert_called_once_with()
     service.get_tech_skills.assert_called_once_with(limit=20)
@@ -1610,7 +1665,15 @@ def test_render_tech_analytics_empty_optional_data(service):
         patch.object(analytics, "divider"),
         patch.object(analytics.st, "plotly_chart") as plotly_chart,
     ):
-        analytics.render_tech_analytics(service)
+        analytics.render_tech_analytics(
+            service,
+            tech_stats={
+                "total_count": 100,
+                "tech_count": 60,
+                "non_tech_count": 40,
+                "tech_percentage": 60.0,
+            },
+        )
 
     service.get_tech_category_distribution.assert_called_once_with()
     service.get_tech_by_country.assert_called_once_with()
@@ -1671,7 +1734,15 @@ def test_render_tech_analytics_salary_na_values(service):
         patch.object(analytics.st, "plotly_chart"),
         patch.object(analytics.st, "metric") as metric,
     ):
-        analytics.render_tech_analytics(service)
+        analytics.render_tech_analytics(
+            service,
+            tech_stats={
+                "total_count": 100,
+                "tech_count": 60,
+                "non_tech_count": 40,
+                "tech_percentage": 60.0,
+            },
+        )
 
     assert metric.call_count == 4
     metric.assert_any_call("Average", "N/A")
@@ -1681,7 +1752,7 @@ def test_render_tech_analytics_salary_na_values(service):
 
 
 def test_render_tech_analytics_exception(service):
-    service.get_tech_vs_non_tech.side_effect = RuntimeError("database error")
+    service.get_tech_category_distribution.side_effect = RuntimeError("database error")
 
     with (
         patch.object(analytics, "section_header"),
@@ -1692,7 +1763,10 @@ def test_render_tech_analytics_exception(service):
         ),
         patch.object(analytics, "show_error") as show_error,
     ):
-        analytics.render_tech_analytics(service)
+        analytics.render_tech_analytics(
+            service,
+            tech_stats={},
+        )
 
     show_error.assert_called_once()
     assert "database error" in show_error.call_args[0][0]

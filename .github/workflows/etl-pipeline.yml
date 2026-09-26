@@ -1,8 +1,8 @@
 name: Daily ETL Pipeline
 
 on:
-  schedule:
-    - cron: '0 6 * * *'  # Daily at 6:00 AM UTC
+  # schedule:
+  #   - cron: '0 6 * * *'  # Suspended until Neon data-transfer issue is resolved
   workflow_dispatch:
 
 concurrency:

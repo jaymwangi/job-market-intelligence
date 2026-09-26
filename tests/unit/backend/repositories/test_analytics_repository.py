@@ -130,6 +130,23 @@ class TestAnalyticsRepository:
         assert result[1]["company"] == "DataInc"
         assert result[1]["job_count"] == 80
 
+    def test_count_companies_hiring(self, repository, mock_query):
+        """Test counting distinct companies currently hiring."""
+        mock_query.scalar.return_value = 42
+
+        result = repository.count_companies_hiring()
+
+        assert result == 42
+        mock_query.scalar.assert_called_once()
+
+    def test_count_companies_hiring_empty(self, repository, mock_query):
+        """Test company count when no companies are hiring."""
+        mock_query.scalar.return_value = None
+
+        result = repository.count_companies_hiring()
+
+        assert result == 0
+
     def test_get_jobs_by_location_empty(self, repository, mock_query):
         """Test getting jobs by location with no data."""
         mock_query.all.return_value = []
@@ -175,6 +192,56 @@ class TestAnalyticsRepository:
         assert result["maximum"] is None
         assert result["median"] is None
         assert result["currency"] is None
+
+    def test_get_salary_distribution(self, repository, mock_query):
+        """Test getting salary distribution with one aggregate query."""
+        mock_query.one.return_value = (
+            10,
+            20,
+            30,
+            40,
+            50,
+            60,
+            70,
+            80,
+        )
+
+        result = repository.get_salary_distribution()
+
+        assert result == [
+            {"range": "0-30K", "count": 10},
+            {"range": "30K-50K", "count": 20},
+            {"range": "50K-70K", "count": 30},
+            {"range": "70K-90K", "count": 40},
+            {"range": "90K-120K", "count": 50},
+            {"range": "120K-150K", "count": 60},
+            {"range": "150K-200K", "count": 70},
+            {"range": "200K+", "count": 80},
+        ]
+
+        mock_query.one.assert_called_once()
+        mock_query.scalar.assert_not_called()
+
+
+    def test_get_salary_distribution_empty(self, repository, mock_query):
+        """Test salary distribution when all aggregate buckets are empty."""
+        mock_query.one.return_value = (None,) * 8
+
+        result = repository.get_salary_distribution()
+
+        assert result == [
+            {"range": "0-30K", "count": 0},
+            {"range": "30K-50K", "count": 0},
+            {"range": "50K-70K", "count": 0},
+            {"range": "70K-90K", "count": 0},
+            {"range": "90K-120K", "count": 0},
+            {"range": "120K-150K", "count": 0},
+            {"range": "150K-200K", "count": 0},
+            {"range": "200K+", "count": 0},
+        ]
+
+        mock_query.one.assert_called_once()
+
 
     def test_get_total_jobs(self, repository, mock_query):
         """Test getting total jobs count."""

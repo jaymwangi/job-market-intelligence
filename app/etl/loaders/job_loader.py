@@ -118,10 +118,6 @@ class JobLoader:
             result.skills_added += batch_result.skills_added
             result.relationships_added += batch_result.relationships_added
 
-            # Flush after each batch to bound pending database work.
-            # Does NOT commit - caller owns the transaction.
-            self.db_session.flush()
-
             logger.debug(
                 "Batch %d complete: inserted=%d, updated=%d, skills=%d, relationships=%d",
                 batch_idx,
@@ -134,9 +130,6 @@ class JobLoader:
         # Purge only once at the end (if configured)
         if settings.pipeline_retention_days > 0:
             result.purged = self._purge_old_jobs()
-
-        # Final flush - caller handles commit
-        self.db_session.flush()
 
         logger.info(
             "Batch load complete: inserted=%d, updated=%d, "

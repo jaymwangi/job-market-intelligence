@@ -17,7 +17,7 @@ Sprint 6.6 adds:
 from datetime import datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import Date, Integer, desc, func
+from sqlalchemy import Date, Integer, case, desc, func
 from sqlalchemy import cast as sqlalchemy_cast
 from sqlalchemy.orm import Session
 
@@ -155,6 +155,21 @@ class AnalyticsRepository:
             }
             for result in results
         ]
+
+    def count_companies_hiring(self) -> int:
+        """
+        Count distinct companies with currently active job postings.
+
+        Returns:
+            Number of distinct companies with active, non-deleted jobs.
+        """
+        query = self.db.query(
+            func.count(Job.company_name.distinct())
+        ).filter(Job.company_name.isnot(None))
+
+        query = self._apply_active_filter(query)
+
+        return int(query.scalar() or 0)
 
     def get_jobs_by_location(
         self,
@@ -463,29 +478,41 @@ class AnalyticsRepository:
             (200000, float("inf"), "200K+"),
         ]
 
-        results: list[dict[str, Any]] = []
+        count_expressions = []
 
-        for min_value, max_value, label in ranges:
-            query = self.db.query(func.count(Job.id)).filter(
-                Job.salary_min.isnot(None),
-                Job.salary_min >= min_value,
+        for index, (min_value, max_value, _) in enumerate(ranges):
+            if max_value == float("inf"):
+                condition = Job.salary_min >= min_value
+            else:
+                condition = (
+                    (Job.salary_min >= min_value)
+                    & (Job.salary_min < max_value)
+                )
+
+            count_expressions.append(
+                func.sum(
+                    case(
+                        (condition, 1),
+                        else_=0,
+                    )
+                ).label(f"salary_range_{index}")
             )
 
-            if max_value != float("inf"):
-                query = query.filter(Job.salary_min < max_value)
+        query = self.db.query(*count_expressions).filter(
+            Job.salary_min.isnot(None)
+        )
+        query = self._apply_active_filter(query)
 
-            query = self._apply_active_filter(query)
+        row = query.one()
+        counts = [int(value or 0) for value in row]
 
-            count = query.scalar() or 0
-
-            results.append(
-                {
-                    "range": label,
-                    "count": count,
-                }
-            )
-
-        return results
+        return [
+            {
+                "range": label,
+                "count": count,
+            }
+            for (_, _, label), count in zip(ranges, counts)
+        ]
 
     # ============================================================
     # Sprint 3.3 Methods

@@ -437,9 +437,7 @@ class AnalyticsService:
         Get count of companies currently hiring.
         """
         try:
-            # Use the existing repo method
-            companies = self.repo.get_top_companies(limit=1000)
-            return len(companies) if companies else 0
+            return self.repo.count_companies_hiring()
         except Exception as e:
             logger.error(f"Failed to get companies hiring count: {e}")
             return 0

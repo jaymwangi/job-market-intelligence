@@ -71,8 +71,37 @@ def render_analytics_dashboard():
     with col_left:
         timestamp()
 
+    # Shared analytics data - fetch once per page render.
+    try:
+        shared_countries = service.get_country_distribution()
+    except Exception as e:
+        logger.warning(f"Failed to load shared country data: {e}")
+        shared_countries = []
+
+    try:
+        shared_skills = service.get_enriched_top_skills(limit=15)
+    except Exception as e:
+        logger.warning(f"Failed to load shared skills data: {e}")
+        shared_skills = []
+
+    try:
+        shared_english_stats = service.get_english_vs_non_english()
+    except Exception as e:
+        logger.warning(f"Failed to load shared language data: {e}")
+        shared_english_stats = {}
+
+    try:
+        shared_tech_stats = service.get_tech_vs_non_tech()
+    except Exception as e:
+        logger.warning(f"Failed to load shared technology data: {e}")
+        shared_tech_stats = {}
+
     # KPI Cards - Using enriched data
-    render_kpi_cards(service)
+    render_kpi_cards(
+        service,
+        countries=shared_countries,
+        enriched_skills=shared_skills,
+    )
 
     # Tabs for detailed analytics
     tab_labels = [
@@ -89,11 +118,16 @@ def render_analytics_dashboard():
     tabs = st.tabs(tab_labels)
 
     with tabs[0]:
-        render_overview_analytics(service)
+        render_overview_analytics(
+            service,
+            countries=shared_countries,
+            english_stats=shared_english_stats,
+            tech_stats=shared_tech_stats,
+        )
     with tabs[1]:
         render_location_analytics(service)
     with tabs[2]:
-        render_skills_analytics(service)
+        render_skills_analytics(service, enriched_skills=shared_skills)
     with tabs[3]:
         render_company_analytics(service)
     with tabs[4]:
@@ -103,21 +137,27 @@ def render_analytics_dashboard():
     with tabs[6]:
         render_posting_trends(service)
     with tabs[7]:
-        render_language_analytics(service)  # Sprint 6.6
+        render_language_analytics(
+            service,
+            english_stats=shared_english_stats,
+        )  # Sprint 6.6
     with tabs[8]:
-        render_tech_analytics(service)  # Sprint 6.6
+        render_tech_analytics(
+            service,
+            tech_stats=shared_tech_stats,
+        )  # Sprint 6.6
 
 
-def render_overview_analytics(service):
+def render_overview_analytics(service, countries=None, english_stats=None, tech_stats=None):
     """Render overview analytics with key metrics."""
+    countries = countries or []
+    english_stats = english_stats or {}
+    tech_stats = tech_stats or {}
+
     section_header("Overview", "Key market metrics and insights", "analytics")
 
     with loading_spinner("Loading overview..."):
         try:
-            # Get tech vs non-tech data
-            tech_stats = service.get_tech_vs_non_tech()
-            english_stats = service.get_english_vs_non_english()
-
             col1, col2, col3, col4 = st.columns(4)
 
             with col1:
@@ -163,7 +203,6 @@ def render_overview_analytics(service):
                 )
 
             with col4:
-                countries = service.get_country_distribution()
                 icon = get_icon("location_pin", size=18, color=IconColor.WARNING)
                 st.markdown(
                     f"""
@@ -182,13 +221,15 @@ def render_overview_analytics(service):
             show_error(f"Failed to load overview: {str(e)}")
 
 
-def render_kpi_cards(service):
+def render_kpi_cards(service, countries=None, enriched_skills=None):
     """Render enriched KPI metric cards."""
+    countries = countries or []
+    enriched_skills = enriched_skills or []
+
     with loading_spinner("Loading metrics..."):
         try:
             # Get enriched metrics
-            enriched_skills = service.get_enriched_top_skills(limit=5)
-            enriched_countries = service.get_country_distribution()
+            enriched_countries = countries
             enriched_salary = service.get_enriched_salary()
 
             total_jobs = sum(c.get("count", 0) for c in enriched_countries)
@@ -337,8 +378,10 @@ def render_location_analytics(service):
             show_error(f"Failed to load location data: {str(e)}")
 
 
-def render_skills_analytics(service):
+def render_skills_analytics(service, enriched_skills=None):
     """Render enriched skills analytics with professional styling."""
+    enriched_skills = enriched_skills or []
+
     section_header(
         "Skills in Demand", "Most sought-after skills and their distribution", "skills_metric"
     )
@@ -348,8 +391,7 @@ def render_skills_analytics(service):
     with col1:
         with loading_spinner("Loading skills data..."):
             try:
-                # Use enriched skills data
-                enriched_skills = service.get_enriched_top_skills(limit=15)
+                # Use shared enriched skills data
                 if enriched_skills:
                     # Create properly typed chart data with title
                     chart_data = HorizontalBarChartData(
@@ -742,8 +784,10 @@ def render_posting_trends(service):
 # ============================================================
 
 
-def render_language_analytics(service):
+def render_language_analytics(service, english_stats=None):
     """Render Sprint 6.6 language analytics."""
+    english_stats = english_stats or {}
+
     section_header(
         "Language Insights", "Job posting languages and multilingual analytics", "translate"
     )
@@ -797,7 +841,6 @@ def render_language_analytics(service):
 
             with col2:
                 # English vs non-English
-                english_stats = service.get_english_vs_non_english()
                 if english_stats:
                     st.subheader("English vs Non-English")
 
@@ -890,15 +933,15 @@ def render_language_analytics(service):
 # ============================================================
 
 
-def render_tech_analytics(service):
+def render_tech_analytics(service, tech_stats=None):
     """Render Sprint 6.6 technology analytics."""
+    tech_stats = tech_stats or {}
+
     section_header("Technology Roles", "Tech job market insights and trends", "tech")
 
     with loading_spinner("Loading technology data..."):
         try:
             # Tech vs non-tech
-            tech_stats = service.get_tech_vs_non_tech()
-
             col1, col2, col3, col4 = st.columns(4)
 
             with col1:

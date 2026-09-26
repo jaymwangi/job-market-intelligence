@@ -300,7 +300,9 @@ class TestAnalyticsService:
     def test_get_companies_hiring_count_returns_zero_on_error(
         self, mock_logger, service, mock_repo
     ):
-        mock_repo.get_top_companies.side_effect = RuntimeError("Database unavailable")
+        mock_repo.count_companies_hiring.side_effect = RuntimeError(
+            "Database unavailable"
+        )
 
         result = service.get_companies_hiring_count()
 
@@ -358,15 +360,12 @@ class TestAnalyticsService:
         assert result == "Operational"
 
     def test_get_companies_hiring_count_success(self, service, mock_repo):
-        mock_repo.get_top_companies.return_value = [
-            {"company": "Company A"},
-            {"company": "Company B"},
-            {"company": "Company C"},
-        ]
+        mock_repo.count_companies_hiring.return_value = 3
 
         result = service.get_companies_hiring_count()
 
         assert result == 3
+        mock_repo.count_companies_hiring.assert_called_once_with()
 
     def test_get_salary_by_company(self, service, mock_repo):
         mock_repo.get_salary_by_company.return_value = [
