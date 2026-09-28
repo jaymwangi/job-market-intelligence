@@ -546,3 +546,30 @@ Sprint 6.8 is the final pre-release sprint for the v1.0.0 release candidate.
 - Full test suite: **1971 passed, 1 skipped**
 - `git diff --check`: **passed**
 - No production code changes were required for 6.8.3
+
+### ✅ Sprint 6.8.4 — Resource Usage & Performance Hardening
+
+- Optimized company-count analytics to avoid fetching up to 1,000 grouped company rows solely to count them
+- Removed redundant dashboard analytics API calls to reduce unnecessary network and backend work
+- Removed redundant ETL `flush()` calls where they provided no required transaction or generated-key behavior
+- Reviewed SQLAlchemy session usage and transaction boundaries for unnecessary database work
+- Verified the changes preserved existing application behavior and test expectations
+- Full test suite: **1974 passed, 1 skipped**
+- `git diff --check`: **passed**
+- Sprint 6.8.4 commit: `ce9282c`
+
+### ✅ Sprint 6.8.5 — Security & Dependency Hardening
+
+- Completed repository working-tree and Git history secret/credential audit; no real credentials identified by searches performed
+- Audited direct and transitive dependencies with `pip-audit` and resolved identified vulnerabilities by upgrading `aiohttp`, `anyio`, `GitPython`, `h2`, `Pillow`, `python-dotenv`, `requests`, and `Streamlit`
+- Removed unused `httpx2` direct dependency
+- Verified dependency consistency with `pip check`
+- Final `pip-audit`: **No known vulnerabilities found**
+- Reviewed API input validation, SQLAlchemy query construction, CORS configuration, production debug safeguards, and error handling
+- Fixed the translation endpoint to avoid returning raw exception details to API clients
+- Fixed an aiohttp test-session leak exposed during dependency verification
+- Reviewed database credential handling; verified production credentials are environment/secret driven and CI uses a dedicated test database
+- Reviewed Dockerfile and `.dockerignore`; verified non-root runtime and exclusion of local secrets and unnecessary development artifacts
+- Reviewed application authentication and rate-limiting configuration; no application-level authentication or rate limiting is currently implemented
+- Full test suite: **1974 passed, 1 skipped**
+- `git diff --check`: **passed**

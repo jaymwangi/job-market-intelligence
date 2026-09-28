@@ -388,5 +388,5 @@ async def translate_job(
         logger.error(f"Translation failed for job {job_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Translation failed: {str(e)}",
+            detail="Translation failed. Please try again later.",
         )

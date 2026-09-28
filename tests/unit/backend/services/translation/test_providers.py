@@ -864,6 +864,7 @@ class TestDeepLProvider:
         assert results[0].text == "Bonjour"
         assert results[1].text == ""
         assert results[2].text == "Au revoir"
+        await provider.close()
 
     @pytest.mark.asyncio
     async def test_health_check_success(self):

@@ -533,6 +533,6 @@ class TestJobsRoutes:
             response = client.post(f"/api/v1/jobs/{mock_job.id}/translate?target_language=en")
 
             assert response.status_code == 500
-            assert response.json()["detail"] == ("Translation failed: Translation service failed")
+            assert response.json()["detail"] == "Translation failed. Please try again later."
         finally:
             app.dependency_overrides.clear()
