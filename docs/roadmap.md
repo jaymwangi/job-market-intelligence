@@ -591,3 +591,15 @@ Sprint 6.8 is the final pre-release sprint for the v1.0.0 release candidate.
 - Added regression coverage for failed/rejected metric fields and complete ETL processing behavior
 - Targeted ETL tests: **34 passed**
 - `git diff --check`: **passed**
+
+### ✅ Sprint 6.8.7 — Deployment, Rollback & Recovery
+
+- Added `docs/deployment.md` covering the production deployment procedure
+- Documented production verification for the Render API, Streamlit Community Cloud dashboard, Neon database, migrations, ETL, health endpoints, and external integrations
+- Documented the Render application rollback procedure and roll-forward approach
+- Documented database migration execution, verification, failure handling, rollback limitations, and recovery considerations
+- Documented recovery procedures for API, database, ETL, deployment, and external API failures
+- Documented the current ETL scheduling limitation: scheduled execution is suspended pending Neon data-transfer remediation, with manual `workflow_dispatch` available
+- Documented the actual Neon data-transfer quota failure observed during deployment and its recovery implications
+- Verified deployment documentation with `git diff --check`
+- Sprint 6.8.7 commit: `4f558d6`
