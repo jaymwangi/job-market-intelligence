@@ -300,9 +300,7 @@ class TestAnalyticsService:
     def test_get_companies_hiring_count_returns_zero_on_error(
         self, mock_logger, service, mock_repo
     ):
-        mock_repo.count_companies_hiring.side_effect = RuntimeError(
-            "Database unavailable"
-        )
+        mock_repo.count_companies_hiring.side_effect = RuntimeError("Database unavailable")
 
         result = service.get_companies_hiring_count()
 

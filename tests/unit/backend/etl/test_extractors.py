@@ -400,7 +400,6 @@ class TestJobsExtractorCoverage:
             "us",
         )
 
-
     def test_extract_with_params_missing_credentials(self, client):
         """Parameterized extraction stops when credentials are missing."""
         extractor = JobsExtractor(

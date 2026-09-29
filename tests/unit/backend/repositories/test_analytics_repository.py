@@ -222,7 +222,6 @@ class TestAnalyticsRepository:
         mock_query.one.assert_called_once()
         mock_query.scalar.assert_not_called()
 
-
     def test_get_salary_distribution_empty(self, repository, mock_query):
         """Test salary distribution when all aggregate buckets are empty."""
         mock_query.one.return_value = (None,) * 8
@@ -241,7 +240,6 @@ class TestAnalyticsRepository:
         ]
 
         mock_query.one.assert_called_once()
-
 
     def test_get_total_jobs(self, repository, mock_query):
         """Test getting total jobs count."""

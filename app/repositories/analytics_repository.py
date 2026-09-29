@@ -163,9 +163,9 @@ class AnalyticsRepository:
         Returns:
             Number of distinct companies with active, non-deleted jobs.
         """
-        query = self.db.query(
-            func.count(Job.company_name.distinct())
-        ).filter(Job.company_name.isnot(None))
+        query = self.db.query(func.count(Job.company_name.distinct())).filter(
+            Job.company_name.isnot(None)
+        )
 
         query = self._apply_active_filter(query)
 
@@ -484,10 +484,7 @@ class AnalyticsRepository:
             if max_value == float("inf"):
                 condition = Job.salary_min >= min_value
             else:
-                condition = (
-                    (Job.salary_min >= min_value)
-                    & (Job.salary_min < max_value)
-                )
+                condition = (Job.salary_min >= min_value) & (Job.salary_min < max_value)
 
             count_expressions.append(
                 func.sum(
@@ -498,9 +495,7 @@ class AnalyticsRepository:
                 ).label(f"salary_range_{index}")
             )
 
-        query = self.db.query(*count_expressions).filter(
-            Job.salary_min.isnot(None)
-        )
+        query = self.db.query(*count_expressions).filter(Job.salary_min.isnot(None))
         query = self._apply_active_filter(query)
 
         row = query.one()
