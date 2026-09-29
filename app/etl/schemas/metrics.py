@@ -13,7 +13,8 @@ class PipelineMetrics(BaseModel):
 
     inserted: int = Field(default=0, description="Number of new jobs inserted")
     updated: int = Field(default=0, description="Number of existing jobs updated")
-    failed: int = Field(default=0, description="Number of jobs that failed")
+    failed: int = Field(default=0, description="Number of jobs that failed enrichment")
+    rejected: int = Field(default=0, description="Number of jobs rejected during validation")
     purged: int = Field(default=0, description="Number of old jobs purged")
 
     skills_added: int = Field(

@@ -138,12 +138,15 @@ class ETLPipeline:
 
         logger.info(
             "ETL pipeline complete in %.2fs: extracted=%d, transformed=%d, "
-            "enriched=%d, validated=%d, inserted=%d, updated=%d, purged=%d",
+            "enriched=%d, failed=%d, validated=%d, rejected=%d, "
+            "inserted=%d, updated=%d, purged=%d",
             duration,
             metrics.extracted,
             metrics.transformed,
             metrics.enriched,
+            metrics.failed,
             metrics.validated,
+            metrics.rejected,
             metrics.inserted,
             metrics.updated,
             metrics.purged,
@@ -473,6 +476,7 @@ class ETLPipeline:
 
         enriched_jobs = self.enricher.enrich_batch(transformed_jobs)
 
+        metrics.failed = len(transformed_jobs) - len(enriched_jobs)
         metrics.enriched = len(enriched_jobs)
 
         if not enriched_jobs:
@@ -484,6 +488,7 @@ class ETLPipeline:
 
         validated_jobs = self.validator.validate_batch(enriched_jobs)
 
+        metrics.rejected = len(enriched_jobs) - len(validated_jobs)
         metrics.validated = len(validated_jobs)
 
         return validated_jobs

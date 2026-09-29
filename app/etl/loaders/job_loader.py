@@ -196,17 +196,10 @@ class JobLoader:
         # Build composite keys matching uq_job_source
         source_keys = {(job.source, job.source_id) for job in jobs}
 
-        logger.warning("DEBUG source_keys=%s", source_keys)
-
         existing_jobs = (
             self.db_session.query(Job.source_site, Job.source_id)
             .filter(tuple_(Job.source_site, Job.source_id).in_(source_keys))
             .all()
-        )
-
-        logger.warning(
-            "DEBUG existing_jobs=%s",
-            [(source_site, source_id) for source_site, source_id in existing_jobs],
         )
 
         existing_keys = {(source_site, source_id) for source_site, source_id in existing_jobs}
@@ -219,12 +212,6 @@ class JobLoader:
         for job in jobs:
             key = (job.source, job.source_id)
 
-            logger.warning(
-                "DEBUG processing key=%s exists=%s",
-                key,
-                key in existing_keys,
-            )
-
             # Let exceptions propagate - all-or-nothing
             job_repo.upsert_from_validated(job)
 
@@ -236,12 +223,6 @@ class JobLoader:
 
         # Flush to get job IDs for skill relationships
         self.db_session.flush()
-
-        logger.warning(
-            "DEBUG final counts: inserted=%d updated=%d",
-            inserted,
-            updated,
-        )
 
         return UpsertResult(
             inserted=inserted,

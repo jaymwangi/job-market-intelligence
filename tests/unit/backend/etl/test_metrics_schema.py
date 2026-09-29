@@ -20,6 +20,13 @@ class TestPipelineMetrics:
 
         assert metrics.total_loaded() == 22
 
+    def test_failed_and_rejected_counts(self):
+        """Test failed and rejected job counts."""
+        metrics = PipelineMetrics(failed=3, rejected=5)
+
+        assert metrics.failed == 3
+        assert metrics.rejected == 5
+
     def test_success_rate_with_processed_jobs(self):
         """Test success rate when jobs were processed."""
         metrics = PipelineMetrics(extracted=100, validated=85)

@@ -573,3 +573,21 @@ Sprint 6.8 is the final pre-release sprint for the v1.0.0 release candidate.
 - Reviewed application authentication and rate-limiting configuration; no application-level authentication or rate limiting is currently implemented
 - Full test suite: **1974 passed, 1 skipped**
 - `git diff --check`: **passed**
+
+### ✅ Sprint 6.8.6 — Observability & Operational Readiness
+
+- Reviewed logging across API, database, ETL, and automation layers; verified centralized Loguru configuration, consistent structured context, appropriate log levels, and production-safe logging behavior
+- Removed four leftover `DEBUG` warning blocks from the ETL job loader that duplicated useful metrics and could create noisy or unnecessarily detailed logs
+- Verified sensitive API parameters are masked before logging and production logging uses serialized JSON output
+- Verified health endpoints and their operational scope:
+  - `/api/v1/health/live` confirms the application process is alive without checking dependencies
+  - `/api/v1/health/ready` verifies database connectivity for readiness
+  - `/api/v1/health` reports application and database health, database response time, environment, version, and uptime
+  - `/api/v1/health/database` provides detailed database connectivity diagnostics
+- Verified pipeline run tracking records running, completed, and failed ETL runs, including timestamps, duration, processed-record count, and failure messages
+- Added ETL observability for enrichment failures and validation rejections through `PipelineMetrics.failed` and `PipelineMetrics.rejected`
+- Extended final ETL logging to report extracted, transformed, enriched, failed, validated, rejected, inserted, updated, purged, and duration metrics
+- Extended the ETL runner's operational summary to display failed and rejected job counts
+- Added regression coverage for failed/rejected metric fields and complete ETL processing behavior
+- Targeted ETL tests: **34 passed**
+- `git diff --check`: **passed**
