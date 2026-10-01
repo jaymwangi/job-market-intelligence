@@ -1,544 +1,594 @@
 # Job Market Intelligence
 
-A production-oriented data engineering and analytics platform that collects, transforms, stores, and analyzes technology job market data from external sources. The system provides insights into skill demand, salary trends, hiring patterns, and workforce dynamics through a layered architecture consisting of an ETL pipeline, analytics engine, REST API, and interactive analytics dashboard.
+A production-oriented data engineering and analytics platform for collecting, transforming, enriching, storing, and analyzing technology job-market data.
 
-The project demonstrates production-ready software engineering practices, including clean architecture, layered design, repository and service patterns, data validation, analytics, scalable backend development, and modern frontend integration, all orchestrated in a containerized environment.
+The project combines an ETL pipeline, PostgreSQL database, analytics layer, FastAPI REST API, and Streamlit dashboard to turn job-posting data into insights about skills, salaries, companies, locations, employment types, and posting trends.
 
----
+## What Is Job Market Intelligence?
 
-## Why This Project
+Job Market Intelligence collects job-market data, processes it through a validation and enrichment pipeline, stores the resulting data in PostgreSQL, exposes analytics through a versioned REST API, and presents the results through an interactive dashboard.
 
-Many portfolio projects stop after collecting data.
+The current production ingestion source is **Adzuna**.
 
-This project simulates a real-world data platform by implementing:
+The project is also a portfolio-scale demonstration of:
 
-- Modular ETL pipeline
-- Layered architecture
-- Repository and Service patterns
-- Analytics engine
-- Production-ready REST API
-- Interactive analytics dashboard
-- API-driven frontend architecture
-- Docker containerization
-- CI/CD pipeline
-- Deployment-ready project structure
-- Automated ETL scheduling
-- Production monitoring and observability
+* Data engineering and ETL design
+* Backend/API development
+* PostgreSQL data modeling
+* Analytics engineering
+* Data validation and enrichment
+* Automated testing
+* Docker containerization
+* CI/CD and production deployment
+* Operational documentation and recovery procedures
 
-The goal is to demonstrate backend engineering, data engineering, analytics engineering, API development, frontend integration, and DevOps practices within a single cohesive application.
+## What Problem Does It Solve?
 
----
+Raw job-posting data is difficult to analyze consistently because postings contain inconsistent titles, locations, salary formats, skills, employment types, and other fields.
+
+The system provides a structured pipeline for:
+
+1. Collecting job postings
+2. Cleaning and validating incoming data
+3. Enriching job records
+4. Normalizing salary information
+5. Extracting and organizing skills
+6. Persisting structured data
+7. Exposing analytical results through an API
+8. Visualizing market patterns through a dashboard
+
+This makes the data useful for exploring questions such as:
+
+* Which skills appear most frequently?
+* What salary ranges are being advertised?
+* Which locations have the most postings?
+* How are remote, hybrid, and onsite roles distributed?
+* Which companies and job titles appear frequently?
+* How does job-posting activity change over time?
 
 ## Features
 
 ### ETL Pipeline
 
-- Extract job postings from external job APIs (currently Adzuna)
-- Transform external job data into a standardized internal format
-- Validate incoming data using Pydantic models
-- **Upsert** — Insert new jobs, update existing jobs by `source_id`
-- Prevent duplicate job records during ingestion
-- **90-day retention policy** — Automatic cleanup of jobs older than 90 days (based on `scraped_date`)
-- Track ETL pipeline executions with detailed metrics
-- **Automated daily execution** via GitHub Actions at 6:00 AM UTC
+* Adzuna job-posting extraction
+* Transformation and normalization
+* Validation and rejection handling
+* Duplicate prevention
+* Skill extraction and enrichment
+* Salary normalization
+* Configurable retention and cleanup
+* Pipeline execution metrics and status tracking
 
-### Enrichment Layer
+### Analytics
 
-- **Language Detection** — Detect job posting language (ISO 639-1)
-- **Skill Extraction** — Extract technical skills from job titles and descriptions
-- **Technology Classification** — Classify jobs into 18 technology categories with confidence scoring
-- **Geographic Enrichment** — Normalize country codes to ISO format
-- **Currency Normalization** — Normalize currencies and convert to USD
-- **Batch Processing** — Efficient skill persistence with duplicate handling
+The application provides analytics covering areas such as:
 
-### Analytics Engine
-
-- Analyze skill demand
-- Analyze salary trends
-- Analyze hiring companies
-- Analyze job locations
-- Analyze employment types
-- Analyze posting trends
-- Aggregate dashboard metrics
-- Dataset summaries with unique counts
-- Top skills, companies, and locations
+* Job volumes and trends
+* Skills
+* Salaries
+* Companies
+* Locations
+* Employment types
+* Remote-work patterns
 
 ### REST API
 
-- Expose job data through FastAPI
-- Expose analytics through REST endpoints
-- Filtering, pagination, and search
-- Health endpoints (`/live`, `/ready`, `/health`)
-- Database health endpoint
-- OpenAPI documentation (Swagger & ReDoc)
-- Request validation
-- Structured error handling
-- Request correlation IDs
-- Production logging
+FastAPI provides a versioned API under:
+
+```text
+/api/v1
+```
+
+The API includes resources for jobs, skills, locations, salary analytics, remote-work analytics, trends, overview metrics, pipeline information, and health monitoring.
+
+Interactive API documentation is available locally at:
+
+```text
+http://localhost:8000/docs
+```
+
+See [`docs/api_contract.md`](docs/api_contract.md) for the API contract.
 
 ### Interactive Dashboard
 
-- Interactive Streamlit dashboard
-- API-driven frontend (no direct database access)
-- Job explorer with search and filtering
-- Interactive Plotly visualizations
-- KPI dashboard with unique counts
-- Dashboard caching
-- Professional SVG icon system
-- Loading states and empty-state components
-- Friendly error handling
-- Modular reusable UI components
+The Streamlit dashboard consumes the API and provides an interactive interface for exploring the job-market data.
 
-### DevOps & Containerization
+### Data Quality and Operations
 
-- Docker containerization for all services
-- Docker Compose orchestration
-- GitHub Actions CI/CD pipeline
-- Automated linting, type checking, and testing
-- Environment variable management
-- Persistent database volumes
-- Container health checks
-- Non-root container users for security
-- Automated database migrations on startup
+The system includes:
 
-### Production Automation
-
-- **Automated ETL Pipeline** — Runs daily without manual intervention
-- **Idempotent Processing** — Safe to run multiple times without duplicates
-- **Data Lifecycle Management** — Automatic cleanup of old jobs
-- **Operational Visibility** — Pipeline runs tracked with metrics
-- **Concurrency Protection** — Prevents overlapping pipeline runs
-- **Structured Logging** — JSON logs with request correlation
-- **Health Monitoring** — Liveness, readiness, and detailed health checks
+* Validation during ETL processing
+* Database constraints and indexes
+* Migration management with Alembic
+* Structured application and ETL logging
+* Pipeline-run tracking
+* Health and readiness endpoints
+* Automated test coverage
+* Production deployment and recovery documentation
 
 ---
 
-## Tech Stack
+## Technology Stack
 
-### Backend
-
-- Python 3.13
-- FastAPI
-- SQLAlchemy 2.0
-- Alembic
-- Pydantic v2
-
-### Database
-
-- PostgreSQL 16
-
-### Data Processing
-
-- Pandas
-
-### Dashboard
-
-- Streamlit
-- Plotly
-
-### Development & DevOps
-
-- Git
-- GitHub
-- Docker
-- Docker Compose
-- GitHub Actions
-- Ruff
-- Black
-- MyPy
-- Pytest
-- Code Coverage
+| Area                 | Technology                |
+| -------------------- | ------------------------- |
+| Language             | Python 3.13               |
+| API                  | FastAPI, Uvicorn          |
+| Database             | PostgreSQL                |
+| ORM                  | SQLAlchemy                |
+| Migrations           | Alembic                   |
+| Validation           | Pydantic                  |
+| Data processing      | Pandas                    |
+| Dashboard            | Streamlit                 |
+| Testing              | Pytest                    |
+| Formatting           | Black                     |
+| Linting              | Ruff                      |
+| Type checking        | MyPy                      |
+| Containers           | Docker, Docker Compose    |
+| CI/CD                | GitHub Actions            |
+| Production API       | Render                    |
+| Production database  | Neon PostgreSQL           |
+| Production dashboard | Streamlit Community Cloud |
+| Job data source      | Adzuna                    |
+| Translation          | DeepL                     |
 
 ---
 
 ## Architecture
 
+### Application Architecture
+
 ```text
-                    GitHub Actions
-                  (Daily at 6:00 AM UTC)
-                           │
-                           ▼
-                    External Job APIs
-                           │
-                           ▼
-                     HTTP Client Layer
-                           │
-                           ▼
-                        Extractor
-                           │
-                           ▼
-                      Transformer
-                           │
-                           ▼
-                     Enrichment Layer
-                ┌─────────┼─────────┐
-                │         │         │
-          Language    Skills    Tech
-          Detection Extraction Classification
-                │         │         │
-                └─────────┼─────────┘
-                           ▼
-                  Validator (Pydantic)
-                           │
-                           ▼
-             Loader (Upsert + Purge)
-                           │
-                           ▼
-                  Repository Layer
-                           │
-                           ▼
-                      PostgreSQL
-                           ▲
-                           │
-                 Analytics Repository
-                           ▲
-                           │
-                     Service Layer
-                           ▲
-                           │
-                 FastAPI REST API
-                           ▲
-                           │
-                    API Client Layer
-                           ▲
-                           │
-                  Dashboard Services
-                           ▲
-                           │
-                  Streamlit Dashboard
-                           ▲
-                           │
-                           User
+                    Adzuna
+                      │
+                      ▼
+                ┌───────────┐
+                │    ETL    │
+                │ Extract   │
+                │ Transform │
+                │ Enrich    │
+                │ Validate  │
+                │ Load      │
+                └─────┬─────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │  PostgreSQL   │
+              └───────┬───────┘
+                      │
+                      ▼
+                ┌───────────┐
+                │  FastAPI  │
+                │  REST API │
+                └─────┬─────┘
+                      │
+                      ▼
+                ┌───────────┐
+                │ Streamlit │
+                │ Dashboard │
+                └───────────┘
 ```
+
+### Production Deployment Architecture
+
+```text
+                         GitHub
+                       /   |   \
+                      /    |    \
+                     ▼     ▼     ▼
+              GitHub     Render   Streamlit
+              Actions      │      Community
+                │          │        Cloud
+                │          │
+             CI / ETL    FastAPI
+                          │
+                          ▼
+                         Neon
+                      PostgreSQL
+```
+
+GitHub Actions handles CI and the ETL workflow.
+
+A push to the main branch can trigger the Render API deployment through Render's configured auto-deployment.
+
+The production API runs on Render and connects to PostgreSQL on Neon.
+
+The Streamlit dashboard is deployed separately through Streamlit Community Cloud.
+
+### Production Data Flow
+
+```text
+Adzuna
+   ↓
+Extraction
+   ↓
+Transformation
+   ↓
+Enrichment
+   ↓
+Validation
+   ↓
+PostgreSQL / Neon
+   ↓
+FastAPI / Render
+   ↓
+Streamlit Community Cloud
+```
+
+For the detailed architecture and design decisions, see [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
 ## Project Structure
 
 ```text
-job-market-intelligence/
-│
-├── .github/
-│   ├── workflows/
-│   │   ├── quality.yml        # CI/CD pipeline
-│   │   └── etl-pipeline.yml   # Daily ETL automation
-│
+job-market-analytics-api/
 ├── app/
-│   ├── api/
-│   │   ├── routes/
-│   │   ├── dependencies.py
-│   │   ├── exception_handlers.py
-│   │   └── router.py
-│   │
-│   ├── core/
-│   │   ├── logging.py
-│   │   └── settings.py
-│   │
-│   ├── database/
-│   ├── etl/
-│   │   ├── clients/
-│   │   ├── enrichment/
-│   │   │   ├── data/
-│   │   │   │   ├── country_map.py
-│   │   │   │   ├── currency_map.py
-│   │   │   │   ├── skills.py
-│   │   │   │   └── technology_categories.py
-│   │   │   ├── country_normalizer.py
-│   │   │   ├── currency_normalizer.py
-│   │   │   ├── enricher.py
-│   │   │   ├── skill_extractor.py
-│   │   │   └── technology_classifier.py
-│   │   ├── extractors/
-│   │   ├── loaders/
-│   │   ├── schemas/
-│   │   │   ├── enriched.py
-│   │   │   ├── metrics.py
-│   │   │   ├── transformed.py
-│   │   │   └── validated.py
-│   │   ├── transformers/
-│   │   └── validators/
-│   │
-│   ├── models/
-│   ├── repositories/
-│   ├── schemas/
-│   ├── services/
-│   └── main.py
+│   ├── api/              # FastAPI routes
+│   ├── etl/              # Extraction, transformation, enrichment and loading
+│   ├── models/            # SQLAlchemy models
+│   ├── repositories/      # Data-access layer
+│   └── services/          # Application/business services
 │
-├── dashboard/
-│   ├── api/
-│   ├── components/
-│   ├── core/
-│   ├── pages/
-│   ├── schemas/
-│   ├── services/
-│   ├── utils/
-│   └── app.py
-│
-├── docs/
-│   ├── automation.md
-│   ├── deployment_checklist.md
-│   ├── operations.md
-│   └── roadmap.md
-│
-├── migrations/
-├── scripts/
-│   ├── run_pipeline.py
-│   └── sample_jobs.py
+├── config/                # Application configuration
+├── dashboard/             # Streamlit dashboard
+├── migrations/            # Alembic migrations
+├── scripts/               # Operational and ETL scripts
 ├── tests/
-│   ├── smoke/
-│   │   └── test_production.py
+│   ├── unit/
 │   ├── integration/
-│   │   ├── test_database.py
-│   │   ├── test_repository_service.py
-│   │   ├── test_etl_pipeline.py
-│   │   ├── test_analytics_pipeline.py
-│   │   ├── test_api.py
-│   │   └── test_dashboard_api.py
-│   └── unit/
+│   └── e2e/
 │
-├── Dockerfile
-├── compose.yml
-├── render.yaml
-├── .dockerignore
-├── .env.example
-├── Makefile
-├── pyproject.toml
-├── requirements.txt
-└── README.md
+├── docs/                  # Project documentation
+├── compose.yml            # Local multi-service environment
+├── Dockerfile             # API container
+├── render.yaml            # Render deployment configuration
+├── requirements.txt       # Python dependencies
+└── pyproject.toml         # Python/tool configuration
 ```
 
 ---
 
-## Roadmap
+## Getting Started
 
-This project follows a sprint-based development roadmap, progressing from database foundation through ETL, analytics, API, dashboard, integration testing, and finally production hardening.
+### Prerequisites
 
-**Current status:** Sprint 6.7.1 – 6.7.8 complete — PostgreSQL-backed integration and end-to-end test infrastructure established (74 tests passing).
+Install:
 
-**Next up:**
-- ⏸️ Sprint 6.7.9 – 6.7.11 (Production Smoke Testing, ETL Automation Verification, Regression & Final Validation) — postponed until the Neon free-tier storage refreshes next month.
-- 🚧 Sprint 6.8 — Production Hardening & Documentation — **the final sprint**, producing the `v1.0.0` release candidate.
+* Git
+* Docker Desktop with Docker Compose
+* Python 3.13 if running tools directly on the host
 
-After `v1.0.0`, the project leaves the planned development roadmap. New work is driven by real defects, operational observations, and user feedback — not by extending the sprint plan.
-
-📖 **[View the full roadmap →](docs/roadmap.md)**
-
----
-
-## Docker Development
-
-### Quick Start
-
-Clone the repository:
+### Clone the Repository
 
 ```bash
 git clone https://github.com/jaymwangi/job-market-intelligence.git
 cd job-market-intelligence
 ```
 
-Create environment configuration:
+### Create Local Configuration
 
-```bash
-cp .env.example .env
-```
+Create a `.env` file containing the configuration required by the local environment.
 
-Start the application:
+Do not commit secrets or production credentials.
+
+The exact configuration and environment variables are documented in [`docs/development.md`](docs/development.md).
+
+### Start the Local Application
+
+The recommended local workflow uses Docker Compose:
 
 ```bash
 docker compose up --build
 ```
 
-### Startup Flow
+The local services are:
+
+| Service    | Address                       |
+| ---------- | ----------------------------- |
+| PostgreSQL | `localhost:15432`             |
+| FastAPI    | `http://localhost:8000`       |
+| Swagger UI | `http://localhost:8000/docs`  |
+| ReDoc      | `http://localhost:8000/redoc` |
+| Streamlit  | `http://localhost:8501`       |
+
+The API container applies Alembic migrations before starting Uvicorn.
+
+For the complete development workflow, see [`docs/development.md`](docs/development.md).
+
+---
+
+## Configuration
+
+Configuration is supplied through environment variables.
+
+Important configuration areas include:
+
+### Application
 
 ```text
-docker compose up
-│
-▼
-PostgreSQL container starts
-│
-▼
-Database health check passes
-│
-▼
-Alembic migrations execute
-│
-▼
-FastAPI backend starts
-│
-▼
-Backend health check passes
-│
-▼
-Streamlit dashboard starts
+ENVIRONMENT
+DEBUG
+SECRET_KEY
+LOG_LEVEL
+LOG_FORMAT
 ```
 
-### Application Access
+### Database
 
-| Service | URL |
-|---------|-----|
-| FastAPI API | http://localhost:8000 |
-| Swagger Docs | http://localhost:8000/docs |
-| Streamlit Dashboard | http://localhost:8501 |
-| PostgreSQL | localhost:5432 |
-
-### Useful Commands
-
-**Start application:**
-```bash
-docker compose up
+```text
+DATABASE_URL
 ```
 
-**Run in background:**
-```bash
-docker compose up -d
+### Adzuna
+
+```text
+ADZUNA_APP_ID
+ADZUNA_APP_KEY
 ```
 
-**View logs:**
-```bash
-docker compose logs -f
+### Translation
+
+```text
+TRANSLATION_PROVIDER
+DEEPL_API_KEY
 ```
 
-**Stop containers:**
-```bash
-docker compose down
+### ETL
+
+```text
+ETL_TIMEOUT_MINUTES
+PIPELINE_RETENTION_DAYS
 ```
 
-**Remove database volume:**
-```bash
-docker compose down -v
+Actual variable names and validation rules should be treated as defined by the application's configuration module.
+
+Never place real credentials in source control.
+
+---
+
+## API
+
+The API is versioned under:
+
+```text
+/api/v1
 ```
 
-**Run migrations:**
-```bash
-docker compose exec backend alembic upgrade head
+Key areas include:
+
+* Health and readiness
+* Jobs
+* Skills
+* Locations
+* Salary analytics
+* Remote-work analytics
+* Job trends
+* Overview analytics
+* Pipeline status and runs
+
+### Health Endpoints
+
+```text
+GET /api/v1/health/live
+GET /api/v1/health/ready
+GET /api/v1/health
+GET /api/v1/health/database
 ```
 
-**Run tests:**
-```bash
-docker compose exec backend pytest
-```
+Their purposes differ:
 
-**Run linting checks:**
-```bash
-docker compose exec backend ruff check .
-```
+* `health/live` checks that the API process is alive.
+* `health/ready` verifies database readiness.
+* `health` provides broader API/database health information.
+* `health/database` checks database connectivity and response information.
 
-**Run type checking:**
-```bash
-docker compose exec backend mypy app
-```
-
-**Run ETL pipeline manually:**
-```bash
-docker compose exec backend python scripts/run_pipeline.py
-```
+See [`docs/api_contract.md`](docs/api_contract.md) for the detailed API contract.
 
 ---
 
 ## Testing
 
-The project includes testing for:
+The project uses multiple testing layers:
 
-- ETL pipeline
-- Repository layer
-- Service layer
-- Analytics engine
-- FastAPI REST API
-- Dashboard services
-- Dashboard utilities
-- Dashboard caching
-- API integration
-- End-to-end ETL workflow
-- Production smoke tests
-- Sprint regression verification
-- **Integration tests** (PostgreSQL-backed)
-  - Database connectivity and schema
-  - Repository and service operations
-  - ETL pipeline processing
-  - Analytics engine queries
-  - API endpoint validation
-  - Dashboard API client integration
-
-**Example verification:**
-```bash
-python scripts/verify_sprint5.py
+```text
+Unit Tests
+    ↓
+Integration Tests
+    ↓
+E2E Tests
+    ↓
+Production Smoke Tests
 ```
 
-**Smoke Tests:**
+### Unit Tests
+
+Test individual functions, services, repositories, ETL components, and dashboard components in isolation.
+
 ```bash
-pytest tests/smoke/ -v -m smoke
+pytest tests/unit/ -v
 ```
 
-**Integration Tests:**
+### Integration Tests
+
+Test interactions between application components and infrastructure such as the database and API.
+
 ```bash
 pytest tests/integration/ -v
 ```
 
-**Run specific integration test:**
+### E2E Tests
+
+Test complete application workflows across multiple components.
+
 ```bash
-pytest tests/integration/test_dashboard_api.py -v
+pytest tests/e2e/ -v
 ```
 
-**Continuous Integration:**
-Testing is automatically validated through GitHub Actions. The CI pipeline executes:
+### Full Test Suite
 
-- Ruff linting
-- Black formatting checks
-- MyPy type checking
-- Unit tests
-- PostgreSQL integration tests (74+ tests)
-- Docker image builds
+```bash
+pytest
+```
+
+The test suite includes coverage configuration and strict pytest markers.
+
+Production smoke testing is a separate verification layer. It has been postponed while the production Neon data-transfer quota issue is being resolved.
+
+Detailed testing guidance belongs in [`docs/testing.md`](docs/testing.md).
+
+---
+
+## ETL Automation
+
+The ETL pipeline can be executed manually through GitHub Actions using the `workflow_dispatch` trigger.
+
+The scheduled daily trigger is currently **suspended pending remediation of the Neon data-transfer limitation**.
+
+This means:
+
+```text
+Manual workflow_dispatch → available
+Scheduled execution      → suspended
+```
+
+The workflow:
+
+1. Checks out the repository
+2. Sets up Python
+3. Installs dependencies
+4. Runs database migrations
+5. Validates production configuration
+6. Executes the ETL pipeline
+
+The workflow also uses concurrency protection to prevent overlapping ETL runs.
+
+See [`docs/deployment.md`](docs/deployment.md) and the operational documentation for current production procedures.
 
 ---
 
 ## Production Deployment
 
-### Render Deployment
+### API
 
-The application can be deployed to Render using the provided `render.yaml`:
+The FastAPI service is deployed to Render using the project's Dockerfile and `render.yaml`.
 
-```yaml
-services:
-  - type: web
-    name: job-market-intelligence-api
-    runtime: docker
-    plan: free
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: job-market-db
-          property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
-      - key: ENVIRONMENT
-        value: production
-```
+The container:
 
-### GitHub Actions Automation
+1. Installs dependencies
+2. Copies the application
+3. Runs as a non-root user
+4. Applies Alembic migrations
+5. Starts Uvicorn
 
-The ETL pipeline runs automatically every day:
+Render uses:
 
 ```text
-GitHub Actions (6:00 AM UTC)
-        │
-        ▼
-Checkout Code
-        │
-        ▼
-Install Dependencies
-        │
-        ▼
-Run Migrations
-        │
-        ▼
-Execute ETL Pipeline
-        │
-        ▼
-Update Database
-        │
-        ▼
-Record Pipeline Run
+/api/v1/health/live
 ```
+
+as the liveness endpoint.
+
+### Database
+
+Production PostgreSQL is hosted on Neon.
+
+Database migrations are managed with Alembic.
+
+Normal migration operation is:
+
+```bash
+alembic upgrade head
+```
+
+### Dashboard
+
+The Streamlit dashboard is deployed separately through Streamlit Community Cloud.
+
+### ETL
+
+ETL execution is managed through GitHub Actions.
+
+The scheduled trigger is currently suspended pending Neon data-transfer remediation; manual execution remains available.
+
+For deployment, rollback, recovery, and production verification procedures, see [`docs/deployment.md`](docs/deployment.md).
+
+---
+
+## Database Migrations
+
+Alembic manages the database schema.
+
+Useful commands:
+
+```bash
+alembic history --verbose
+alembic current
+alembic upgrade head
+```
+
+`alembic current` requires a reachable database.
+
+`alembic history --verbose` can be used to inspect the migration chain without connecting to the database.
+
+Database downgrades are not treated as a routine production rollback mechanism because older revisions may remove schema or data. Application rollback and database rollback are separate concerns.
+
+See [`docs/development.md`](docs/development.md) and [`docs/deployment.md`](docs/deployment.md) for the detailed procedures.
+
+---
+
+## Troubleshooting
+
+| Symptom                     | First check                                                         |
+| --------------------------- | ------------------------------------------------------------------- |
+| API does not start          | Container logs, database connectivity, and migrations               |
+| Dashboard cannot reach API  | API URL and API health endpoint                                     |
+| Database connection failure | `DATABASE_URL`, database availability, and provider status          |
+| Migration failure           | Migration logs and current Alembic revision                         |
+| ETL failure                 | GitHub Actions logs and pipeline-run information                    |
+| Render reports no open port | Check whether startup failed before Uvicorn bound to `$PORT`        |
+| Neon data-transfer error    | Check the Neon project quota before attempting application rollback |
+
+One documented production failure involved Neon rejecting database connections after the project's data-transfer quota was exceeded. The resulting absence of an open API port was a downstream effect of the migration/startup failure.
+
+For detailed diagnosis and recovery procedures, see [`docs/troubleshooting.md`](docs/troubleshooting.md) and [`docs/deployment.md`](docs/deployment.md).
+
+---
+
+## Documentation
+
+| Document                                             | Purpose                                    |
+| ---------------------------------------------------- | ------------------------------------------ |
+| [`docs/architecture.md`](docs/architecture.md)       | System architecture and design             |
+| [`docs/api_contract.md`](docs/api_contract.md)       | API usage and contract                     |
+| [`docs/database_schema.md`](docs/database_schema.md) | Database structure                         |
+| [`docs/development.md`](docs/development.md)         | Local development workflow                 |
+| [`docs/deployment.md`](docs/deployment.md)           | Deployment, rollback and recovery          |
+| [`docs/testing.md`](docs/testing.md)                 | Testing strategy and execution             |
+| [`docs/operations.md`](docs/operations.md)           | Production operations and monitoring       |
+| [`docs/troubleshooting.md`](docs/troubleshooting.md) | Diagnosis and recovery of common failures  |
+| [`docs/requirements.md`](docs/requirements.md)       | Functional and non-functional requirements |
+| [`docs/roadmap.md`](docs/roadmap.md)                 | Development roadmap and history            |
+| [`docs/sprint_plan.md`](docs/sprint_plan.md)         | Original sprint planning                   |
+| [`docs/Project About.md`](docs/Project%20About.md)   | Project and portfolio narrative            |
+
+---
+
+## Roadmap
+
+The project is in the **6.8.x hardening and documentation phase**.
+
+Current work includes:
+
+* Deployment and recovery documentation
+* Developer experience improvements
+* Testing documentation
+* Operations documentation
+* Troubleshooting documentation
+* Architecture documentation cleanup
+* Final documentation consistency checks
+
+See [`docs/roadmap.md`](docs/roadmap.md) for the detailed development history.
 
 ---
 
@@ -546,14 +596,8 @@ Record Pipeline Run
 
 This project is licensed under the MIT License.
 
----
-
 ## Contact
-
-**Author:** Jay Mwangi
 
 **GitHub:** [jaymwangi](https://github.com/jaymwangi)
 
 **Project:** [job-market-intelligence](https://github.com/jaymwangi/job-market-intelligence)
-```
-

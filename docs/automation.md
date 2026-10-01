@@ -1,10 +1,10 @@
 # Pipeline Automation
 
-The ETL pipeline runs automatically every day at 6:00 AM UTC via GitHub Actions.
+The ETL pipeline is executed through GitHub Actions. Manual workflow_dispatch execution is currently available; the scheduled 06:00 UTC trigger is suspended pending Neon data-transfer remediation.
 
 ## How It Works
 
-1. GitHub Actions triggers on schedule
+1. GitHub Actions is triggered manually through workflow_dispatch while the scheduled trigger is suspended
 2. Checks out code
 3. Installs dependencies
 4. Runs database migrations

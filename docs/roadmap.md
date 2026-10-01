@@ -40,6 +40,12 @@ This document tracks the development roadmap for Job Market Intelligence.
 | 🚧 Sprint 6.8 | In Progress | Production Hardening & Documentation → **v1.0.0** |
 | ✅ Sprint 6.8.1 | Complete | Release Baseline & Repository Cleanup |
 | ✅ Sprint 6.8.2 | Complete | Configuration & Secrets Hardening |
+| ✅ Sprint 6.8.3 | Complete | Error Handling & Reliability Hardening |
+| ✅ Sprint 6.8.4 | Complete | Resource Usage & Performance Hardening |
+| ✅ Sprint 6.8.5 | Complete | Security & Dependency Hardening |
+| ✅ Sprint 6.8.6 | Complete | Observability & Operational Readiness |
+| ✅ Sprint 6.8.7 | Complete | Deployment, Rollback & Recovery |
+| ✅ Sprint 6.8.8 | Complete | Documentation & Developer Experience |
 
 > **Postponement note:** Sprints 6.7.9 – 6.7.11 are deferred until the Neon free-tier 5 GB storage refreshes next month. They will be resumed before the final release audit in Sprint 6.8.
 
@@ -603,3 +609,16 @@ Sprint 6.8 is the final pre-release sprint for the v1.0.0 release candidate.
 - Documented the actual Neon data-transfer quota failure observed during deployment and its recovery implications
 - Verified deployment documentation with `git diff --check`
 - Sprint 6.8.7 commit: `4f558d6`
+
+### ✅ Sprint 6.8.8 — Documentation & Developer Experience
+
+- Updated `README.md` with the project purpose, problem statement, architecture, features, technology stack, installation flow, configuration, testing, deployment, ETL automation, migrations, troubleshooting, and documentation structure
+- Updated `docs/architecture.md` to document the current production architecture, data flow, backend and dashboard boundaries, ETL architecture, repositories, migrations, caching, failure boundaries, and architectural decisions
+- Updated `docs/automation.md` to reflect the current GitHub Actions ETL workflow and the suspended scheduled trigger with manual `workflow_dispatch` execution available
+- Added `docs/development.md` covering local setup, development workflow, migrations, ETL execution, testing, quality checks, and common development pitfalls
+- Added `docs/testing.md` covering unit, integration, E2E, production smoke testing, coverage, CI, quality checks, and test troubleshooting
+- Added `docs/operations.md` covering production architecture, health monitoring, ETL observability, operational checks, logs, Render, Neon, Streamlit, and manual ETL execution
+- Added `docs/troubleshooting.md` covering API, database, migrations, ETL, dashboard, Docker, CI, configuration, external API failures, and the observed Neon quota failure
+- Verified the required documentation structure and checked for stale technology, data-source, automation, and coverage claims
+- Preserved the postponed status of Sprints 6.7.9–6.7.11: Production Smoke Testing, ETL Automation Verification, and Regression & Final Validation
+- Verified documentation changes with `git diff --check`

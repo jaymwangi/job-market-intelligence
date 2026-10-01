@@ -1,422 +1,830 @@
+# Job Market Intelligence — Architecture
 
-# Job Market Intelligence
+## Purpose
 
-## Architecture Document
+This document describes the current architecture of Job Market Intelligence and the responsibilities of its major components.
 
-### Version
-v1.0
+It answers:
 
----
+- How does data move through the system?
+- Where does business logic live?
+- How does the API access PostgreSQL?
+- How does the dashboard consume the API?
+- How is the ETL pipeline separated from the API?
+- How is the production system deployed?
 
-# 1. Architecture Overview
+Development setup is documented in [`development.md`](development.md).
 
-Job Market Intelligence is a full-stack job market analytics platform with a clean layered architecture.
+Testing strategy is documented in [`testing.md`](testing.md).
 
-## System Components
-
-
-┌─────────────────────────────────────────────────────────────────┐
-│                    External Data Sources                        │
-│              (Adzuna, Indeed, LinkedIn APIs)                    │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      ETL Pipeline                               │
-│  ┌───────────┐    ┌───────────┐    ┌───────────┐              │
-│  │  Extract  │ →  │ Transform │ →  │   Load    │              │
-│  └───────────┘    └───────────┘    └───────────┘              │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    PostgreSQL Database                          │
-│              (Jobs, Skills, Analytics Data)                     │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Repository Layer                             │
-│              (Data Access Abstraction)                          │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Service Layer                                │
-│              (Business Logic, Analytics)                        │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    FastAPI REST API                             │
-│              (HTTP Endpoints, Validation)                       │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Streamlit Dashboard                           │
-│              (Data Visualization, UI)                           │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Why Layered Architecture?
-
-| Benefit | Description |
-|---------|-------------|
-| **Maintainability** | Each layer can be modified independently |
-| **Testability** | Layers can be tested in isolation |
-| **Scalability** | Components can be scaled independently |
-| **Reliability** | Failure in one layer doesn't cascade |
-| **Clarity** | Each layer has a single responsibility |
+Deployment and recovery procedures are documented in [`deployment.md`](deployment.md).
 
 ---
 
-# 2. Dashboard Architecture
+# 1. System Architecture
 
-## Overview
+Job Market Intelligence is a full-stack job-market analytics platform built around a Python ETL pipeline, PostgreSQL database, FastAPI backend, and Streamlit dashboard.
 
-The Streamlit dashboard follows a clean layered architecture with strict separation of concerns:
+The current production ingestion source is Adzuna.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Pages Layer                             │
-│              (UI Orchestration Only)                            │
-│                                                                 │
-│  • Only call services                                           │
-│  • Render components                                            │
-│  • No HTTP requests                                             │
-│  • No business logic                                            │
-│  • No data transformation                                       │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        Service Layer                            │
-│              (Business Logic + Anti-Corruption)                 │
-│                                                                 │
-│  • Call API endpoints                                           │
-│  • Validate responses                                           │
-│  • Normalize DTOs → Domain Models                               │
-│  • Apply business rules                                         │
-│  • Coordinate caching                                           │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        Mapper Layer                             │
-│              (Presentation Transformation)                      │
-│                                                                 │
-│  • Domain Models → Chart Models                                 │
-│  • Prepare visualization-ready data                             │
-│  • Shield charts from business changes                         │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Chart Components                           │
-│              (Pure Plotly Figures)                              │
-│                                                                 │
-│  • Accept chart models                                          │
-│  • Return Plotly figures                                        │
-│  • No business logic                                            │
-│  • No API calls                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+```text
+                         Adzuna
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │ ETL Acquisition │
+                  │    Extract      │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │ Transformation  │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │   Enrichment    │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │   Validation    │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │     Loader      │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │   PostgreSQL    │
+                  │      Neon       │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │  Repositories   │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │    Services     │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │     FastAPI     │
+                  │      API       │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │ Streamlit       │
+                  │ Dashboard       │
+                  └─────────────────┘
+````
 
-## Data Flow Example
-
-```python
-# 1. Page calls service
-chart_data = service.get_skills_chart()
-
-# 2. Service fetches from API
-data = self.api_client.get('/api/v1/analytics/top-skills')
-
-# 3. Service normalizes to domain models
-skills = [TopSkill(**item) for item in data]
-
-# 4. Service uses mapper to transform
-chart = self.mapper.to_horizontal_bar_chart(skills)
-
-# 5. Page receives presentation-ready data
-fig = create_horizontal_bar_chart(chart_data)
-
-# 6. Dashboard renders chart
-st.plotly_chart(fig)
-```
-
-## Layer Rules
-
-| Layer | Can Do | Cannot Do |
-|-------|--------|-----------|
-| **Pages** | UI orchestration, render components | HTTP, Plotly, business logic, transformations |
-| **Services** | API calls, validation, normalization | Streamlit, session state, visualization |
-| **Mappers** | Domain → Chart Model transformation | HTTP, UI, business logic |
-| **Charts** | Plotly figure creation | API calls, backend knowledge, business logic |
-| **API Client** | HTTP transport | Business logic, caching, visualization |
+The system is intentionally separated into data ingestion, persistence, backend application logic, and presentation layers.
 
 ---
 
-# 3. Dashboard Components
+# 2. Production Architecture
 
-## Component Structure
+The production deployment separates source control, automation, API hosting, dashboard hosting, and database hosting.
 
+```text
+                              GitHub
+                           /    │    \
+                          /     │     \
+                         ▼      ▼      ▼
+                GitHub Actions Render  Streamlit
+                  CI / ETL      API     Community
+                                  │       Cloud
+                                  │
+                                  ▼
+                                Neon
+                             PostgreSQL
 ```
+
+### GitHub
+
+GitHub is the source repository and automation control plane.
+
+It contains:
+
+* Application source code
+* Dashboard source code
+* Database migrations
+* Tests
+* Documentation
+* GitHub Actions workflows
+
+### GitHub Actions
+
+GitHub Actions provides:
+
+* Continuous integration
+* Quality checks
+* Unit testing
+* Integration testing
+* E2E testing
+* ETL execution
+
+The ETL workflow is currently available through manual `workflow_dispatch`. Its scheduled trigger is suspended pending Neon data-transfer remediation.
+
+### Render
+
+Render hosts the FastAPI backend.
+
+The API is deployed as a Docker container.
+
+The container startup sequence runs:
+
+```text
+alembic upgrade head
+        ↓
+uvicorn
+        ↓
+FastAPI
+```
+
+Render uses:
+
+```text
+/api/v1/health/live
+```
+
+as its configured health-check path.
+
+### Streamlit Community Cloud
+
+Streamlit Community Cloud hosts the dashboard.
+
+The dashboard communicates with the FastAPI API rather than accessing the production database directly.
+
+### Neon
+
+Neon provides the production PostgreSQL database.
+
+Both the deployed API and production ETL workflow require database connectivity.
+
+---
+
+# 3. Data Flow
+
+The production data flow is:
+
+```text
+Adzuna
+   ↓
+Acquisition
+   ↓
+Transformation
+   ↓
+Enrichment
+   ↓
+Validation
+   ↓
+Loading
+   ↓
+PostgreSQL / Neon
+   ↓
+FastAPI
+   ↓
+Streamlit Dashboard
+```
+
+Each stage has a distinct responsibility.
+
+### Acquisition
+
+Located primarily under:
+
+```text
+app/etl/acquisition/
+app/etl/extractors/
+app/etl/clients/
+```
+
+The acquisition layer obtains job data from the external source.
+
+### Transformation
+
+Located under:
+
+```text
+app/etl/transformers/
+```
+
+Raw source records are converted into the application's transformed representation.
+
+### Enrichment
+
+Located under:
+
+```text
+app/etl/enrichment/
+```
+
+Enrichment includes operations such as:
+
+* Country normalization
+* Currency normalization
+* Language detection
+* Skill extraction
+* Technology classification
+* Technology scoring
+* Job classification
+
+### Validation
+
+Located under:
+
+```text
+app/etl/validators/
+```
+
+Validation ensures that records satisfy the application's expected data rules before loading.
+
+### Loading
+
+Located under:
+
+```text
+app/etl/loaders/
+```
+
+The loader persists validated records and associated information in PostgreSQL.
+
+Pipeline metrics are recorded so ETL execution can be monitored operationally.
+
+---
+
+# 4. Backend Architecture
+
+The backend follows a layered application structure.
+
+```text
+HTTP Request
+     ↓
+FastAPI Routes
+     ↓
+Services
+     ↓
+Repositories
+     ↓
+SQLAlchemy / Database
+     ↓
+PostgreSQL
+```
+
+## API Layer
+
+Located under:
+
+```text
+app/api/
+```
+
+Responsibilities include:
+
+* HTTP routing
+* Dependency injection
+* Request/response handling
+* API middleware
+* Exception handling
+
+Routes are organized under:
+
+```text
+app/api/routes/
+```
+
+Current route groups include:
+
+* `analytics.py`
+* `health.py`
+* `jobs.py`
+
+The API is versioned under:
+
+```text
+/api/v1
+```
+
+---
+
+## Service Layer
+
+Located under:
+
+```text
+app/services/
+```
+
+Services contain application and business logic that should not be embedded directly in HTTP route functions.
+
+Current service areas include:
+
+* Job services
+* Analytics services
+* Translation services
+
+The service layer coordinates repositories and other application-level operations.
+
+---
+
+## Repository Layer
+
+Located under:
+
+```text
+app/repositories/
+```
+
+Repositories provide the database-access abstraction used by services. API routes construct the required repository dependencies and pass them to services. Some specialized service operations, such as ETL pipeline-status queries, instantiate a dedicated repository directly.
+
+Current repositories include:
+
+* `job_repository.py`
+* `skill_repository.py`
+* `analytics_repository.py`
+* `pipeline_run_repository.py`
+
+This separation keeps database-specific access patterns out of API route functions.
+
+---
+
+## Database Layer
+
+Located under:
+
+```text
+app/database/
+```
+
+Responsibilities include:
+
+* Database session management
+* Database health checks
+* SQLAlchemy base configuration
+
+The production database is PostgreSQL hosted by Neon.
+
+---
+
+## Models and Schemas
+
+Database models are located under:
+
+```text
+app/models/
+```
+
+Current model areas include:
+
+* Jobs
+* Skills
+* Job-skill relationships
+* Pipeline runs
+
+API schemas are located under:
+
+```text
+app/schemas/
+```
+
+These define typed structures used by the API.
+
+---
+
+# 5. ETL Architecture
+
+The ETL pipeline is intentionally separate from the request-serving API.
+
+The pipeline supports two acquisition modes:
+
+```text
+Adaptive acquisition
+External Source
+      ↓
+Acquisition Controller
+      ↓
+Batch Extraction
+      ↓
+Transformation
+      ↓
+Enrichment / Classification
+      ↓
+Classification Feedback
+      └──────────────→ Acquisition Controller
+      ↓
+Loading
+      ↓
+Pipeline Metrics
+```
+
+When adaptive acquisition is disabled, the pipeline uses the legacy flow:
+
+```text
+External Source
+      ↓
+Extract All
+      ↓
+Transformation
+      ↓
+Enrichment
+      ↓
+Validation
+      ↓
+Loading
+      ↓
+Pipeline Metrics
+```
+
+The pipeline runner is:
+
+```text
+scripts/run_pipeline.py
+```
+
+The separation provides an important operational boundary:
+
+* API requests do not perform the full ingestion pipeline.
+* ETL execution can be scheduled or triggered independently.
+* ETL failures can be inspected through pipeline execution records and workflow logs.
+* Database loading is handled by dedicated ETL components.
+
+The ETL pipeline records execution information in the `pipeline_runs` table.
+
+---
+
+# 6. Dashboard Architecture
+
+The Streamlit dashboard is a separate application that consumes the FastAPI API.
+
+Its source structure is:
+
+```text
+dashboard/
+├── api/
+├── core/
+├── schemas/
+├── services/
+├── mappers/
+├── components/
+├── pages/
+└── utils/
+```
+
+The dashboard therefore has its own internal application layers.
+
+```text
+Streamlit Pages
+       ↓
+Dashboard Services
+       ↓
+API Client
+       ↓
+FastAPI
+```
+
+For visualization-specific processing:
+
+```text
+API Response
+     ↓
+Dashboard Service
+     ↓
+Dashboard Schema
+     ↓
+Mapper
+     ↓
+Chart / UI Component
+     ↓
+Streamlit Page
+```
+
+---
+
+## Dashboard API Layer
+
+Located under:
+
+```text
+dashboard/api/
+```
+
+The API layer handles HTTP communication with the FastAPI backend.
+
+It contains:
+
+* Base client
+* API client
+* Endpoint definitions
+* API exceptions
+
+Dashboard pages should not implement raw HTTP requests directly.
+
+---
+
+## Dashboard Services
+
+Located under:
+
+```text
+dashboard/services/
+```
+
+Services coordinate API calls and prepare application data for the dashboard.
+
+Current service areas include:
+
+* Analytics
+* Jobs
+* Health
+
+---
+
+## Dashboard Schemas
+
+Located under:
+
+```text
+dashboard/schemas/
+```
+
+Schemas provide typed representations for dashboard data.
+
+They help isolate the dashboard from raw API response structures.
+
+---
+
+## Dashboard Mappers
+
+Located under:
+
+```text
+dashboard/mappers/
+```
+
+Mappers transform application data into presentation-oriented structures such as chart data.
+
+This keeps visualization-specific transformation outside page orchestration.
+
+---
+
+## Dashboard Components
+
+Located under:
+
+```text
 dashboard/components/
-├── alerts.py         # Accessible alert messages (error, success, warning, info)
-├── charts.py         # Reusable Plotly chart library (bar, line, pie, donut, histogram)
-├── empty_state.py    # Empty states with suggestions and reset options
-├── filters.py        # Job filter UI components
-├── icons.py          # Professional SVG icon system
-├── layout.py         # Reusable layout components (headers, dividers, stats bars)
-├── loading.py        # Loading states (spinners, skeleton loaders)
-├── metrics.py        # KPI metric cards with professional styling
-├── pagination.py     # Pagination controls
-├── sidebar.py        # Professional navigation sidebar
-└── tables.py         # Job tables with inline expansion
 ```
 
-## Component Responsibilities
+Reusable components include:
 
-### `icons.py`
-Central SVG icon system for professional look.
+* Charts
+* Tables
+* Filters
+* Metrics
+* Alerts
+* Loading states
+* Pagination
+* Job cards
+* Job details
+* Layout
+* Sidebar
+* Icons
 
-```python
-# Usage
-icon = get_icon("analytics", size=24, color="#1a1a2e")
-st.markdown(f'<span>{icon}</span>', unsafe_allow_html=True)
-```
-
-### `charts.py`
-Pure Plotly figure factory.
-
-```python
-# Each function accepts a chart model and returns a Plotly figure
-create_bar_chart(data: BarChartData) -> go.Figure
-create_line_chart(data: LineChartData) -> go.Figure
-create_pie_chart(data: PieChartData) -> go.Figure
-```
-
-### `metrics.py`
-Professional KPI metric cards.
-
-```python
-# Renders a metric card with SVG icon
-render_metric_card(metric: MetricCardData)
-```
-
-### `layout.py`
-Consistent page layout components.
-
-```python
-page_header(title, subtitle, icon)  # Page header with SVG icon
-section_header(title, subtitle, icon)  # Section header
-divider()  # Visual divider
-stats_bar(stats)  # Stats bar with SVG icons
-```
+Components should remain reusable and should not contain backend business logic.
 
 ---
 
-# 4. Dashboard Pages
+## Dashboard Pages
 
-## Page Structure
+Located under:
 
-```
+```text
 dashboard/pages/
-├── overview.py      # Dashboard overview with KPI cards and recent jobs
-├── jobs.py          # Job explorer with search, filters, and pagination
-├── analytics.py     # Full analytics dashboard (skills, companies, locations, salary, trends)
-└── about.py         # Project information
 ```
 
-## Page Responsibilities
+Current pages include:
 
-| Page | Purpose | Key Features |
-|------|---------|--------------|
-| **Overview** | Dashboard summary | KPI cards, recent jobs, quick navigation, API status |
-| **Jobs** | Job search and browsing | Filters, search, pagination, job details expansion |
-| **Analytics** | Market insights | Skills, companies, locations, salary, employment types, trends |
-| **About** | Project information | Architecture overview, tech stack, principles |
+* `overview.py`
+* `jobs.py`
+* `analytics.py`
+* `about.py`
+
+Pages primarily orchestrate the user interface and compose services and reusable components.
 
 ---
 
-# 5. Caching Strategy
+## Dashboard Utilities
 
-## Per-Endpoint TTLs
+Located under:
 
-| Endpoint | TTL | Purpose |
-|----------|-----|---------|
-| Dashboard Summary | 5 min | Quick overview data |
-| Top Skills | 10 min | Skills demand trends |
-| Top Companies | 10 min | Company hiring trends |
-| Jobs by Location | 10 min | Geographic distribution |
-| Salary Statistics | 15 min | Stable salary data |
-| Salary Distribution | 15 min | Stable salary distribution |
-| Employment Types | 10 min | Employment trends |
-| Posting Trend | 5 min | Real-time trends |
-
-## Cache Implementation
-
-```python
-@cached(ttl=300)  # 5 minutes
-def get_dashboard_metrics(self):
-    # Expensive API call
-    return self._fetch_dashboard_summary()
+```text
+dashboard/utils/
 ```
 
-## Manual Refresh
+Utilities support cross-cutting dashboard concerns such as:
 
-All pages include a refresh button that:
-1. Clears all caches
-2. Reloads data from API
-3. Re-renders visualizations
+* Caching
+* Formatting
+* Application state
+* Logging
+* Service creation
+* Helper functions
 
 ---
 
-# 6. Testing Strategy
+# 7. Caching
 
-## Test Structure
+Caching is implemented within the dashboard application.
 
+The purpose is to reduce repeated API requests for data that does not need to be retrieved on every page interaction.
+
+Caching is therefore a dashboard optimization rather than a replacement for the API or database.
+
+Cache behavior and endpoint-specific settings should be treated as implementation details of the dashboard rather than assumptions about database freshness.
+
+---
+
+# 8. Database and Migrations
+
+The database schema is managed through Alembic migrations.
+
+Migration files are located under:
+
+```text
+migrations/
 ```
-dashboard/tests/
-├── test_analytics_mapper.py  # Mapper transformations (9 tests)
-├── test_analytics_service.py # Service API calls (16 tests)
-└── test_charts.py            # Chart generation (13 tests)
-```
 
-## Running Tests
+The normal schema update operation is:
 
 ```bash
-# Run all dashboard tests
-python -m pytest dashboard/tests/ -v
-
-# Run specific test file
-python -m pytest dashboard/tests/test_analytics_mapper.py -v
+alembic upgrade head
 ```
 
-## Test Coverage
+The migration chain provides a reproducible schema history across environments.
 
-| Layer | Tests | What's Tested |
-|-------|-------|---------------|
-| Mapper | 9 | Domain → Chart Model transformations |
-| Service | 16 | API calls, validation, error handling, caching |
-| Charts | 13 | Plotly figure generation with various data states |
+The API container applies migrations during startup before starting Uvicorn.
+
+The ETL workflow also runs migrations before executing the pipeline.
+
+Database schema details are documented separately in [`database_schema.md`](database_schema.md).
 
 ---
 
-# 7. Development Workflow
+# 9. Architectural Decisions
 
-## Setup
+## PostgreSQL for Persistent Storage
 
-```bash
-# Clone repository
-git clone <repository-url>
-cd job-market-analytics-api
+PostgreSQL provides relational storage for:
 
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+* Jobs
+* Skills
+* Job-skill relationships
+* Pipeline execution records
 
-# Install dependencies
-pip install -r requirements.txt
+The relational model supports analytical queries and explicit relationships between jobs and skills.
 
-# Run FastAPI backend
-uvicorn app.main:app --reload
+## FastAPI for the Backend
 
-# Run Streamlit dashboard (in new terminal)
-streamlit run dashboard/app.py
-```
+FastAPI provides the HTTP boundary between the stored analytical data and consuming applications.
 
-## Environment Variables
+It also provides:
 
-```bash
-# .env file
-API_BASE_URL=http://localhost:8000
-API_TIMEOUT=30
-CACHE_TTL_DEFAULT=300
-ENABLE_CACHE=True
-APP_TITLE=Job Market Dashboard
-APP_ICON=📊
-DEBUG=False
-```
+* Request validation
+* Typed responses
+* Dependency injection
+* OpenAPI documentation
 
-## Quality Checks
+## Streamlit for the Dashboard
 
-```bash
-# Linting
-ruff check dashboard/
+Streamlit provides a Python-native interface for presenting analytical results without requiring a separate frontend framework.
 
-# Formatting
-black dashboard/
+The dashboard remains decoupled from the database by consuming the API.
 
-# Type checking
-mypy dashboard/ --explicit-package-bases --ignore-missing-imports
+## Repository and Service Separation
 
-# Run all quality checks
-ruff check dashboard/ && black dashboard/ && mypy dashboard/ --explicit-package-bases --ignore-missing-imports
-```
+Repositories isolate database access.
 
----
+Services contain application logic.
 
-# 8. Sprint Timeline
+This makes responsibilities clearer and allows backend logic to be tested without embedding all behavior inside route functions.
 
-| Sprint | Focus | Status |
-|--------|-------|--------|
-| 5.1 | Dashboard Foundation | ✅ Complete |
-| 5.2 | Job Explorer | ✅ Complete |
-| 5.3 | Analytics Dashboard | ✅ Complete |
-| 5.4 | Polish & Production Readiness | ✅ Complete |
+## Separate ETL and API Execution
 
-## Sprint 5.4 Deliverables
+ETL execution is separated from request handling so that large ingestion operations do not need to run inside normal API requests.
 
-| Area | Deliverable | Status |
-|------|-------------|--------|
-| Performance | Per-endpoint caching, optimized API usage | ✅ |
-| UX | Loading states, empty states, friendly errors | ✅ |
-| UI | Professional SVG icons, consistent styling | ✅ |
-| Code Quality | Ruff, Black, MyPy passing | ✅ |
-| Testing | 38 tests passing | ✅ |
-| Documentation | Architecture docs updated | ✅ |
+## Centralized Enrichment
+
+Data enrichment is performed during ETL rather than independently by downstream consumers.
+
+This creates a consistent representation of normalized and classified job data for the API and dashboard.
+
+## Alembic Migrations
+
+Schema changes are tracked as migrations rather than being applied through undocumented manual database changes.
 
 ---
 
-# 9. Architecture Constraints
+# 10. Architectural Constraints
 
-## Must Follow
+The following boundaries should be preserved.
 
-- ✅ Remain modular with clear layer boundaries
-- ✅ Use repository pattern for data access
-- ✅ Use service layer pattern for business logic
-- ✅ Pages must only orchestrate, never transform data
-- ✅ Services must own the mapper
-- ✅ Components must remain reusable
-- ✅ Use SVG icons for professional appearance
+### Backend
 
-## Must Avoid
+* Routes should remain thin.
+* Business/application logic belongs in services.
+* Database access belongs in repositories.
+* Database sessions should not be created directly inside route functions.
+* API schemas should remain separate from database models where appropriate.
 
-- ❌ Business logic in routes
-- ❌ Direct database access from dashboard
-- ❌ Global mutable state
-- ❌ Pages calling HTTP directly
-- ❌ Pages using mapper directly
-- ❌ Charts containing business logic
+### ETL
+
+* Extraction should remain separate from transformation.
+* Enrichment should remain separate from validation.
+* Loading should operate on validated pipeline data.
+* ETL execution should remain independently observable.
+
+### Dashboard
+
+* Pages should primarily orchestrate UI.
+* Pages should not perform raw HTTP requests.
+* Dashboard services should own API interaction.
+* Mappers should handle presentation-oriented transformation.
+* Reusable components should not contain backend business logic.
+* Dashboard code should not connect directly to the production database.
+
+### Production
+
+* Production database changes should use Alembic migrations.
+* Deployment configuration should not contain plaintext secrets.
+* Application rollback should not be treated as database rollback.
+* Operational monitoring should distinguish application failures from dependency failures.
 
 ---
 
-# 10. Definition of Done
+# 11. Failure Boundaries
 
-A feature is complete when:
+The architecture separates several failure domains:
 
-1. ✅ Code follows layered architecture
-2. ✅ Tests pass
-3. ✅ Ruff and Black checks pass
-4. ✅ MyPy type checking passes
-5. ✅ Documentation updated
-6. ✅ No dead code or debug prints
-7. ✅ Loading, empty, and error states implemented
-8. ✅ Professional UI with SVG icons
-
----
-
-End of Architecture Document
+```text
+External API
+     │
+     ▼
+    ETL
+     │
+     ▼
+ Database
+     │
+     ▼
+    API
+     │
+     ▼
+ Dashboard
 ```
+
+A failure in one component can affect dependent components.
+
+For example:
+
+```text
+Database unavailable
+       ↓
+API readiness failure
+       ↓
+Dashboard data requests fail
+```
+
+Similarly:
+
+```text
+Database unavailable
+       ↓
+ETL cannot load data
+       ↓
+Data freshness is affected
+```
+
+The architecture therefore emphasizes **clear dependency boundaries and observable failure points**, rather than assuming that failures are completely isolated.
+
+Detailed failure diagnosis is documented in [`troubleshooting.md`](troubleshooting.md).
+
+---
+
+# 12. Related Documentation
+
+* [`README.md`](../README.md) — project overview and getting started
+* [`development.md`](development.md) — local development workflow
+* [`testing.md`](testing.md) — testing strategy
+* [`operations.md`](operations.md) — normal system operations
+* [`deployment.md`](deployment.md) — deployment, rollback, and recovery
+* [`troubleshooting.md`](troubleshooting.md) — failure diagnosis
+* [`api_contract.md`](api_contract.md) — API contract
+* [`database_schema.md`](database_schema.md) — database structure
+* [`roadmap.md`](roadmap.md) — development history and roadmap
